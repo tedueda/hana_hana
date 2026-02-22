@@ -264,6 +264,16 @@ const UserManagementTab: React.FC<{ token: string }> = ({ token }) => {
 
 type BlogStep = 'input' | 'generating' | 'preview' | 'editing' | 'publishing' | 'done';
 
+interface BlogItem {
+  id: string;
+  title: string;
+  slug: string;
+  status: string;
+  image_url: string | null;
+  published_at: string | null;
+  created_at: string | null;
+}
+
 const BlogGeneratorTab: React.FC<{ token: string }> = ({ token }) => {
   const [step, setStep] = useState<BlogStep>('input');
   const [titleCandidates, setTitleCandidates] = useState('');
@@ -276,7 +286,43 @@ const BlogGeneratorTab: React.FC<{ token: string }> = ({ token }) => {
   const [editExcerpt, setEditExcerpt] = useState('');
   const [editKeywords, setEditKeywords] = useState('');
   const [error, setError] = useState('');
+  const [blogList, setBlogList] = useState<BlogItem[]>([]);
+  const [blogListLoading, setBlogListLoading] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<BlogItem | null>(null);
   const navigate = useNavigate();
+
+  const fetchBlogList = useCallback(async () => {
+    setBlogListLoading(true);
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/admin/blog`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error('Failed to fetch blogs');
+      const data = await res.json();
+      setBlogList(data);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setBlogListLoading(false);
+    }
+  }, [token]);
+
+  useEffect(() => { fetchBlogList(); }, [fetchBlogList]);
+
+  const handleDeleteBlog = async () => {
+    if (!deleteTarget) return;
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/admin/blog/${deleteTarget.id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error('Delete failed');
+      setDeleteTarget(null);
+      fetchBlogList();
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   const handleImageUpload = async (file: File) => {
     setImageFile(file);
@@ -517,6 +563,69 @@ const BlogGeneratorTab: React.FC<{ token: string }> = ({ token }) => {
         <Sparkles className="h-4 w-4 mr-2" />
         {step === 'generating' ? 'SEO記事生成中...' : 'SEO記事生成'}
       </Button>
+
+      {blogList.length > 0 && (
+        <Card>
+          <CardContent className="p-6">
+            <h3 className="text-sm font-medium text-gray-500 mb-4">公開済み・下書き記事</h3>
+            {blogListLoading ? (
+              <p className="text-gray-500 text-sm">読み込み中...</p>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>タイトル</TableHead>
+                    <TableHead className="w-24">ステータス</TableHead>
+                    <TableHead className="w-32">公開日</TableHead>
+                    <TableHead className="w-16"></TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {blogList.map(b => (
+                    <TableRow key={b.id}>
+                      <TableCell className="font-medium">
+                        {b.status === 'published' ? (
+                          <a href={`/blog/${b.slug}`} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">{b.title}</a>
+                        ) : b.title}
+                      </TableCell>
+                      <TableCell>
+                        <span className={`text-xs px-2 py-1 rounded-full ${
+                          b.status === 'published' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'
+                        }`}>
+                          {b.status === 'published' ? '公開中' : '下書き'}
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-sm text-gray-600">
+                        {b.published_at ? new Date(b.published_at).toLocaleDateString('ja-JP') : '-'}
+                      </TableCell>
+                      <TableCell>
+                        <Button variant="ghost" size="sm" onClick={() => setDeleteTarget(b)}>
+                          <Trash2 className="h-4 w-4 text-red-500" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      <Dialog open={!!deleteTarget} onOpenChange={() => setDeleteTarget(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>記事を削除</DialogTitle>
+            <DialogDescription>
+              「{deleteTarget?.title}」を削除しますか？この操作は取り消せません。
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteTarget(null)}>キャンセル</Button>
+            <Button variant="destructive" onClick={handleDeleteBlog}>削除する</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

@@ -28,15 +28,27 @@ def _seed_admin_user(db):
         return
     existing = db.query(UserModel).filter(UserModel.email == seed_email).first()
     if existing:
+        changed = False
         if getattr(existing, "role", "user") != "admin":
+            existing.role = "admin"
+            existing.membership_type = "admin"
+            changed = True
+        if getattr(existing, "deleted_at", None) is not None:
+            existing.deleted_at = None
+            existing.is_active = True
+            changed = True
+        if not getattr(existing, "is_active", True):
+            existing.is_active = True
+            changed = True
+        existing.password_hash = get_password_hash(seed_pass)
+        changed = True
+        if changed:
             try:
-                existing.role = "admin"
-                existing.membership_type = "admin"
                 db.commit()
-                print(f"✅ Promoted {seed_email} to admin")
+                print(f"✅ Restored/promoted {seed_email} to admin")
             except Exception as e:
                 db.rollback()
-                print(f"⚠️ Failed promoting admin: {e}")
+                print(f"⚠️ Failed restoring admin: {e}")
         return
     try:
         admin_user = UserModel(
