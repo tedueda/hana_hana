@@ -173,7 +173,7 @@ const PublicBlogDetailPage: React.FC = () => {
           <CardContent className="p-6 text-center space-y-3">
             <h3 className="text-lg font-bold text-gray-800">{t('blogDetail.ctaTitle')}</h3>
             <p className="text-sm text-gray-600">{t('blogDetail.ctaDescription')}</p>
-            <Link to="/subscribe">
+            <Link to="/">
               <Button className="bg-gradient-to-r from-pink-500 to-orange-400 hover:from-pink-600 hover:to-orange-500 text-white">
                 {t('blogDetail.ctaButton')} <ArrowRight className="h-4 w-4 ml-1" />
               </Button>

@@ -44,7 +44,7 @@ else:
 
 LLM_MODEL = os.getenv("LLM_MODEL", "gpt-4o-mini")
 LLM_TEMPERATURE = float(os.getenv("LLM_TEMPERATURE", "0.7"))
-LLM_MAX_TOKENS = int(os.getenv("LLM_MAX_TOKENS", "1600"))
+LLM_MAX_TOKENS = int(os.getenv("LLM_MAX_TOKENS", "3200"))
 
 ADMIN_SEED_EMAIL = os.getenv("ADMIN_SEED_EMAIL", "ted@carat-community.com")
 ADMIN_SEED_PASSWORD = os.getenv("ADMIN_SEED_PASSWORD", "")
@@ -296,7 +296,7 @@ def generate_blog(
         "Return ONLY valid JSON with these keys: "
         "keywords (array of 3-8 SEO keywords), "
         "final_title (the best title from candidates or improved), "
-        "body (blog body text, exactly 900-1100 Japanese characters, naturally integrating keywords), "
+        "body (blog body text, exactly 1800-2200 Japanese characters, naturally integrating keywords), "
         "excerpt (120 character summary), "
         "slug (URL-friendly ASCII slug derived from the title)."
     )
@@ -438,6 +438,31 @@ def delete_blog(
     db.delete(post)
     db.commit()
     return {"ok": True}
+
+
+class AdminBlogItem(BaseModel):
+    id: str
+    title: str
+    slug: str
+    status: str
+    image_url: Optional[str] = None
+    published_at: Optional[datetime] = None
+    created_at: Optional[datetime] = None
+
+
+@router.get("/api/admin/blog", response_model=List[AdminBlogItem])
+def admin_blog_list(
+    current_user: User = Depends(get_current_admin_user),
+    db: Session = Depends(get_db),
+):
+    posts = db.query(BlogPost).order_by(BlogPost.created_at.desc()).all()
+    return [
+        AdminBlogItem(
+            id=str(p.id), title=p.title, slug=p.slug, status=p.status,
+            image_url=p.image_url, published_at=p.published_at, created_at=p.created_at,
+        )
+        for p in posts
+    ]
 
 
 # ──────────────── Public Blog ────────────────
