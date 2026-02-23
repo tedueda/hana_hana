@@ -346,6 +346,33 @@ def run_migrations():
         else:
             print("\u2705 blog_posts table already exists")
 
+        if not _table_exists("blog_post_translations"):
+            try:
+                db.execute(
+                    text(
+                        """
+                        CREATE TABLE IF NOT EXISTS blog_post_translations (
+                            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                            blog_post_id UUID NOT NULL REFERENCES blog_posts(id) ON DELETE CASCADE,
+                            language VARCHAR(10) NOT NULL,
+                            title VARCHAR(600) NOT NULL,
+                            body TEXT NOT NULL,
+                            excerpt TEXT,
+                            seo_keywords JSONB,
+                            created_at TIMESTAMPTZ DEFAULT NOW(),
+                            CONSTRAINT uq_blog_translation_post_lang UNIQUE (blog_post_id, language)
+                        )
+                        """
+                    )
+                )
+                db.commit()
+                print("\u2705 Created table: blog_post_translations")
+            except Exception as e:
+                db.rollback()
+                print(f"\u26a0\ufe0f Failed creating table blog_post_translations: {e}")
+        else:
+            print("\u2705 blog_post_translations table already exists")
+
         if not _table_exists("audit_logs"):
             try:
                 db.execute(

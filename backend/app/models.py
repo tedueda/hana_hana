@@ -1021,6 +1021,25 @@ class BlogPost(Base):
     creator = relationship("User")
 
 
+class BlogPostTranslation(Base):
+    __tablename__ = "blog_post_translations"
+
+    id = Column(PG_UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    blog_post_id = Column(PG_UUID(as_uuid=True), ForeignKey("blog_posts.id", ondelete="CASCADE"), nullable=False)
+    language = Column(String(10), nullable=False)
+    title = Column(String(600), nullable=False)
+    body = Column(Text, nullable=False)
+    excerpt = Column(Text, nullable=True)
+    seo_keywords = Column(JSON, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    __table_args__ = (
+        UniqueConstraint("blog_post_id", "language", name="uq_blog_translation_post_lang"),
+    )
+
+    blog_post = relationship("BlogPost")
+
+
 class AuditLog(Base):
     __tablename__ = "audit_logs"
 

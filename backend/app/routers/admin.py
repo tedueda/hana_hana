@@ -20,7 +20,7 @@ from slowapi.util import get_remote_address
 
 from app.database import get_db
 from app.auth import get_current_admin_user, verify_password, create_access_token, get_password_hash
-from app.models import User, BlogPost, AuditLog
+from app.models import User, BlogPost, BlogPostTranslation, AuditLog
 
 logger = logging.getLogger(__name__)
 
@@ -467,6 +467,62 @@ def admin_blog_list(
 
 # ──────────────── Public Blog ────────────────
 
+LANG_NAMES = {
+    "en": "English", "ko": "Korean", "es": "Spanish",
+    "pt": "Portuguese", "fr": "French", "it": "Italian", "de": "German",
+}
+
+
+def _translate_blog(db: Session, post: BlogPost, lang: str) -> Optional["BlogPostTranslation"]:
+    if lang == "ja" or lang not in LANG_NAMES:
+        return None
+    cached = (
+        db.query(BlogPostTranslation)
+        .filter(BlogPostTranslation.blog_post_id == post.id, BlogPostTranslation.language == lang)
+        .first()
+    )
+    if cached:
+        return cached
+    import openai
+    api_key = os.getenv("OPENAI_API_KEY", "")
+    if not api_key:
+        return None
+    try:
+        client = openai.OpenAI(api_key=api_key)
+        lang_name = LANG_NAMES[lang]
+        kw_text = ", ".join(post.seo_keywords) if post.seo_keywords else ""
+        prompt = (
+            f"Translate the following Japanese blog post into {lang_name}. "
+            "Return ONLY valid JSON with keys: title, body, excerpt, seo_keywords (array of translated keywords). "
+            "Preserve paragraph breaks. Do not add any commentary.\n\n"
+            f"Title: {post.title}\n\nExcerpt: {post.excerpt or ''}\n\nKeywords: {kw_text}\n\nBody:\n{post.body}"
+        )
+        resp = client.chat.completions.create(
+            model=os.getenv("LLM_MODEL", "gpt-4o-mini"),
+            temperature=0.3,
+            max_tokens=4000,
+            messages=[{"role": "user", "content": prompt}],
+            response_format={"type": "json_object"},
+        )
+        result = _parse_llm_json(resp.choices[0].message.content)
+        tr = BlogPostTranslation(
+            blog_post_id=post.id,
+            language=lang,
+            title=result.get("title", post.title),
+            body=result.get("body", post.body),
+            excerpt=result.get("excerpt", post.excerpt),
+            seo_keywords=result.get("seo_keywords", post.seo_keywords),
+        )
+        db.add(tr)
+        db.commit()
+        db.refresh(tr)
+        return tr
+    except Exception as e:
+        db.rollback()
+        logger.warning("Blog translation failed for %s/%s: %s", post.slug, lang, e)
+        return None
+
+
 class PublicBlogItem(BaseModel):
     id: str
     title: str
@@ -482,30 +538,43 @@ class PublicBlogDetail(PublicBlogItem):
 
 
 @router.get("/api/blog", response_model=List[PublicBlogItem])
-def public_blog_list(db: Session = Depends(get_db)):
+def public_blog_list(lang: str = Query("ja"), db: Session = Depends(get_db)):
     posts = (
         db.query(BlogPost)
         .filter(BlogPost.status == "published")
         .order_by(BlogPost.published_at.desc())
         .all()
     )
-    return [
-        PublicBlogItem(
-            id=str(p.id), title=p.title, slug=p.slug, excerpt=p.excerpt,
-            image_url=p.image_url, seo_keywords=p.seo_keywords,
-            published_at=p.published_at, created_at=p.created_at,
-        )
-        for p in posts
-    ]
+    items = []
+    for p in posts:
+        tr = _translate_blog(db, p, lang) if lang != "ja" else None
+        items.append(PublicBlogItem(
+            id=str(p.id),
+            title=tr.title if tr else p.title,
+            slug=p.slug,
+            excerpt=tr.excerpt if tr else p.excerpt,
+            image_url=p.image_url,
+            seo_keywords=tr.seo_keywords if tr else p.seo_keywords,
+            published_at=p.published_at,
+            created_at=p.created_at,
+        ))
+    return items
 
 
 @router.get("/api/blog/{slug}", response_model=PublicBlogDetail)
-def public_blog_detail(slug: str, db: Session = Depends(get_db)):
+def public_blog_detail(slug: str, lang: str = Query("ja"), db: Session = Depends(get_db)):
     post = db.query(BlogPost).filter(BlogPost.slug == slug, BlogPost.status == "published").first()
     if not post:
         raise HTTPException(status_code=404, detail="Blog not found")
+    tr = _translate_blog(db, post, lang) if lang != "ja" else None
     return PublicBlogDetail(
-        id=str(post.id), title=post.title, slug=post.slug, body=post.body,
-        excerpt=post.excerpt, image_url=post.image_url, seo_keywords=post.seo_keywords,
-        published_at=post.published_at, created_at=post.created_at,
+        id=str(post.id),
+        title=tr.title if tr else post.title,
+        slug=post.slug,
+        body=tr.body if tr else post.body,
+        excerpt=tr.excerpt if tr else post.excerpt,
+        image_url=post.image_url,
+        seo_keywords=tr.seo_keywords if tr else post.seo_keywords,
+        published_at=post.published_at,
+        created_at=post.created_at,
     )
