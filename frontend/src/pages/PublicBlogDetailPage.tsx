@@ -27,7 +27,8 @@ const PublicBlogDetailPage: React.FC = () => {
   useEffect(() => {
     (async () => {
       try {
-        const res = await fetch(`${BACKEND_URL}/api/blog/${slug}`);
+        setLoading(true);
+        const res = await fetch(`${BACKEND_URL}/api/blog/${slug}?lang=${i18n.language}`);
         if (res.ok) {
           const data = await res.json();
           setBlog(data);
@@ -43,7 +44,7 @@ const PublicBlogDetailPage: React.FC = () => {
       const jsonLd = document.getElementById('blog-jsonld');
       if (jsonLd) jsonLd.remove();
     };
-  }, [slug]);
+  }, [slug, i18n.language]);
 
   const updateSEO = (data: BlogDetail) => {
     document.title = `${data.title} | Carat Community`;

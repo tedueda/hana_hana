@@ -23,7 +23,8 @@ const PublicBlogListPage: React.FC = () => {
   useEffect(() => {
     (async () => {
       try {
-        const res = await fetch(`${BACKEND_URL}/api/blog`);
+        setLoading(true);
+        const res = await fetch(`${BACKEND_URL}/api/blog?lang=${i18n.language}`);
         if (res.ok) setBlogs(await res.json());
       } catch (e) {
         console.error('Failed to fetch blogs', e);
@@ -31,7 +32,7 @@ const PublicBlogListPage: React.FC = () => {
         setLoading(false);
       }
     })();
-  }, []);
+  }, [i18n.language]);
 
   const formatDate = (d: string | null) => {
     if (!d) return '';
