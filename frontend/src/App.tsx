@@ -54,6 +54,7 @@ import ContactPage from './pages/ContactPage';
 import AdminPage from './pages/AdminPage';
 import PublicBlogListPage from './pages/PublicBlogListPage';
 import PublicBlogDetailPage from './pages/PublicBlogDetailPage';
+import MobileBottomBar from './components/MobileBottomBar';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
 import EmailVerificationPendingPage from './pages/EmailVerificationPendingPage';
@@ -294,6 +295,7 @@ function AppContent() {
         </Routes>
       </main>
       <Footer />
+      <MobileBottomBar />
     </div>
   );
 }
