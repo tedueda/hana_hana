@@ -9,7 +9,7 @@ const VirtualWeddingPage: React.FC = () => {
   const [expandedFaq, setExpandedFaq] = useState<number | null>(null);
   const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
 
-  const youtubeVideoId = 'JQlhQTPbKsk';
+  const localVideoPath = '/images/flova_Live Wedding 01.mp4';
 
   // const features = [
   //   {
@@ -76,12 +76,13 @@ const VirtualWeddingPage: React.FC = () => {
       {/* Hero Section with Background Video - Full Width */}
       <div className="relative w-full h-[850px] flex items-center justify-center overflow-hidden">
           {/* Background Video */}
-          <iframe
-            className="absolute inset-0 w-full h-full object-cover scale-[1.25] pointer-events-none"
-            src={`https://www.youtube.com/embed/${youtubeVideoId}?autoplay=1&mute=1&loop=1&playlist=${youtubeVideoId}&controls=0&modestbranding=1&playsinline=1&rel=0`}
-            title="Live Wedding Video"
-            allow="autoplay; encrypted-media; picture-in-picture"
-            referrerPolicy="strict-origin-when-cross-origin"
+          <video
+            className="absolute inset-0 w-full h-full object-cover scale-[1.25]"
+            src={localVideoPath}
+            autoPlay
+            muted
+            loop
+            playsInline
           />
           
           {/* Overlay */}
@@ -241,12 +242,13 @@ const VirtualWeddingPage: React.FC = () => {
               className="aspect-video rounded-xl overflow-hidden mb-6 cursor-pointer relative group"
               onClick={() => setIsVideoModalOpen(true)}
             >
-              <iframe
-                className="w-full h-full object-cover pointer-events-none"
-                src={`https://www.youtube.com/embed/${youtubeVideoId}?autoplay=1&mute=1&loop=1&playlist=${youtubeVideoId}&controls=0&modestbranding=1&playsinline=1&rel=0`}
-                title="Background Composite Demo"
-                allow="autoplay; encrypted-media; picture-in-picture"
-                referrerPolicy="strict-origin-when-cross-origin"
+              <video
+                className="w-full h-full object-cover"
+                src={localVideoPath}
+                autoPlay
+                muted
+                loop
+                playsInline
               />
               {/* 再生ボタンオーバーレイ */}
               <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
@@ -356,12 +358,12 @@ const VirtualWeddingPage: React.FC = () => {
             
             {/* 動画 */}
             <div className="aspect-video bg-black rounded-xl overflow-hidden">
-              <iframe
+              <video
                 className="w-full h-full"
-                src={`https://www.youtube.com/embed/${youtubeVideoId}?autoplay=1&mute=0&controls=1&modestbranding=1&playsinline=1&rel=0`}
-                title="Background Composite Demo (Modal)"
-                allow="autoplay; encrypted-media; picture-in-picture"
-                referrerPolicy="strict-origin-when-cross-origin"
+                src={localVideoPath}
+                autoPlay
+                controls
+                playsInline
               />
             </div>
           </div>

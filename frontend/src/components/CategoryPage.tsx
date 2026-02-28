@@ -10,6 +10,7 @@ import { ArrowLeft, Plus, MessageCircle, Filter, SortAsc, Globe } from 'lucide-r
 import LikeButton from './common/LikeButton';
 import { Post } from '../types/Post';
 import { getYouTubeThumbnail, extractYouTubeUrlFromText } from '../utils/youtube';
+import { detectExternalEmbed } from '../utils/embedExtractors';
 import { getPostImageUrl } from '../utils/imageUtils';
 import { API_URL } from '../config';
 
@@ -415,9 +416,25 @@ const CategoryPage: React.FC = () => {
                   );
                 }
                 
-                // 画像がない場合はYouTubeサムネイルまたはプレースホルダー
+                // 画像がない場合はYouTubeサムネイル、外部埋め込み、またはプレースホルダー
                 const ytUrl = post.youtube_url || extractYouTubeUrlFromText(post.body || '') || '';
                 const ytThumb = getYouTubeThumbnail(ytUrl);
+
+                // stand.fm / suno.ai の場合はブランドカードを表示
+                if (!ytThumb) {
+                  const externalEmbed = detectExternalEmbed(post.body || '');
+                  if (externalEmbed) {
+                    return (
+                      <div className="aspect-[3/2] w-full h-[220px] overflow-hidden rounded-t-2xl bg-gradient-to-br from-purple-100 to-pink-100 flex flex-col items-center justify-center gap-2">
+                        <div className="text-4xl">{externalEmbed.type === 'standfm' ? '🎙️' : '🎵'}</div>
+                        <span className="text-sm font-medium text-gray-600">
+                          {externalEmbed.type === 'standfm' ? 'stand.fm' : 'Suno AI'}
+                        </span>
+                      </div>
+                    );
+                  }
+                }
+
                 const imageSrc = ytThumb || getCategoryPlaceholder(post.category);
                 const finalSrc =
                   imageSrc.startsWith('http')
