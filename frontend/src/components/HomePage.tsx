@@ -703,11 +703,30 @@ const HomePage: React.FC = () => {
                       }}
                     />
                   </div>
-                ) : (
-                  <div className="w-32 h-20 md:w-full md:h-[200px] flex-shrink-0 overflow-hidden rounded-l-lg md:rounded-l-none md:rounded-t-lg bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
-                    <span className="text-6xl opacity-30">📰</span>
-                  </div>
-                )}
+                ) : (() => {
+                  const externalEmbed = detectExternalEmbed(article.body || '');
+                  if (externalEmbed) {
+                    return (
+                      <OgpThumbnail
+                        url={externalEmbed.originalUrl}
+                        alt={article.title || (externalEmbed.type === 'standfm' ? 'stand.fm' : 'Suno AI')}
+                        className="w-32 h-20 md:w-full md:h-[200px] flex-shrink-0 overflow-hidden rounded-l-lg md:rounded-l-none md:rounded-t-lg bg-gray-100 flex items-center justify-center"
+                        imgClassName="w-full h-full object-cover"
+                        fallback={
+                          <div className="w-32 h-20 md:w-full md:h-[200px] flex-shrink-0 overflow-hidden rounded-l-lg md:rounded-l-none md:rounded-t-lg bg-gradient-to-br from-purple-100 to-pink-100 flex flex-col items-center justify-center gap-1">
+                            <div className="text-3xl">{externalEmbed.type === 'standfm' ? '🎙️' : '🎵'}</div>
+                            <span className="text-xs font-medium text-gray-600">{externalEmbed.type === 'standfm' ? 'stand.fm' : 'Suno AI'}</span>
+                          </div>
+                        }
+                      />
+                    );
+                  }
+                  return (
+                    <div className="w-32 h-20 md:w-full md:h-[200px] flex-shrink-0 overflow-hidden rounded-l-lg md:rounded-l-none md:rounded-t-lg bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
+                      <span className="text-6xl opacity-30">📰</span>
+                    </div>
+                  );
+                })()}
                 <CardContent className="p-2 md:p-5 flex-1">
                   <div className="hidden md:flex items-center gap-2 mb-3">
                     <span className="text-xs bg-gray-800 text-white px-2.5 py-1 rounded font-medium">
