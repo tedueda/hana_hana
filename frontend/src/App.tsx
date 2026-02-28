@@ -57,6 +57,8 @@ import PublicBlogDetailPage from './pages/PublicBlogDetailPage';
 import MobileBottomBar from './components/MobileBottomBar';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
+import { AudioProvider } from './contexts/AudioContext';
+import GlobalAudioPlayer from './components/GlobalAudioPlayer';
 import EmailVerificationPendingPage from './pages/EmailVerificationPendingPage';
 import VerifyEmailPage from './pages/VerifyEmailPage';
 
@@ -100,6 +102,7 @@ function AppContent() {
     <div className="min-h-screen bg-white">
       <Header />
       <ScrollToTop />
+      <GlobalAudioPlayer />
       <main className={`bg-white ${isHome ? '' : 'pt-40 md:pt-32'}`}>
         <Routes>
           <Route path="/login" element={
@@ -308,9 +311,11 @@ function App() {
   return (
     <AuthProvider>
       <LanguageProvider>
-        <Router basename={import.meta.env.BASE_URL}>
-          <AppContent />
-        </Router>
+        <AudioProvider>
+          <Router basename={import.meta.env.BASE_URL}>
+            <AppContent />
+          </Router>
+        </AudioProvider>
       </LanguageProvider>
     </AuthProvider>
   );

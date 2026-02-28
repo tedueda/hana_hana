@@ -7,7 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
-from app.routers import auth, users, profiles, posts, comments, reactions, follows, notifications, media, billing, matching, categories, ops, account, donation, salon, flea_market, jewelry, live_wedding, art_sales, courses, translations, stripe_billing, contact, admin
+from app.routers import auth, users, profiles, posts, comments, reactions, follows, notifications, media, billing, matching, categories, ops, account, donation, salon, flea_market, jewelry, live_wedding, art_sales, courses, translations, stripe_billing, ogp, contact, admin
 from app.database import Base, engine, get_db
 import os
 from pathlib import Path
@@ -496,6 +496,7 @@ app.include_router(art_sales.router)
 app.include_router(courses.router)
 app.include_router(translations.router)
 app.include_router(stripe_billing.router)
+app.include_router(ogp.router)
 app.include_router(contact.router)
 app.include_router(admin.router)
 

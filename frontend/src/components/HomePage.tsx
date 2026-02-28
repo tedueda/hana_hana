@@ -140,7 +140,6 @@ const HomePage: React.FC = () => {
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [upgradeFeatureName, setUpgradeFeatureName] = useState('');
   const [currentSlide, setCurrentSlide] = useState(0);
-  const [isHeroVisible] = useState(true);
   const heroSectionRef = useRef<HTMLElement>(null);
   const { token, user, isAnonymous } = useAuth();
   const navigate = useNavigate();
@@ -358,7 +357,7 @@ const HomePage: React.FC = () => {
               <span className="text-lg">♫</span>
               <span>Inspired by Marvin Gaye</span>
             </div>
-            <HeroAudioPlayer isHeroVisible={isHeroVisible} />
+            <HeroAudioPlayer />
           </div>
           <div className="relative z-10 flex items-center justify-center h-full">
             <div className="text-center text-white px-4 max-w-6xl">

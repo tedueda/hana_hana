@@ -12,6 +12,8 @@ import TranslationToggle from './common/TranslationToggle';
 import { fetchPostWithTranslation } from '../services/translationService';
 import { getPreferredLanguage } from '../utils/languageUtils';
 import { API_URL } from '../config';
+import { detectExternalEmbed } from '../utils/embedExtractors';
+import OgpLinkPreview from './common/OgpLinkPreview';
 
 interface PostDetailModalProps {
   post: Post;
@@ -791,6 +793,25 @@ const PostDetailModal: React.FC<PostDetailModalProps> = ({
                 className="w-full h-full rounded-lg"
               />
             </div>
+          ) : detectExternalEmbed(post.body) ? (
+            (() => {
+              const embed = detectExternalEmbed(post.body)!;
+              return (
+                <div className={`w-full ${embed.type === 'standfm' ? 'h-[230px]' : 'aspect-video'}`}>
+                  <iframe
+                    src={embed.embedUrl}
+                    title={embed.type === 'standfm' ? 'stand.fm player' : 'Suno player'}
+                    frameBorder="0"
+                    allow="autoplay; encrypted-media"
+                    allowFullScreen
+                    className="w-full h-full rounded-lg"
+                    style={{ border: 0 }}
+                  />
+                </div>
+              );
+            })()
+          ) : linkUrlFromBody && !(post.media_url || (post.media_urls && post.media_urls[0])) ? (
+            <OgpLinkPreview url={linkUrlFromBody} />
           ) : !(post.media_url || (post.media_urls && post.media_urls[0])) && (
             <div className="aspect-[3/2] bg-gray-100 flex items-center justify-center">
               <img
