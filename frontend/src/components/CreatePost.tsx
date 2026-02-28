@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { PlusCircle, Music, MessageSquare, Store, MapPin, Film, FileText, Palette, Upload, X, Lock } from 'lucide-react';
+import { PlusCircle, Music, MessageSquare, Store, MapPin, Film, FileText, Palette, Upload, X, Lock, UtensilsCrossed, Newspaper, Sparkles, HeartHandshake } from 'lucide-react';
 import { API_URL } from '../config';
 
 const CreatePost: React.FC = () => {
@@ -54,6 +54,14 @@ const CreatePost: React.FC = () => {
     { key: 'shops', name: 'お店', icon: Store, description: 'LGBTQフレンドリーなお店紹介' },
     // ツーリズム
     { key: 'tourism', name: 'ツーリズム', icon: MapPin, description: '会員ガイドの交流型ツアー' },
+    // 食レポ
+    { key: 'food', name: '食レポ', icon: UtensilsCrossed, description: '単品メニュー・市販品のレビュー' },
+    // ニュース
+    { key: 'news', name: 'ニュース', icon: Newspaper, description: '最新の制度・条例情報と解説記事' },
+    // 美容
+    { key: 'beauty', name: '美容', icon: Sparkles, description: 'コスメ・スキンケアのレビュー' },
+    // 寄付金
+    { key: 'funding', name: '寄付金を募る', icon: HeartHandshake, description: 'LGBTQ+コミュニティの仲間を支援' },
     // ブログは既存ルート互換のため残すが、掲示板メニューとは別枠の長文記事カテゴリとして扱う
     { key: 'blog', name: 'ブログ', icon: FileText, description: '長文記事・体験談・エッセイ' },
   ];
@@ -64,7 +72,11 @@ const CreatePost: React.FC = () => {
     shops: ['アパレル・ブティック', '雑貨店', 'レストラン・バー', '美容室・メイク', 'その他'],
     tourism: [],
     comics: ['映画', 'コミック', 'TVドラマ', '同人誌', 'その他'],
-    art: []
+    art: [],
+    food: ['料理・食品', '飲食店', 'ブティック', '雑貨店', 'バー', 'サロン', 'ライブハウス'],
+    news: [],
+    beauty: [],
+    funding: []
   };
 
   const getLinkHostname = (url: string): string | null => {
@@ -541,7 +553,7 @@ const CreatePost: React.FC = () => {
               </>
             )}
 
-            {(category === 'board' || category === 'tourism' || category === 'shops' || category === 'comics' || category === 'art') && (
+            {(category === 'board' || category === 'tourism' || category === 'shops' || category === 'comics' || category === 'art' || category === 'food' || category === 'news' || category === 'beauty' || category === 'funding') && (
               <div className="space-y-2">
                 <Label className="text-gray-800">画像をアップロード（最大5枚、任意）</Label>
                 <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 hover:border-gray-400 transition-colors bg-gray-50">
