@@ -11,6 +11,7 @@ import LikeButton from './common/LikeButton';
 import { Post } from '../types/Post';
 import { getYouTubeThumbnail, extractYouTubeUrlFromText } from '../utils/youtube';
 import { detectExternalEmbed } from '../utils/embedExtractors';
+import OgpThumbnail from './common/OgpThumbnail';
 import { getPostImageUrl } from '../utils/imageUtils';
 import { API_URL } from '../config';
 
@@ -420,17 +421,25 @@ const CategoryPage: React.FC = () => {
                 const ytUrl = post.youtube_url || extractYouTubeUrlFromText(post.body || '') || '';
                 const ytThumb = getYouTubeThumbnail(ytUrl);
 
-                // stand.fm / suno.ai の場合はブランドカードを表示
+                // stand.fm / suno.ai の場合はOGPサムネイルを表示
                 if (!ytThumb) {
                   const externalEmbed = detectExternalEmbed(post.body || '');
                   if (externalEmbed) {
                     return (
-                      <div className="aspect-[3/2] w-full h-[220px] overflow-hidden rounded-t-2xl bg-gradient-to-br from-purple-100 to-pink-100 flex flex-col items-center justify-center gap-2">
-                        <div className="text-4xl">{externalEmbed.type === 'standfm' ? '🎙️' : '🎵'}</div>
-                        <span className="text-sm font-medium text-gray-600">
-                          {externalEmbed.type === 'standfm' ? 'stand.fm' : 'Suno AI'}
-                        </span>
-                      </div>
+                      <OgpThumbnail
+                        url={externalEmbed.originalUrl}
+                        alt={post.title || (externalEmbed.type === 'standfm' ? 'stand.fm' : 'Suno AI')}
+                        className="aspect-[3/2] w-full h-[220px] overflow-hidden rounded-t-2xl bg-gray-100 flex items-center justify-center"
+                        imgClassName="w-full h-full object-cover"
+                        fallback={
+                          <div className="aspect-[3/2] w-full h-[220px] overflow-hidden rounded-t-2xl bg-gradient-to-br from-purple-100 to-pink-100 flex flex-col items-center justify-center gap-2">
+                            <div className="text-4xl">{externalEmbed.type === 'standfm' ? '🎙️' : '🎵'}</div>
+                            <span className="text-sm font-medium text-gray-600">
+                              {externalEmbed.type === 'standfm' ? 'stand.fm' : 'Suno AI'}
+                            </span>
+                          </div>
+                        }
+                      />
                     );
                   }
                 }

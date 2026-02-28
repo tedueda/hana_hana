@@ -13,6 +13,8 @@ import { extractYouTubeId } from '../utils/youtube';
 import HeroAudioPlayer from './HeroAudioPlayer';
 import liveWeddingBanner from '../assets/images/LiveWedding.png';
 import { API_URL } from '../config';
+import { detectExternalEmbed } from '../utils/embedExtractors';
+import OgpThumbnail from './common/OgpThumbnail';
 
 
 
@@ -489,15 +491,34 @@ const HomePage: React.FC = () => {
                         }}
                       />
                     </div>
-                  ) : (
-                    <div className="w-32 h-20 md:w-full md:h-40 flex-shrink-0 overflow-hidden rounded-l-lg md:rounded-l-none md:rounded-t-lg bg-gray-100 flex items-center justify-center">
-                      <img 
-                        src={getCategoryPlaceholder(post.category)}
-                        alt={cat.title}
-                        className="w-full h-full object-contain"
-                      />
-                    </div>
-                  )}
+                  ) : (() => {
+                    const externalEmbed = detectExternalEmbed(post.body || '');
+                    if (externalEmbed) {
+                      return (
+                        <OgpThumbnail
+                          url={externalEmbed.originalUrl}
+                          alt={post.title || (externalEmbed.type === 'standfm' ? 'stand.fm' : 'Suno AI')}
+                          className="w-32 h-20 md:w-full md:h-40 flex-shrink-0 overflow-hidden rounded-l-lg md:rounded-l-none md:rounded-t-lg bg-gray-100 flex items-center justify-center"
+                          imgClassName="w-full h-full object-cover"
+                          fallback={
+                            <div className="w-32 h-20 md:w-full md:h-40 flex-shrink-0 overflow-hidden rounded-l-lg md:rounded-l-none md:rounded-t-lg bg-gradient-to-br from-purple-100 to-pink-100 flex flex-col items-center justify-center gap-1">
+                              <div className="text-3xl">{externalEmbed.type === 'standfm' ? '🎙️' : '🎵'}</div>
+                              <span className="text-xs font-medium text-gray-600">{externalEmbed.type === 'standfm' ? 'stand.fm' : 'Suno AI'}</span>
+                            </div>
+                          }
+                        />
+                      );
+                    }
+                    return (
+                      <div className="w-32 h-20 md:w-full md:h-40 flex-shrink-0 overflow-hidden rounded-l-lg md:rounded-l-none md:rounded-t-lg bg-gray-100 flex items-center justify-center">
+                        <img 
+                          src={getCategoryPlaceholder(post.category)}
+                          alt={cat.title}
+                          className="w-full h-full object-contain"
+                        />
+                      </div>
+                    );
+                  })()}
                   <CardContent className="p-2 md:p-4 flex-1">
                     <div className="flex items-start justify-between gap-2 mb-1">
                       {(post.display_title || post.title) && (
