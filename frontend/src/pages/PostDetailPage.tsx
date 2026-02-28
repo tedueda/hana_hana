@@ -579,19 +579,23 @@ const PostDetailPage: React.FC = () => {
           ) : detectExternalEmbed(post.body) ? (
             (() => {
               const embed = detectExternalEmbed(post.body)!;
-              return (
-                <div className={`w-full ${embed.type === 'standfm' ? 'h-[230px]' : 'aspect-video'}`}>
-                  <iframe
-                    src={embed.embedUrl}
-                    title={embed.type === 'standfm' ? 'stand.fm player' : 'Suno player'}
-                    frameBorder="0"
-                    allow="autoplay; encrypted-media"
-                    allowFullScreen
-                    className="w-full h-full rounded-lg"
-                    style={{ border: 0 }}
-                  />
-                </div>
-              );
+              if (embed.type === 'standfm') {
+                return (
+                  <div className="w-full h-[230px]">
+                    <iframe
+                      src={embed.embedUrl}
+                      title="stand.fm player"
+                      frameBorder="0"
+                      allow="autoplay; encrypted-media"
+                      allowFullScreen
+                      className="w-full h-full rounded-lg"
+                      style={{ border: 0 }}
+                    />
+                  </div>
+                );
+              }
+              // suno.ai はiframe非対応のためOGPプレビューで表示
+              return <OgpLinkPreview url={embed.originalUrl} />;
             })()
           ) : linkUrlFromBody && !(post.media_url || (post.media_urls && post.media_urls[0])) ? (
             <OgpLinkPreview url={linkUrlFromBody} />
