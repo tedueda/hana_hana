@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { useLanguage } from '../contexts/LanguageContext';
 import { resilientFetch } from '../contexts/AuthContext';
 import { Eye, EyeOff } from 'lucide-react';
@@ -144,14 +144,16 @@ const SubscribePage: React.FC = () => {
         })
       });
       
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.detail || t('subscribe.error.checkout_failed'));
-      }
-      
       const data = await response.json();
-      
-      if (data.access_token) {
+
+      if (!response.ok) {
+        const detail = data.detail || t('subscribe.error.checkout_failed');
+        throw new Error(detail);
+      }
+
+      if (data.status === 'email_verification_required') {
+        navigate('/email-verification-pending', { state: { email: data.email } });
+      } else if (data.access_token) {
         localStorage.setItem('token', data.access_token);
         localStorage.setItem('user', JSON.stringify(data.user));
         navigate('/kyc-verification');
@@ -343,13 +345,18 @@ const SubscribePage: React.FC = () => {
                 required
               />
               <label htmlFor="terms_accepted" className="ml-3 text-sm text-gray-600">
-                {t('subscribe.terms_agreement')}
-                <a href="/terms" target="_blank" className="text-black hover:text-gray-700 underline ml-1">
-                  {t('subscribe.terms_link')}
-                </a>
+                <Link to="/about/terms" target="_blank" className="text-black hover:text-gray-700 underline">利用規約</Link>
+                および
+                <Link to="/privacy" target="_blank" className="text-black hover:text-gray-700 underline">プライバシーポリシー</Link>
+                に同意します
               </label>
             </div>
             
+            <p className="text-xs text-gray-400">
+              申込により、<Link to="/about/terms" target="_blank" className="underline hover:text-gray-600">利用規約</Link>および<Link to="/privacy" target="_blank" className="underline hover:text-gray-600">プライバシーポリシー</Link>に同意したものとみなします。
+              <Link to="/about/tokushoho" target="_blank" className="underline hover:text-gray-600">特定商取引法に基づく表記</Link>
+            </p>
+
             <button
               type="submit"
               disabled={loading}

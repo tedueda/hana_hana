@@ -5,7 +5,9 @@ Stripe Billing Router - Handles subscription checkout, webhooks, and Identity (K
 import os
 import stripe
 import logging
-from datetime import datetime
+import hashlib
+import secrets
+from datetime import datetime, timedelta
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Request, Header
 from sqlalchemy.orm import Session
@@ -14,7 +16,6 @@ from pydantic import BaseModel, EmailStr
 from app.database import get_db
 from app.models import User, Profile, MatchingProfile
 from app.auth import get_password_hash, get_current_active_user, create_access_token
-from datetime import timedelta
 
 logger = logging.getLogger(__name__)
 
@@ -49,6 +50,14 @@ class CreateIdentitySessionRequest(BaseModel):
 
 class CreatePortalSessionRequest(BaseModel):
     return_url: Optional[str] = None
+
+
+class EmailVerificationRequest(BaseModel):
+    token: str
+
+
+class ResendVerificationRequest(BaseModel):
+    email: EmailStr
 
 
 # ============ Helper Functions ============
@@ -96,14 +105,24 @@ async def get_stripe_config():
     }
 
 
+def _send_verification_email(to_email: str, display_name: str, token: str) -> None:
+    """Send email verification link."""
+    from app.routers.auth import _send_email
+    frontend_url = FRONTEND_URL
+    verify_url = f"{frontend_url}/verify-email?token={token}"
+    subject = "【Carat】メールアドレスの確認"
+    body = f"""{display_name} 様\n\nCaratへのご登録ありがとうございます。\n以下のリンクをクリックしてメールアドレスを確認してください（有効期限: 24時間）。\n\n{verify_url}\n\nこのメールに心当たりがない場合は、このメールを破棄してください。\n"""
+    _send_email(to_email, subject, body)
+
+
 @router.post("/register-only")
 async def register_only(
     request: CreateCheckoutSessionRequest,
     db: Session = Depends(get_db)
 ):
     """
-    Register a new user and return an access token (no checkout).
-    Used as step 1 of the registration flow: Register -> KYC -> Payment.
+    Register a new user and send email verification.
+    Flow: Register -> Email Verify -> KYC -> Payment.
     """
     existing_user = db.query(User).filter(User.email == request.email).first()
 
@@ -137,7 +156,8 @@ async def register_only(
             residence_country=request.residence_country,
             terms_accepted_at=datetime.utcnow(),
             terms_version="1.0",
-            kyc_status="UNVERIFIED"
+            kyc_status="UNVERIFIED",
+            email_verified=False
         )
         db.add(user)
         db.commit()
@@ -160,12 +180,67 @@ async def register_only(
 
     get_or_create_stripe_customer(db, user)
 
+    token = secrets.token_urlsafe(32)
+    token_hash = hashlib.sha256(token.encode("utf-8")).hexdigest()
+    user.email_verification_token_hash = token_hash
+    user.email_verification_expires = datetime.utcnow() + timedelta(hours=24)
+    user.email_verified = False
+    db.commit()
+
+    try:
+        _send_verification_email(user.email, user.display_name, token)
+    except Exception as e:
+        logger.error(f"Verification email send failed: {e}")
+
+    return {
+        "status": "email_verification_required",
+        "email": user.email,
+        "message": "確認メールを送信しました。メール内のリンクをクリックしてください。"
+    }
+
+
+@router.post("/verify-email")
+async def verify_email(
+    request: EmailVerificationRequest,
+    db: Session = Depends(get_db)
+):
+    """Verify email address using token from verification email."""
+    token_hash = hashlib.sha256(request.token.encode("utf-8")).hexdigest()
+    user = db.query(User).filter(User.email_verification_token_hash == token_hash).first()
+
+    if not user:
+        raise HTTPException(
+            status_code=400,
+            detail="無効なトークンです。既にメール認証が完了している場合は、ログインページからログインしてください。"
+        )
+
+    if user.email_verified:
+        return {
+            "status": "already_verified",
+            "message": "このメールアドレスは既に確認済みです。",
+            "user": {
+                "id": user.id,
+                "email": user.email,
+                "display_name": user.display_name
+            }
+        }
+
+    if user.email_verification_expires:
+        expires_naive = user.email_verification_expires.replace(tzinfo=None) if user.email_verification_expires.tzinfo else user.email_verification_expires
+        if expires_naive < datetime.utcnow():
+            raise HTTPException(status_code=400, detail="トークンの有効期限が切れています。再送信してください。")
+
+    user.email_verified = True
+    user.email_verification_expires = None
+    db.commit()
+
     access_token = create_access_token(
         data={"sub": user.email},
         expires_delta=timedelta(days=7)
     )
 
     return {
+        "status": "verified",
         "access_token": access_token,
         "user": {
             "id": user.id,
@@ -173,6 +248,31 @@ async def register_only(
             "display_name": user.display_name
         }
     }
+
+
+@router.post("/resend-verification")
+async def resend_verification(
+    request: ResendVerificationRequest,
+    db: Session = Depends(get_db)
+):
+    """Resend email verification. Always returns success to avoid enumeration."""
+    user = db.query(User).filter(User.email == request.email).first()
+
+    if not user or user.email_verified:
+        return {"status": "ok"}
+
+    token = secrets.token_urlsafe(32)
+    token_hash = hashlib.sha256(token.encode("utf-8")).hexdigest()
+    user.email_verification_token_hash = token_hash
+    user.email_verification_expires = datetime.utcnow() + timedelta(hours=24)
+    db.commit()
+
+    try:
+        _send_verification_email(user.email, user.display_name, token)
+    except Exception as e:
+        logger.error(f"Resend verification email failed: {e}")
+
+    return {"status": "ok"}
 
 
 @router.post("/create-checkout-session")
@@ -289,9 +389,16 @@ async def start_checkout(
     if current_user.subscription_status == "active":
         raise HTTPException(status_code=400, detail="User already has an active subscription")
 
+    if not is_user_kyc_verified(current_user):
+        raise HTTPException(status_code=403, detail="KYC verification required before payment")
+
     customer_id = get_or_create_stripe_customer(db, current_user)
 
     try:
+        locale = current_user.preferred_lang or "ja"
+        if locale not in ("ja", "en"):
+            locale = "ja"
+
         checkout_session = stripe.checkout.Session.create(
             customer=customer_id,
             payment_method_types=["card"],
@@ -300,6 +407,7 @@ async def start_checkout(
                 "quantity": 1
             }],
             mode="subscription",
+            locale=locale,
             success_url=f"{FRONTEND_URL}/subscribe/success?session_id={{CHECKOUT_SESSION_ID}}",
             cancel_url=f"{FRONTEND_URL}/subscribe?canceled=true",
             metadata={
@@ -323,18 +431,24 @@ async def start_checkout(
 
 @router.get("/checkout-session/{session_id}")
 async def get_checkout_session(session_id: str, db: Session = Depends(get_db)):
-    """Get checkout session status and user info after successful payment."""
+    """Get checkout session status and user info after successful payment.
+    Only issues access token if user has completed KYC verification."""
     try:
         session = stripe.checkout.Session.retrieve(session_id)
         
         if session.payment_status == "paid":
-            # Find user by customer ID
             user = db.query(User).filter(
                 User.stripe_customer_id == session.customer
             ).first()
             
             if user:
-                # Generate access token for auto-login
+                if not is_user_kyc_verified(user):
+                    return {
+                        "status": "kyc_required",
+                        "payment_status": session.payment_status,
+                        "message": "KYC verification required before login"
+                    }
+
                 access_token = create_access_token(
                     data={"sub": user.email},
                     expires_delta=timedelta(days=7)
@@ -442,6 +556,32 @@ async def get_subscription_status(
         "can_perform_actions": can_user_perform_action(current_user),
         "stripe_customer_id": current_user.stripe_customer_id
     }
+
+
+@router.get("/kyc-status")
+async def get_kyc_status(
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """Poll KYC verification status. Used by frontend to check if webhook has confirmed KYC."""
+    session_id = current_user.stripe_identity_verification_session_id
+
+    if current_user.kyc_status == "VERIFIED" or current_user.is_legacy_paid:
+        return {"kyc_status": "VERIFIED", "can_proceed_to_payment": True}
+
+    if session_id and STRIPE_SECRET_KEY:
+        try:
+            vs = stripe.identity.VerificationSession.retrieve(session_id)
+            if vs.status == "verified" and current_user.kyc_status != "VERIFIED":
+                current_user.kyc_status = "VERIFIED"
+                current_user.is_verified = True
+                db.commit()
+                return {"kyc_status": "VERIFIED", "can_proceed_to_payment": True}
+            return {"kyc_status": current_user.kyc_status, "stripe_status": vs.status, "can_proceed_to_payment": False}
+        except stripe.error.StripeError as e:
+            logger.error(f"Failed to check verification session: {e}")
+
+    return {"kyc_status": current_user.kyc_status, "can_proceed_to_payment": False}
 
 
 @router.post("/webhook")

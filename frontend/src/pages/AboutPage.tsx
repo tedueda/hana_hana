@@ -164,12 +164,18 @@ const AboutPage: React.FC = () => {
               <div className="text-sm text-gray-600">
                 <div className="font-semibold text-gray-900">{t('about.operatorLabel')}</div>
               </div>
-              <div className="flex gap-3">
+              <div className="flex flex-wrap gap-3">
                 <Link
                   to="/subscribe"
                   className="inline-flex items-center justify-center rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-900 hover:bg-gray-50 transition-colors"
                 >
                   {t('about.cta.plans')}
+                </Link>
+                <Link
+                  to="/about/usage"
+                  className="inline-flex items-center justify-center rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-900 hover:bg-gray-50 transition-colors"
+                >
+                  ご利用方法を見る
                 </Link>
                 <Link
                   to="/feed"

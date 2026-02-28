@@ -10,11 +10,14 @@ import { useAuth, resilientFetch } from '@/contexts/AuthContext';
 const RegisterForm: React.FC = () => {
   const [email, setEmail] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
+  const [residenceCountry, setResidenceCountry] = useState('JP');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [displayName, setDisplayName] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [agreeTerms, setAgreeTerms] = useState(false);
+  const [agreeAge, setAgreeAge] = useState(false);
   
   const navigate = useNavigate();
   const { login } = useAuth();
@@ -42,6 +45,12 @@ const RegisterForm: React.FC = () => {
       return;
     }
 
+    if (!agreeTerms || !agreeAge) {
+      setError('利用規約への同意と年齢確認が必要です');
+      setIsLoading(false);
+      return;
+    }
+
     try {
       const response = await resilientFetch('/api/auth/register', {
         method: 'POST',
@@ -50,7 +59,8 @@ const RegisterForm: React.FC = () => {
           email,
           password,
           display_name: displayName,
-          phone_number: phoneNumber.trim()
+          phone_number: phoneNumber.trim(),
+          residence_country: residenceCountry
         })
       });
 
@@ -132,6 +142,33 @@ const RegisterForm: React.FC = () => {
               </p>
             </div>
             <div className="space-y-2">
+              <Label htmlFor="residenceCountry" className="text-lg md:text-xl text-carat-black">居住国</Label>
+              <select
+                id="residenceCountry"
+                value={residenceCountry}
+                onChange={(e) => setResidenceCountry(e.target.value)}
+                className="w-full h-10 px-3 rounded-md border border-carat-gray3 focus:border-carat-black focus:ring-carat-black/20 bg-white"
+              >
+                <option value="JP">Japan</option>
+                <option value="US">United States</option>
+                <option value="GB">United Kingdom</option>
+                <option value="CA">Canada</option>
+                <option value="AU">Australia</option>
+                <option value="DE">Germany</option>
+                <option value="FR">France</option>
+                <option value="KR">South Korea</option>
+                <option value="CN">China</option>
+                <option value="TW">Taiwan</option>
+                <option value="TH">Thailand</option>
+                <option value="SG">Singapore</option>
+                <option value="PH">Philippines</option>
+                <option value="BR">Brazil</option>
+                <option value="MX">Mexico</option>
+                <option value="IN">India</option>
+                <option value="OTHER">Other</option>
+              </select>
+            </div>
+            <div className="space-y-2">
               <Label htmlFor="password" className="text-lg md:text-xl text-carat-black">パスワード</Label>
               <Input
                 id="password"
@@ -155,26 +192,50 @@ const RegisterForm: React.FC = () => {
                 placeholder="パスワードを再入力"
               />
             </div>
+            <div className="space-y-3 pt-2">
+              <label className="flex items-start gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={agreeTerms}
+                  onChange={(e) => setAgreeTerms(e.target.checked)}
+                  className="mt-1 h-4 w-4 rounded border-gray-300 text-black focus:ring-black/20 shrink-0"
+                />
+                <span className="text-sm text-gray-700">
+                  <Link to="/about/terms" target="_blank" className="text-purple-700 hover:text-purple-900 underline">利用規約</Link>
+                  ・
+                  <Link to="/privacy" target="_blank" className="text-purple-700 hover:text-purple-900 underline">プライバシーポリシー</Link>
+                  に同意します
+                </span>
+              </label>
+              <label className="flex items-start gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={agreeAge}
+                  onChange={(e) => setAgreeAge(e.target.checked)}
+                  className="mt-1 h-4 w-4 rounded border-gray-300 text-black focus:ring-black/20 shrink-0"
+                />
+                <span className="text-sm text-gray-700">
+                  私は18歳以上です
+                </span>
+              </label>
+            </div>
             {error && (
               <div className="text-red-600 text-sm bg-red-50 p-2 rounded">{error}</div>
             )}
             <Button 
               type="submit" 
               className="w-full bg-black text-white hover:bg-gray-800 transition-colors text-lg font-bold py-6 shadow-lg hover:shadow-xl"
-              disabled={isLoading}
+              disabled={isLoading || !agreeTerms || !agreeAge}
             >
-              {isLoading ? '登録中...' : 'アカウントを作成'}
+              {isLoading ? '登録中...' : '登録して本人確認へ'}
             </Button>
           </form>
           <div className="mt-6 text-center space-y-2">
             <p className="text-base text-black">
-              既にアカウントをお持ちの方は{' '}
+              すでに会員の方は{' '}
               <Link to="/login" className="text-purple-700 hover:text-purple-900 font-semibold underline">
-                こちらからログイン
+                ログイン
               </Link>
-            </p>
-            <p className="text-xs text-carat-gray4">
-              登録することで利用規約に同意したことになります
             </p>
           </div>
         </CardContent>

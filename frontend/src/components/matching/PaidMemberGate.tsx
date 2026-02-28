@@ -11,7 +11,7 @@ interface PaidMemberGateProps {
 
 /**
  * 有料会員限定コンテンツのゲートコンポーネント
- * 無料会員（未ログイン）の場合はモーダルを表示し、コンテンツを薄く表示
+ * 閲覧者（未ログイン）の場合はモーダルを表示し、コンテンツを薄く表示
  */
 const PaidMemberGate: React.FC<PaidMemberGateProps> = ({ children }) => {
   const { isPaidUser, loading } = usePaidMember();
@@ -46,7 +46,7 @@ const PaidMemberGate: React.FC<PaidMemberGateProps> = ({ children }) => {
     return <div className="flex items-center justify-center min-h-[40vh]">Loading...</div>;
   }
 
-  // 無料会員または有料会員でない場合はゲートを表示
+  // 閲覧者または会員でない場合はゲートを表示
   if (isFreeUser || !isPaidUser) {
     return (
       <>

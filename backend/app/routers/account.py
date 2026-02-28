@@ -37,6 +37,7 @@ class UpdateAccountRequest(BaseModel):
     display_name: Optional[str] = None
     phone_number: Optional[str] = None
     real_name: Optional[str] = None
+    residence_country: Optional[str] = None
 
 
 class ChangePasswordRequest(BaseModel):
@@ -108,6 +109,10 @@ def update_account(
     # 本名の更新
     if payload.real_name is not None:
         current_user.real_name = payload.real_name if payload.real_name else None
+
+    # 居住国の更新
+    if payload.residence_country is not None:
+        current_user.residence_country = payload.residence_country if payload.residence_country else None
     
     db.commit()
     db.refresh(current_user)

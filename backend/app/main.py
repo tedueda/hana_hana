@@ -7,7 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
-from app.routers import auth, users, profiles, posts, comments, reactions, follows, notifications, media, billing, matching, categories, ops, account, donation, salon, flea_market, jewelry, live_wedding, art_sales, courses, translations, stripe_billing, ogp
+from app.routers import auth, users, profiles, posts, comments, reactions, follows, notifications, media, billing, matching, categories, ops, account, donation, salon, flea_market, jewelry, live_wedding, art_sales, courses, translations, stripe_billing, ogp, contact, admin
 from app.database import Base, engine, get_db
 import os
 from pathlib import Path
@@ -17,6 +17,55 @@ from sqlalchemy import text
 PORT = int(os.getenv("PORT", 8000))
 
 app = FastAPI(title="LGBTQ Community API", version="1.0.1")
+
+
+def _seed_admin_user(db):
+    from app.models import User as UserModel
+    from app.auth import get_password_hash
+    seed_email = os.getenv("ADMIN_SEED_EMAIL", "ted@carat-community.com")
+    seed_pass = os.getenv("ADMIN_SEED_PASSWORD", "")
+    if not seed_pass:
+        return
+    existing = db.query(UserModel).filter(UserModel.email == seed_email).first()
+    if existing:
+        changed = False
+        if getattr(existing, "role", "user") != "admin":
+            existing.role = "admin"
+            existing.membership_type = "admin"
+            changed = True
+        if getattr(existing, "deleted_at", None) is not None:
+            existing.deleted_at = None
+            existing.is_active = True
+            changed = True
+        if not getattr(existing, "is_active", True):
+            existing.is_active = True
+            changed = True
+        existing.password_hash = get_password_hash(seed_pass)
+        changed = True
+        if changed:
+            try:
+                db.commit()
+                print(f"✅ Restored/promoted {seed_email} to admin")
+            except Exception as e:
+                db.rollback()
+                print(f"⚠️ Failed restoring admin: {e}")
+        return
+    try:
+        admin_user = UserModel(
+            email=seed_email,
+            password_hash=get_password_hash(seed_pass),
+            display_name="Admin",
+            membership_type="admin",
+            role="admin",
+            is_active=True,
+        )
+        db.add(admin_user)
+        db.commit()
+        print(f"✅ Seeded admin user: {seed_email}")
+    except Exception as e:
+        db.rollback()
+        print(f"⚠️ Failed seeding admin: {e}")
+
 
 @app.on_event("startup")
 def run_migrations():
@@ -117,6 +166,9 @@ def run_migrations():
             _add_column_if_missing("users", "terms_version", "VARCHAR(50)")
             _add_column_if_missing("users", "password_reset_token_hash", "VARCHAR(64)")
             _add_column_if_missing("users", "password_reset_expires", "TIMESTAMPTZ")
+            _add_column_if_missing("users", "email_verified", "BOOLEAN DEFAULT FALSE")
+            _add_column_if_missing("users", "email_verification_token_hash", "VARCHAR(64)")
+            _add_column_if_missing("users", "email_verification_expires", "TIMESTAMPTZ")
         
         if _table_exists("posts"):
             _add_column_if_missing("posts", "category", "VARCHAR")
@@ -234,6 +286,122 @@ def run_migrations():
             else:
                 print(f"✅ {tbl_name} table already exists")
 
+        if not _table_exists("contact_inquiries"):
+            try:
+                db.execute(
+                    text(
+                        """
+                        CREATE TABLE IF NOT EXISTS contact_inquiries (
+                            id SERIAL PRIMARY KEY,
+                            name VARCHAR(200) NOT NULL,
+                            email VARCHAR(200) NOT NULL,
+                            subject VARCHAR(100) NOT NULL,
+                            message TEXT NOT NULL,
+                            created_at TIMESTAMPTZ DEFAULT NOW()
+                        )
+                        """
+                    )
+                )
+                db.commit()
+                print("✅ Created table: contact_inquiries")
+            except Exception as e:
+                db.rollback()
+                print(f"⚠️ Failed creating table contact_inquiries: {e}")
+        else:
+            print("✅ contact_inquiries table already exists")
+
+        if _table_exists("users"):
+            _add_column_if_missing("users", "role", "VARCHAR(20) DEFAULT 'user'")
+            _add_column_if_missing("users", "payment_status", "VARCHAR(30) DEFAULT 'unpaid'")
+            _add_column_if_missing("users", "deleted_at", "TIMESTAMPTZ")
+
+        if not _table_exists("blog_posts"):
+            try:
+                db.execute(
+                    text(
+                        """
+                        CREATE TABLE IF NOT EXISTS blog_posts (
+                            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                            title VARCHAR(300) NOT NULL,
+                            slug VARCHAR(300) UNIQUE NOT NULL,
+                            body TEXT NOT NULL,
+                            excerpt TEXT,
+                            image_url VARCHAR(500),
+                            seo_keywords JSONB,
+                            status VARCHAR(20) NOT NULL DEFAULT 'draft',
+                            created_at TIMESTAMPTZ DEFAULT NOW(),
+                            published_at TIMESTAMPTZ,
+                            created_by_admin_id INTEGER NOT NULL REFERENCES users(id),
+                            CONSTRAINT check_blog_status CHECK (status IN ('draft', 'published'))
+                        )
+                        """
+                    )
+                )
+                db.execute(text("CREATE INDEX IF NOT EXISTS ix_blog_posts_slug ON blog_posts(slug)"))
+                db.commit()
+                print("\u2705 Created table: blog_posts")
+            except Exception as e:
+                db.rollback()
+                print(f"\u26a0\ufe0f Failed creating table blog_posts: {e}")
+        else:
+            print("\u2705 blog_posts table already exists")
+
+        if not _table_exists("blog_post_translations"):
+            try:
+                db.execute(
+                    text(
+                        """
+                        CREATE TABLE IF NOT EXISTS blog_post_translations (
+                            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                            blog_post_id UUID NOT NULL REFERENCES blog_posts(id) ON DELETE CASCADE,
+                            language VARCHAR(10) NOT NULL,
+                            title VARCHAR(600) NOT NULL,
+                            body TEXT NOT NULL,
+                            excerpt TEXT,
+                            seo_keywords JSONB,
+                            created_at TIMESTAMPTZ DEFAULT NOW(),
+                            CONSTRAINT uq_blog_translation_post_lang UNIQUE (blog_post_id, language)
+                        )
+                        """
+                    )
+                )
+                db.commit()
+                print("\u2705 Created table: blog_post_translations")
+            except Exception as e:
+                db.rollback()
+                print(f"\u26a0\ufe0f Failed creating table blog_post_translations: {e}")
+        else:
+            print("\u2705 blog_post_translations table already exists")
+
+        if not _table_exists("audit_logs"):
+            try:
+                db.execute(
+                    text(
+                        """
+                        CREATE TABLE IF NOT EXISTS audit_logs (
+                            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                            admin_id INTEGER NOT NULL REFERENCES users(id),
+                            action VARCHAR(100) NOT NULL,
+                            target_type VARCHAR(50),
+                            target_id VARCHAR(100),
+                            metadata JSONB,
+                            ip VARCHAR(50),
+                            user_agent VARCHAR(500),
+                            created_at TIMESTAMPTZ DEFAULT NOW()
+                        )
+                        """
+                    )
+                )
+                db.commit()
+                print("\u2705 Created table: audit_logs")
+            except Exception as e:
+                db.rollback()
+                print(f"\u26a0\ufe0f Failed creating table audit_logs: {e}")
+        else:
+            print("\u2705 audit_logs table already exists")
+
+        _seed_admin_user(db)
+
         # Migration 2: Add nationality column to matching_profiles table
         if _table_exists("matching_profiles"):
             result = db.execute(text("""
@@ -329,6 +497,8 @@ app.include_router(courses.router)
 app.include_router(translations.router)
 app.include_router(stripe_billing.router)
 app.include_router(ogp.router)
+app.include_router(contact.router)
+app.include_router(admin.router)
 
 @app.on_event("startup")
 def on_startup():

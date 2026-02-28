@@ -267,7 +267,7 @@ async def create_post(
     )
     db.add(point_event)
     
-    current_user.carats = (current_user.carats or 0) + 5
+    current_user.carats = (current_user.carats or 0) + 10
     
     db.commit()
     db.refresh(db_post)
@@ -467,6 +467,14 @@ async def toggle_like_post(
         
         if post_author and post_author.carats > 0:
             post_author.carats = post_author.carats - 1
+            unlike_event = PointEvent(
+                user_id=post_author.id,
+                event_type="like_removed",
+                points=-1,
+                ref_type="post",
+                ref_id=post_id
+            )
+            db.add(unlike_event)
         
         db.commit()
         like_count = db.query(Reaction).filter(
@@ -486,6 +494,14 @@ async def toggle_like_post(
         
         if post_author:
             post_author.carats = (post_author.carats or 0) + 1
+            like_event = PointEvent(
+                user_id=post_author.id,
+                event_type="like_received",
+                points=1,
+                ref_type="post",
+                ref_id=post_id
+            )
+            db.add(like_event)
         
         db.commit()
         like_count = db.query(Reaction).filter(
@@ -528,6 +544,14 @@ async def add_like_post(
         post_author = db.query(User).filter(User.id == post.user_id).first()
         if post_author:
             post_author.carats = (post_author.carats or 0) + 1
+            like_event = PointEvent(
+                user_id=post_author.id,
+                event_type="like_received",
+                points=1,
+                ref_type="post",
+                ref_id=post_id
+            )
+            db.add(like_event)
         
         db.commit()
     
@@ -562,6 +586,14 @@ async def remove_like_post(
         post_author = db.query(User).filter(User.id == post.user_id).first()
         if post_author and post_author.carats > 0:
             post_author.carats = post_author.carats - 1
+            unlike_event = PointEvent(
+                user_id=post_author.id,
+                event_type="like_removed",
+                points=-1,
+                ref_type="post",
+                ref_id=post_id
+            )
+            db.add(unlike_event)
         
         db.commit()
     
@@ -629,8 +661,22 @@ async def create_post_comment(
         body=safe_body
     )
     db.add(new_comment)
+
+    comment_event = PointEvent(
+        user_id=current_user.id,
+        event_type="comment_created",
+        points=5,
+        ref_type="comment",
+        ref_id=0
+    )
+    db.add(comment_event)
+    current_user.carats = (current_user.carats or 0) + 5
+
     db.commit()
     db.refresh(new_comment)
+
+    comment_event.ref_id = new_comment.id
+    db.commit()
     
     return {
         "id": new_comment.id,

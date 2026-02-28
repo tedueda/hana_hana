@@ -4,7 +4,8 @@ from sqlalchemy import func
 from pydantic import BaseModel
 from typing import Optional
 from app.database import get_db
-from app.models import User, Post
+from datetime import datetime, timezone
+from app.models import User, Post, Comment, PointEvent
 from app.auth import get_current_active_user
 
 router = APIRouter(prefix="/api/users", tags=["users"])
@@ -72,12 +73,12 @@ async def get_user_stats(
     db: Session = Depends(get_db)
 ):
     """Get user statistics including carat points"""
-    
-    # Count posts created by user
-    posts_count = db.query(Post).filter(Post.user_id == current_user.id).count()
-    
-    # Count likes received on user's posts
     from app.models import Reaction
+
+    posts_count = db.query(Post).filter(Post.user_id == current_user.id).count()
+
+    comments_count = db.query(Comment).filter(Comment.user_id == current_user.id).count()
+
     likes_received = db.query(func.count(Reaction.id)).join(
         Post, Reaction.target_id == Post.id
     ).filter(
@@ -85,16 +86,20 @@ async def get_user_stats(
         Reaction.target_type == 'post',
         Reaction.reaction_type == 'like'
     ).scalar() or 0
-    
-    # Get actual carats from database
-    actual_carats = current_user.carats or 0
-    
-    # Calculate total carat points: 1pt per like + 5pt per post (for reference)
-    calculated_points = likes_received + (posts_count * 5)
-    
+
+    total_points = current_user.carats or 0
+
+    now = datetime.now(timezone.utc)
+    month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    monthly_points = db.query(func.coalesce(func.sum(PointEvent.points), 0)).filter(
+        PointEvent.user_id == current_user.id,
+        PointEvent.created_at >= month_start
+    ).scalar() or 0
+
     return {
         "posts_count": posts_count,
+        "comments_count": comments_count,
         "likes_received": likes_received,
-        "total_points": actual_carats,
-        "calculated_points": calculated_points
+        "total_points": total_points,
+        "monthly_points": monthly_points,
     }

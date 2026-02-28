@@ -31,14 +31,14 @@ const SubscribeSuccessPage: React.FC = () => {
         const data = await response.json();
         
         if (data.status === 'success' && data.access_token) {
-          // Store the token for auto-login
           localStorage.setItem('token', data.access_token);
           localStorage.setItem('user', JSON.stringify(data.user));
           localStorage.removeItem('anonymous');
           window.location.href = '/feed';
           return;
+        } else if (data.status === 'kyc_required') {
+          setError(t('subscribe.success.kyc_required', 'KYC本人確認が未完了のため、ログインできません。本人確認を完了してください。'));
         } else if (data.status === 'pending') {
-          // Payment still processing
           setError(t('subscribe.success.payment_pending'));
         } else {
           setError(t('subscribe.success.verification_failed'));

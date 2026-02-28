@@ -386,7 +386,7 @@ const HomePage: React.FC = () => {
         {/* ヒーロー直下のCTAセクション */}
         <section className="relative -mt-12 z-20">
           <div className="max-w-3xl mx-auto px-4">
-            <div className="bg-white/95 border border-gray-200 shadow-xl rounded-2xl px-6 py-6 md:px-10 md:py-8 flex flex-col md:flex-row items-center justify-between gap-4">
+            <div className="bg-white/95 border border-gray-200 shadow-xl rounded-2xl px-6 py-6 md:px-10 md:py-8 grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
               <div className="text-left">
                 <p className="text-sm md:text-base text-slate-500 mb-1">{t('cta.communityTitle')}</p>
                 <p className="text-lg md:text-xl font-serif text-slate-900">{t('cta.communitySubtitle')}</p>
@@ -396,37 +396,27 @@ const HomePage: React.FC = () => {
                   </p>
                 )}
               </div>
-              <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto justify-end">
+              <div className="flex flex-col gap-3">
+                <Button
+                  onClick={() => navigate('/about')}
+                  className="w-full bg-white text-gray-700 border border-gray-300 hover:bg-gray-100 hover:text-black px-6 py-3 text-base md:text-lg font-medium shadow-md hover:shadow-lg transition-all"
+                >
+                  Caratとは
+                </Button>
                 {user && !isAnonymous ? (
-                  <>
-                    <Button
-                      onClick={() => navigate('/about')}
-                      className="bg-white text-gray-700 border border-gray-300 hover:bg-gray-100 hover:text-black px-6 py-3 text-base md:text-lg font-medium shadow-md hover:shadow-lg transition-all"
-                    >
-                      Caratとは
-                    </Button>
-                    <Button 
-                      onClick={() => navigate('/create/board')}
-                      className="bg-white text-gray-700 border border-gray-300 hover:bg-gray-100 hover:text-black px-6 py-3 text-base md:text-lg font-medium shadow-md hover:shadow-lg transition-all"
-                    >
-                      {t('cta.createPost')}
-                    </Button>
-                  </>
+                  <Button 
+                    onClick={() => navigate('/create/board')}
+                    className="w-full bg-white text-gray-700 border border-gray-300 hover:bg-gray-100 hover:text-black px-6 py-3 text-base md:text-lg font-medium shadow-md hover:shadow-lg transition-all"
+                  >
+                    {t('cta.createPost')}
+                  </Button>
                 ) : (
-                  <>
-                    <Button
-                      onClick={() => navigate('/about')}
-                      className="bg-white text-gray-700 border border-gray-300 hover:bg-gray-100 hover:text-black px-6 py-3 text-base md:text-lg font-medium shadow-md hover:shadow-lg transition-all"
-                    >
-                      Caratとは
-                    </Button>
-                    <Button 
-                      onClick={() => navigate('/subscribe')}
-                      className="bg-white text-gray-700 border border-gray-300 hover:bg-gray-100 hover:text-black px-6 py-3 text-base md:text-lg font-medium shadow-md hover:shadow-lg transition-all"
-                    >
-                      {t('cta.registerButton')}
-                    </Button>
-                  </>
+                  <Button 
+                    onClick={() => navigate('/subscribe')}
+                    className="w-full bg-white text-gray-700 border border-gray-300 hover:bg-gray-100 hover:text-black px-6 py-3 text-base md:text-lg font-medium shadow-md hover:shadow-lg transition-all"
+                  >
+                    {t('cta.registerButton')}
+                  </Button>
                 )}
               </div>
             </div>
@@ -743,7 +733,7 @@ const HomePage: React.FC = () => {
         {/* 参加CTA */}
         <section className="py-16">
           <div className="max-w-3xl mx-auto px-4">
-            <div className="bg-white/95 border border-gray-200 shadow-xl rounded-2xl px-6 py-6 md:px-10 md:py-8 flex flex-col md:flex-row items-center justify-between gap-4">
+            <div className="bg-white/95 border border-gray-200 shadow-xl rounded-2xl px-6 py-6 md:px-10 md:py-8 grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
               <div className="text-left">
                 <p className="text-sm md:text-base text-slate-500 mb-1">{t('cta.communityTitle')}</p>
                 <p className="text-lg md:text-xl font-serif text-slate-900">{t('cta.communitySubtitle')}</p>
@@ -751,16 +741,16 @@ const HomePage: React.FC = () => {
                   {t('cta.freeUserNote')}
                 </p>
               </div>
-              <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto justify-end">
+              <div className="flex flex-col gap-3">
                 <Button
                   onClick={() => navigate('/about')}
-                  className="bg-white text-gray-700 border border-gray-300 hover:bg-gray-100 hover:text-black px-6 py-3 text-base md:text-lg font-medium shadow-md hover:shadow-lg transition-all"
+                  className="w-full bg-white text-gray-700 border border-gray-300 hover:bg-gray-100 hover:text-black px-6 py-3 text-base md:text-lg font-medium shadow-md hover:shadow-lg transition-all"
                 >
                   Caratとは
                 </Button>
                 <Button 
                   onClick={() => navigate('/subscribe')}
-                  className="bg-white text-gray-700 border border-gray-300 hover:bg-gray-100 hover:text-black px-6 py-3 text-base md:text-lg font-medium shadow-md hover:shadow-lg transition-all"
+                  className="w-full bg-white text-gray-700 border border-gray-300 hover:bg-gray-100 hover:text-black px-6 py-3 text-base md:text-lg font-medium shadow-md hover:shadow-lg transition-all"
                 >
                   {t('membership.registerMonthly')}
                 </Button>

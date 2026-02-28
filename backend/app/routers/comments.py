@@ -42,6 +42,7 @@ async def create_comment(
             ref_id=db_comment.id
         )
         db.add(point_event)
+        current_user.carats = (current_user.carats or 0) + 5
         db.commit()
     
     return db_comment

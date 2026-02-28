@@ -92,7 +92,10 @@ async def get_current_premium_user(current_user: User = Depends(get_current_acti
     return current_user
 
 async def get_current_admin_user(current_user: User = Depends(get_current_active_user)):
-    if current_user.membership_type != "admin":
+    is_admin = current_user.membership_type == "admin"
+    if hasattr(current_user, "role") and getattr(current_user, "role", None) == "admin":
+        is_admin = True
+    if not is_admin:
         raise HTTPException(status_code=403, detail="Admin privileges required")
     return current_user
 

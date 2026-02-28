@@ -46,10 +46,21 @@ import SubscribeSuccessPage from './pages/SubscribeSuccessPage';
 import KycVerificationPage from './pages/KycVerificationPage';
 import PostDetailPage from './pages/PostDetailPage';
 import AboutPage from './pages/AboutPage';
+import UsagePage from './pages/UsagePage';
+import TermsPage from './pages/TermsPage';
+import TokushohoPage from './pages/TokushohoPage';
+import PrivacyPolicyPage from './pages/PrivacyPolicyPage';
+import ContactPage from './pages/ContactPage';
+import AdminPage from './pages/AdminPage';
+import PublicBlogListPage from './pages/PublicBlogListPage';
+import PublicBlogDetailPage from './pages/PublicBlogDetailPage';
+import MobileBottomBar from './components/MobileBottomBar';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
 import { AudioProvider } from './contexts/AudioContext';
 import GlobalAudioPlayer from './components/GlobalAudioPlayer';
+import EmailVerificationPendingPage from './pages/EmailVerificationPendingPage';
+import VerifyEmailPage from './pages/VerifyEmailPage';
 
 const FeedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { isLoading } = useAuth();
@@ -110,9 +121,16 @@ function AppContent() {
             </PublicRoute>
           } />
           <Route path="/about" element={<AboutPage />} />
+          <Route path="/about/usage" element={<UsagePage />} />
+          <Route path="/about/terms" element={<TermsPage />} />
+          <Route path="/about/tokushoho" element={<TokushohoPage />} />
+          <Route path="/privacy" element={<PrivacyPolicyPage />} />
+          <Route path="/contact" element={<ContactPage />} />
           {/* Subscription routes */}
           <Route path="/subscribe" element={<SubscribePage />} />
           <Route path="/subscribe/success" element={<SubscribeSuccessPage />} />
+          <Route path="/email-verification-pending" element={<EmailVerificationPendingPage />} />
+          <Route path="/verify-email" element={<VerifyEmailPage />} />
           <Route path="/kyc-verification" element={<KycVerificationPage />} />
           <Route path="/feed" element={
             <FeedRoute>
@@ -254,12 +272,15 @@ function AppContent() {
               <NewsPage />
             </FeedRoute>
           } />
-          <Route path="/blog" element={
+          <Route path="/admin" element={<AdminPage />} />
+          <Route path="/blog" element={<PublicBlogListPage />} />
+          <Route path="/blog/:slug" element={<PublicBlogDetailPage />} />
+          <Route path="/blog-members" element={
             <FeedRoute>
               <BlogListPage />
             </FeedRoute>
           } />
-          <Route path="/blog/:slug" element={
+          <Route path="/blog-members/:slug" element={
             <FeedRoute>
               <BlogDetailPage />
             </FeedRoute>
@@ -277,6 +298,7 @@ function AppContent() {
         </Routes>
       </main>
       <Footer />
+      <MobileBottomBar />
     </div>
   );
 }

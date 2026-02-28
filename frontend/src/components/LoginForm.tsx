@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -17,13 +17,14 @@ const LoginForm: React.FC = () => {
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   
-  const { login } = useAuth();
+  const { login, error: authError, clearError } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setError('');
+    clearError();
 
     console.log('🔐 LoginForm: Submitting login');
     console.log('🔐 Environment check:', {
@@ -38,8 +39,6 @@ const LoginForm: React.FC = () => {
     
     if (success) {
       navigate('/feed');
-    } else {
-      setError('メールアドレスまたはパスワードが正しくありません');
     }
     
     setIsLoading(false);
@@ -90,8 +89,8 @@ const LoginForm: React.FC = () => {
                 </button>
               </div>
             </div>
-            {error && (
-              <div className="text-red-600 text-sm bg-red-50 p-3 rounded">{t('auth.login.error')}</div>
+            {(error || authError) && (
+              <div className="text-red-600 text-sm bg-red-50 p-3 rounded">{authError || t('auth.login.error')}</div>
             )}
             <div className="flex items-center space-x-2">
               <input
@@ -121,7 +120,7 @@ const LoginForm: React.FC = () => {
               {isLoading ? t('auth.login.submitting') : t('auth.login.submit')}
             </Button>
           </form>
-          <div className="mt-6 text-center border-t border-gray-200 pt-6">
+          <div className="mt-6 text-center border-t border-gray-200 pt-6 space-y-3">
             <p className="text-gray-600 text-sm">
               {t('auth.login.noAccount')}{' '}
               <button
@@ -131,6 +130,11 @@ const LoginForm: React.FC = () => {
               >
                 {t('auth.login.registerLink')}
               </button>
+            </p>
+            <p className="text-xs text-gray-400">
+              <Link to="/about/terms" className="hover:underline">利用規約</Link>
+              {' ・ '}
+              <Link to="/privacy" className="hover:underline">プライバシーポリシー</Link>
             </p>
           </div>
         </CardContent>
