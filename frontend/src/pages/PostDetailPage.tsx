@@ -15,6 +15,7 @@ import { getPreferredLanguage } from '../utils/languageUtils';
 import { API_URL } from '../config';
 import { detectExternalEmbed } from '../utils/embedExtractors';
 import OgpLinkPreview from '../components/common/OgpLinkPreview';
+import SunoEmbedPlayer from '../components/common/SunoEmbedPlayer';
 
 const formatNumber = (num: number): string => {
   if (num >= 1000) {
@@ -590,8 +591,8 @@ const PostDetailPage: React.FC = () => {
                   </div>
                 );
               }
-              // suno.ai はiframe非対応のためOGPプレビューで表示
-              return <OgpLinkPreview url={embed.originalUrl} />;
+              // suno.ai は短縮URLを解決してiframe embedで再生
+              return <SunoEmbedPlayer url={embed.originalUrl} />;
             })()
           ) : linkUrlFromBody && !(post.media_url || (post.media_urls && post.media_urls[0])) ? (
             <OgpLinkPreview url={linkUrlFromBody} />
