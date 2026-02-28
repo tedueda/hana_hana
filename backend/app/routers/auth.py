@@ -368,6 +368,7 @@ async def register(user: UserCreate, db: Session = Depends(get_db)):
         password_hash=hashed_password,
         display_name=user.display_name,
         phone_number=user.phone_number,
+        residence_country=user.residence_country,
         membership_type="premium"
     )
     db.add(db_user)
