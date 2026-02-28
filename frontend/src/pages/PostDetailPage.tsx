@@ -581,15 +581,11 @@ const PostDetailPage: React.FC = () => {
               const embed = detectExternalEmbed(post.body)!;
               if (embed.type === 'standfm') {
                 return (
-                  <div className="w-full h-[230px]">
+                  <div style={{ left: 0, width: '100%', height: '230px', position: 'relative' }}>
                     <iframe
                       src={embed.embedUrl}
-                      title="stand.fm player"
-                      frameBorder="0"
-                      allow="autoplay; encrypted-media"
+                      style={{ top: 0, left: 0, width: '100%', height: '100%', position: 'absolute', border: 0 }}
                       allowFullScreen
-                      className="w-full h-full rounded-lg"
-                      style={{ border: 0 }}
                     />
                   </div>
                 );
