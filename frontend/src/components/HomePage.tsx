@@ -734,8 +734,8 @@ const HomePage: React.FC = () => {
                       </button>
                     )}
                   </div>
-                  <p className="hidden md:block text-sm text-slate-600 mb-4 line-clamp-3 leading-relaxed overflow-hidden">
-                    {(article.display_text || article.body || '').replace(/\n+/g, ' ').slice(0, 200)}
+                  <p className="hidden md:block text-sm text-slate-600 mb-4 leading-relaxed overflow-hidden">
+                    {(article.display_text || article.body || '').replace(/\n+/g, ' ').slice(0, 50)}
                   </p>
                   <div className="hidden md:flex items-center justify-between text-xs text-slate-500 pt-3 border-t border-gray-100">
                     <span>{new Date(article.created_at).toLocaleDateString('ja-JP', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '/')}</span>
