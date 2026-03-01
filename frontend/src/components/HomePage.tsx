@@ -449,8 +449,9 @@ const HomePage: React.FC = () => {
             <div className="flex flex-col md:grid md:grid-cols-2 lg:grid-cols-4 gap-4">
               {(categoryPosts[cat.key] || []).slice(0, 4).map((post) => {
                 // youtube_urlフィールドがない場合、本文からYouTubeのURLを抽出
-                const youtubeUrl = post.youtube_url || extractYouTubeUrl(post.body || '');
-                console.log(`📌 Post ${post.id} - youtube_url:`, post.youtube_url, 'extracted:', youtubeUrl, 'media_url:', post.media_url);
+                const extractedUrl = extractYouTubeUrl(post.body || '');
+                const youtubeUrl = post.youtube_url || extractedUrl;
+                console.log(`📌 Post ${post.id} - youtube_url:`, post.youtube_url, 'body:', post.body, 'extractedUrl:', extractedUrl, 'youtubeUrl:', youtubeUrl, 'media_url:', post.media_url);
                 return (
                 <Card 
                   key={post.id} 
@@ -461,15 +462,19 @@ const HomePage: React.FC = () => {
                   {youtubeUrl ? (
                     <div className="w-32 h-20 md:w-full md:h-40 flex-shrink-0 overflow-hidden rounded-l-lg md:rounded-l-none md:rounded-t-lg bg-black flex items-center justify-center relative">
                       <img 
-                        src={`https://img.youtube.com/vi/${extractYouTubeId(youtubeUrl)}/maxresdefault.jpg`}
+                        src={`https://i.ytimg.com/vi/${extractYouTubeId(youtubeUrl)}/hqdefault.jpg`}
                         alt={post.title || 'YouTube動画'}
-                        className="w-full h-full object-contain"
+                        className="w-full h-full object-cover"
                         onError={(e) => {
-                          const videoId = extractYouTubeId(youtubeUrl);
-                          if (videoId) {
-                            (e.target as HTMLImageElement).src = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
+                          const target = e.target as HTMLImageElement;
+                          const videoId = extractYouTubeId(youtubeUrl || '');
+                          if (!videoId) { target.src = getCategoryPlaceholder(post.category); return; }
+                          if (target.src.includes('hqdefault')) {
+                            target.src = `https://i.ytimg.com/vi/${videoId}/mqdefault.jpg`;
+                          } else if (target.src.includes('mqdefault')) {
+                            target.src = `https://i.ytimg.com/vi/${videoId}/sddefault.jpg`;
                           } else {
-                            (e.target as HTMLImageElement).src = getCategoryPlaceholder(post.category);
+                            target.src = getCategoryPlaceholder(post.category);
                           }
                         }}
                       />

@@ -691,7 +691,7 @@ const PostDetailPage: React.FC = () => {
               </div>
             )}
 
-            <div className="text-gray-700 leading-7 mb-4">
+            <div className="text-gray-700 leading-7 mb-4 whitespace-pre-wrap">
               {isEditing ? (
                 <Textarea
                   placeholder={t('post.bodyPlaceholder')}
