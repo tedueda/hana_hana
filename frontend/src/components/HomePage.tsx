@@ -9,7 +9,7 @@ import { Card, CardContent } from './ui/card';
 import UnderConstructionModal from './UnderConstructionModal';
 import PremiumUpgradeModal from './PremiumUpgradeModal';
 import { Post, User } from '../types/Post';
-import { extractYouTubeId, extractYouTubeUrlFromText } from '../utils/youtube';
+import { extractYouTubeId, extractYouTubeUrl } from '../utils/youtube';
 import HeroAudioPlayer from './HeroAudioPlayer';
 import liveWeddingBanner from '../assets/images/LiveWedding.png';
 import { API_URL } from '../config';
@@ -449,7 +449,7 @@ const HomePage: React.FC = () => {
             <div className="flex flex-col md:grid md:grid-cols-2 lg:grid-cols-4 gap-4">
               {(categoryPosts[cat.key] || []).slice(0, 4).map((post) => {
                 // youtube_urlフィールドがない場合、本文からYouTubeのURLを抽出
-                const youtubeUrl = post.youtube_url || extractYouTubeUrlFromText(post.body || '');
+                const youtubeUrl = post.youtube_url || extractYouTubeUrl(post.body || '');
                 console.log(`📌 Post ${post.id} - youtube_url:`, post.youtube_url, 'extracted:', youtubeUrl, 'media_url:', post.media_url);
                 return (
                 <Card 
