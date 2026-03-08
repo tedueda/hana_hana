@@ -2,6 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { ShieldCheck } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import aboutHero from '../assets/images/hero4.png';
 import MemberMenuCards from '../components/MemberMenuCards';
 
 const AboutPage: React.FC = () => {
@@ -9,6 +10,14 @@ const AboutPage: React.FC = () => {
 
   return (
     <div className="bg-white">
+      <section className="w-full">
+        <img
+          src={aboutHero}
+          alt="Carat about hero"
+          className="w-full h-auto object-cover"
+        />
+      </section>
+
       <section className="container mx-auto px-4 sm:px-6 md:px-8 py-12 md:py-16">
         <div className="max-w-5xl">
           <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-8">カラットとは</h1>
