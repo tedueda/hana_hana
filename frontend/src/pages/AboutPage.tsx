@@ -10,12 +10,14 @@ const AboutPage: React.FC = () => {
 
   return (
     <div className="bg-white">
-      <section className="w-full">
-        <img
-          src={aboutHero}
-          alt="Carat about hero"
-          className="w-full h-auto object-cover"
-        />
+      <section className="container mx-auto px-4 sm:px-6 md:px-8 pt-8 md:pt-12">
+        <div className="max-w-5xl overflow-hidden rounded-2xl">
+          <img
+            src={aboutHero}
+            alt="Carat about hero"
+            className="w-full h-48 sm:h-64 md:h-80 lg:h-96 object-cover"
+          />
+        </div>
       </section>
 
       <section className="container mx-auto px-4 sm:px-6 md:px-8 py-12 md:py-16">
