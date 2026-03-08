@@ -11,7 +11,7 @@ const AboutPage: React.FC = () => {
   return (
     <div className="bg-white">
       <section className="container mx-auto px-4 sm:px-6 md:px-8 pt-8 md:pt-12">
-        <div className="max-w-5xl overflow-hidden rounded-2xl">
+        <div className="max-w-5xl mx-auto overflow-hidden rounded-2xl">
           <img
             src={aboutHero}
             alt="Carat about hero"
@@ -21,7 +21,7 @@ const AboutPage: React.FC = () => {
       </section>
 
       <section className="container mx-auto px-4 sm:px-6 md:px-8 py-12 md:py-16">
-        <div className="max-w-5xl">
+        <div className="max-w-5xl mx-auto">
           <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-8">カラットとは</h1>
           <div className="rounded-2xl border border-gray-200 bg-white p-8 md:p-10 shadow-sm">
             <p className="text-lg md:text-xl leading-relaxed text-gray-900 whitespace-pre-line">
@@ -36,7 +36,7 @@ const AboutPage: React.FC = () => {
 
       <section className="bg-gray-50 border-y border-gray-100">
         <div className="container mx-auto px-4 sm:px-6 md:px-8 py-12 md:py-16">
-          <div className="max-w-5xl">
+          <div className="max-w-5xl mx-auto">
             <div className="flex items-center gap-3">
               <div className="h-10 w-10 rounded-xl bg-gray-900 text-white flex items-center justify-center">
                 <ShieldCheck className="h-5 w-5" />
@@ -73,7 +73,7 @@ const AboutPage: React.FC = () => {
       </section>
 
       <section className="container mx-auto px-4 sm:px-6 md:px-8 py-14 md:py-20">
-        <div className="max-w-4xl">
+        <div className="max-w-4xl mx-auto">
           <div className="rounded-3xl border border-gray-200 bg-white shadow-sm p-8 md:p-10">
             <p className="text-gray-900 text-lg md:text-xl font-semibold leading-relaxed">
               {t('about.closingQuote')}
