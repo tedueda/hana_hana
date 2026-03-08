@@ -9,6 +9,12 @@ from ..auth import get_current_user, get_current_active_user
 
 router = APIRouter(prefix="/api/art-sales", tags=["art-sales"])
 
+
+def require_premium(current_user: models.User = Depends(get_current_active_user)) -> models.User:
+    if current_user.membership_type not in ("premium", "admin"):
+        raise HTTPException(status_code=403, detail={"error": "premium_required"})
+    return current_user
+
 ART_SALE_CATEGORIES = [
     "painting",      # 絵画
     "sculpture",     # 彫刻
@@ -34,6 +40,7 @@ def list_items(
     skip: int = 0,
     limit: int = 20,
     db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_premium),
 ):
     """List all art sale items with optional filters"""
     query = db.query(models.ArtSaleItem)
@@ -77,6 +84,7 @@ def list_items(
 def get_item(
     item_id: int,
     db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_premium),
 ):
     """Get a specific art sale item"""
     item = db.query(models.ArtSaleItem).filter(models.ArtSaleItem.id == item_id).first()

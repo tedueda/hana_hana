@@ -225,7 +225,7 @@ def search_profiles(
     identity: Optional[str] = Query(None),
     page: int = Query(1, ge=1),
     size: int = Query(20, ge=1, le=50),
-    current_user: Optional[User] = Depends(get_optional_user),
+    current_user: User = Depends(require_premium),
     db: Session = Depends(get_db),
 ):
     q = db.query(MatchingProfile, User).join(User, User.id == MatchingProfile.user_id)

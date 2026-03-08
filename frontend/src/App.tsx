@@ -15,6 +15,7 @@ import BlogListPage from './components/BlogListPage';
 import BlogDetailPage from './components/BlogDetailPage';
 import NewsPage from './components/NewsPage';
 import PremiumGate from './components/matching/PremiumGate';
+import PaidMemberRoute from './components/PaidMemberRoute';
 import MatchingLayout from './components/matching/MatchingLayout';
 import MatchingSearchPage from './components/matching/MatchingSearchPage';
 import MatchingLikesPage from './components/matching/MatchingLikesPage';
@@ -149,7 +150,9 @@ function AppContent() {
           } />
           <Route path="/profile" element={
             <FeedRoute>
-              <ProfilePage />
+              <PaidMemberRoute>
+                <ProfilePage />
+              </PaidMemberRoute>
             </FeedRoute>
           } />
           <Route path="/create/:category?" element={
@@ -179,8 +182,8 @@ function AppContent() {
               <CategoryPageNew />
             </FeedRoute>
           } />
-          {/* Matching routes */}
-          <Route path="/matching" element={<MatchingLayout />}>
+          {/* Matching routes - 有料会員専用 */}
+          <Route path="/matching" element={<PaidMemberRoute><MatchingLayout /></PaidMemberRoute>}>
             <Route index element={<MatchingSearchPage />} />
             <Route path="likes" element={<MatchingLikesPage />} />
             <Route path="matches" element={<MatchingMatchesPage />} />
@@ -238,11 +241,11 @@ function AppContent() {
                         <AccountPage />
                       </FeedRoute>
                     } />
-                    {/* Salon routes */}
-                    <Route path="/salon" element={<SalonPage />} />
-                    <Route path="/salon/rooms/:roomId" element={<SalonRoomDetailPage />} />
-                    {/* Business page - フリマ・作品販売・講座・Live配信 */}
-                    <Route path="/business" element={<BusinessPage />} />
+                    {/* Salon routes - 有料会員専用 */}
+                    <Route path="/salon" element={<PaidMemberRoute><SalonPage /></PaidMemberRoute>} />
+                    <Route path="/salon/rooms/:roomId" element={<PaidMemberRoute><SalonRoomDetailPage /></PaidMemberRoute>} />
+                    {/* Business page - 有料会員専用 */}
+                    <Route path="/business" element={<PaidMemberRoute><BusinessPage /></PaidMemberRoute>} />
                     {/* Jewelry Shopping routes */}
                     <Route path="/jewelry" element={<JewelryProductList />} />
                     <Route path="/jewelry/:id" element={<JewelryProductDetail />} />

@@ -14,6 +14,7 @@ import { getPreferredLanguage } from '../utils/languageUtils';
 import { API_URL } from '../config';
 import { detectExternalEmbed } from '../utils/embedExtractors';
 import OgpLinkPreview from './common/OgpLinkPreview';
+import SunoEmbedPlayer from './common/SunoEmbedPlayer';
 
 interface PostDetailModalProps {
   post: Post;
@@ -796,19 +797,19 @@ const PostDetailModal: React.FC<PostDetailModalProps> = ({
           ) : detectExternalEmbed(post.body) ? (
             (() => {
               const embed = detectExternalEmbed(post.body)!;
-              return (
-                <div className={`w-full ${embed.type === 'standfm' ? 'h-[230px]' : 'aspect-video'}`}>
-                  <iframe
-                    src={embed.embedUrl}
-                    title={embed.type === 'standfm' ? 'stand.fm player' : 'Suno player'}
-                    frameBorder="0"
-                    allow="autoplay; encrypted-media"
-                    allowFullScreen
-                    className="w-full h-full rounded-lg"
-                    style={{ border: 0 }}
-                  />
-                </div>
-              );
+              if (embed.type === 'standfm') {
+                return (
+                  <div style={{ left: 0, width: '100%', height: '230px', position: 'relative' }}>
+                    <iframe
+                      src={embed.embedUrl}
+                      style={{ top: 0, left: 0, width: '100%', height: '100%', position: 'absolute', border: 0 }}
+                      allowFullScreen
+                    />
+                  </div>
+                );
+              }
+              // suno.ai は短縮URLを解決してiframe embedで再生
+              return <SunoEmbedPlayer url={embed.originalUrl} />;
             })()
           ) : linkUrlFromBody && !(post.media_url || (post.media_urls && post.media_urls[0])) ? (
             <OgpLinkPreview url={linkUrlFromBody} />

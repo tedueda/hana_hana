@@ -3,45 +3,19 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight, Lock, Globe } from 'lucide-react';
+import { ArrowRight, Globe } from 'lucide-react';
 import { Button } from './ui/button';
 import { Card, CardContent } from './ui/card';
 import UnderConstructionModal from './UnderConstructionModal';
 import PremiumUpgradeModal from './PremiumUpgradeModal';
+import MemberMenuCards from './MemberMenuCards';
 import { Post, User } from '../types/Post';
-import { extractYouTubeId } from '../utils/youtube';
+import { extractYouTubeId, extractYouTubeUrl } from '../utils/youtube';
 import HeroAudioPlayer from './HeroAudioPlayer';
 import liveWeddingBanner from '../assets/images/LiveWedding.png';
 import { API_URL } from '../config';
-
-
-
-const specialMenuItems = [
-  {
-    id: "matching",
-    titleKey: "homepage.specialMenu.matching.title",
-    descriptionKey: "homepage.specialMenu.matching.description",
-    icon: "💕",
-    link: "/matching",
-    premiumOnly: false,
-  },
-  {
-    id: "salon",
-    titleKey: "homepage.specialMenu.salon.title",
-    descriptionKey: "homepage.specialMenu.salon.description",
-    icon: "💬",
-    link: "/salon",
-    premiumOnly: false,
-  },
-  {
-    id: "business",
-    titleKey: "homepage.specialMenu.business.title",
-    descriptionKey: "homepage.specialMenu.business.description",
-    icon: "💼",
-    link: "/business",
-    premiumOnly: false,
-  },
-];
+import { detectExternalEmbed } from '../utils/embedExtractors';
+import OgpThumbnail from './common/OgpThumbnail';
 
 const boardCategories = [
   { key: "music", title: "ミュージック", desc: "あなたの好きな楽曲、作成した楽曲を投稿して共有しましょう！", emoji: "🎵", link: "/category/music" },
@@ -138,7 +112,7 @@ const HomePage: React.FC = () => {
   const [showConstructionModal, setShowConstructionModal] = useState(false);
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
-  const [upgradeFeatureName, setUpgradeFeatureName] = useState('');
+  const [upgradeFeatureName] = useState('');
   const [currentSlide, setCurrentSlide] = useState(0);
   const heroSectionRef = useRef<HTMLElement>(null);
   const { token, user, isAnonymous } = useAuth();
@@ -390,11 +364,6 @@ const HomePage: React.FC = () => {
               <div className="text-left">
                 <p className="text-sm md:text-base text-slate-500 mb-1">{t('cta.communityTitle')}</p>
                 <p className="text-lg md:text-xl font-serif text-slate-900">{t('cta.communitySubtitle')}</p>
-                {(!user || isAnonymous) && (
-                  <p className="mt-2 text-sm md:text-base text-slate-500">
-                    {t('cta.freeUserNote')}
-                  </p>
-                )}
               </div>
               <div className="flex flex-col gap-3">
                 <Button
@@ -447,8 +416,9 @@ const HomePage: React.FC = () => {
             <div className="flex flex-col md:grid md:grid-cols-2 lg:grid-cols-4 gap-4">
               {(categoryPosts[cat.key] || []).slice(0, 4).map((post) => {
                 // youtube_urlフィールドがない場合、本文からYouTubeのURLを抽出
-                const youtubeUrl = post.youtube_url || (post.body ? post.body.match(/https?:\/\/(?:www\.)?(?:youtube\.com|youtu\.be)[^\s)<>"']+/i)?.[0] : null);
-                console.log(`📌 Post ${post.id} - youtube_url:`, post.youtube_url, 'extracted:', youtubeUrl, 'media_url:', post.media_url);
+                const extractedUrl = extractYouTubeUrl(post.body || '');
+                const youtubeUrl = post.youtube_url || extractedUrl;
+                console.log(`📌 Post ${post.id} - youtube_url:`, post.youtube_url, 'body:', post.body, 'extractedUrl:', extractedUrl, 'youtubeUrl:', youtubeUrl, 'media_url:', post.media_url);
                 return (
                 <Card 
                   key={post.id} 
@@ -459,15 +429,19 @@ const HomePage: React.FC = () => {
                   {youtubeUrl ? (
                     <div className="w-32 h-20 md:w-full md:h-40 flex-shrink-0 overflow-hidden rounded-l-lg md:rounded-l-none md:rounded-t-lg bg-black flex items-center justify-center relative">
                       <img 
-                        src={`https://img.youtube.com/vi/${extractYouTubeId(youtubeUrl)}/maxresdefault.jpg`}
+                        src={`https://i.ytimg.com/vi/${extractYouTubeId(youtubeUrl)}/hqdefault.jpg`}
                         alt={post.title || 'YouTube動画'}
-                        className="w-full h-full object-contain"
+                        className="w-full h-full object-cover"
                         onError={(e) => {
-                          const videoId = extractYouTubeId(youtubeUrl);
-                          if (videoId) {
-                            (e.target as HTMLImageElement).src = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
+                          const target = e.target as HTMLImageElement;
+                          const videoId = extractYouTubeId(youtubeUrl || '');
+                          if (!videoId) { target.src = getCategoryPlaceholder(post.category); return; }
+                          if (target.src.includes('hqdefault')) {
+                            target.src = `https://i.ytimg.com/vi/${videoId}/mqdefault.jpg`;
+                          } else if (target.src.includes('mqdefault')) {
+                            target.src = `https://i.ytimg.com/vi/${videoId}/sddefault.jpg`;
                           } else {
-                            (e.target as HTMLImageElement).src = getCategoryPlaceholder(post.category);
+                            target.src = getCategoryPlaceholder(post.category);
                           }
                         }}
                       />
@@ -489,15 +463,34 @@ const HomePage: React.FC = () => {
                         }}
                       />
                     </div>
-                  ) : (
-                    <div className="w-32 h-20 md:w-full md:h-40 flex-shrink-0 overflow-hidden rounded-l-lg md:rounded-l-none md:rounded-t-lg bg-gray-100 flex items-center justify-center">
-                      <img 
-                        src={getCategoryPlaceholder(post.category)}
-                        alt={cat.title}
-                        className="w-full h-full object-contain"
-                      />
-                    </div>
-                  )}
+                  ) : (() => {
+                    const externalEmbed = detectExternalEmbed(post.body || '');
+                    if (externalEmbed) {
+                      return (
+                        <OgpThumbnail
+                          url={externalEmbed.originalUrl}
+                          alt={post.title || (externalEmbed.type === 'standfm' ? 'stand.fm' : 'Suno AI')}
+                          className="w-32 h-20 md:w-full md:h-40 flex-shrink-0 overflow-hidden rounded-l-lg md:rounded-l-none md:rounded-t-lg bg-gray-100 flex items-center justify-center"
+                          imgClassName="w-full h-full object-cover"
+                          fallback={
+                            <div className="w-32 h-20 md:w-full md:h-40 flex-shrink-0 overflow-hidden rounded-l-lg md:rounded-l-none md:rounded-t-lg bg-gradient-to-br from-purple-100 to-pink-100 flex flex-col items-center justify-center gap-1">
+                              <div className="text-3xl">{externalEmbed.type === 'standfm' ? '🎙️' : '🎵'}</div>
+                              <span className="text-xs font-medium text-gray-600">{externalEmbed.type === 'standfm' ? 'stand.fm' : 'Suno AI'}</span>
+                            </div>
+                          }
+                        />
+                      );
+                    }
+                    return (
+                      <div className="w-32 h-20 md:w-full md:h-40 flex-shrink-0 overflow-hidden rounded-l-lg md:rounded-l-none md:rounded-t-lg bg-gray-100 flex items-center justify-center">
+                        <img 
+                          src={getCategoryPlaceholder(post.category)}
+                          alt={cat.title}
+                          className="w-full h-full object-contain"
+                        />
+                      </div>
+                    );
+                  })()}
                   <CardContent className="p-2 md:p-4 flex-1">
                     <div className="flex items-start justify-between gap-2 mb-1">
                       {(post.display_title || post.title) && (
@@ -535,85 +528,8 @@ const HomePage: React.FC = () => {
           </section>
         ))}
 
-        {/* 特別メニュー - カテゴリ一覧の直下 */}
-        <section className="py-12">
-          <div className="flex flex-col md:flex-row md:items-baseline md:justify-between mb-6 gap-1 md:gap-0">
-            <h3 className="text-4xl md:text-5xl font-serif font-semibold text-slate-900">{t('homepage.specialMenu.title')}</h3>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            {specialMenuItems.map((item) => {
-              // 有料会員かどうか
-              const isPaidUser = user?.membership_type === 'premium' || user?.membership_type === 'admin';
-              const isLocked = item.premiumOnly && !isPaidUser;
-              
-              const handleMenuClick = () => {
-                if (isLocked) {
-                  setUpgradeFeatureName(t(item.titleKey));
-                  setShowUpgradeModal(true);
-                } else {
-                  navigate(item.link);
-                  window.scrollTo({ top: 0, behavior: 'smooth' });
-                }
-              };
-              
-              return (
-                <Card 
-                  key={item.id} 
-                  className={`group backdrop-blur-md border transition-all duration-300 cursor-pointer shadow-lg ${
-                    isLocked 
-                      ? 'bg-gray-100/90 border-gray-300 hover:bg-gray-200/90' 
-                      : 'bg-gray-50/90 border-gray-200 hover:bg-white hover:border-gray-300 hover:scale-[1.02] hover:shadow-2xl'
-                  }`}
-                  onClick={handleMenuClick}
-                >
-                  <CardContent className="p-6">
-                    <div className="flex flex-col items-center text-center">
-                      <div className={`text-5xl mb-4 transition-transform relative ${isLocked ? 'opacity-50' : 'group-hover:scale-110'}`}>
-                        {item.icon}
-                        {isLocked && (
-                          <div className="absolute -top-1 -right-1 bg-gray-600 rounded-full p-1">
-                            <Lock className="h-3 w-3 text-white" />
-                          </div>
-                        )}
-                      </div>
-                      <h4 className={`font-serif font-semibold text-xl mb-2 flex items-center gap-2 ${isLocked ? 'text-slate-500' : 'text-slate-900 group-hover:gold-accent'}`}>
-                        {t(item.titleKey)}
-                        {isLocked && <Lock className="h-4 w-4 text-gray-400" />}
-                      </h4>
-                      <p className={`text-sm mb-4 ${isLocked ? 'text-slate-400' : 'text-slate-600'}`}>
-                        {t(item.descriptionKey)}
-                      </p>
-                      <Button 
-                        className={`font-medium w-full ${
-                          isLocked 
-                            ? 'bg-gray-200 text-gray-500 border border-gray-300 hover:bg-gray-300' 
-                            : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-100 hover:text-black group-hover:shadow-md'
-                        } transition-all`}
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleMenuClick();
-                        }}
-                      >
-                        {isLocked ? (
-                          <>
-                            <Lock className="h-3 w-3 mr-1" />
-                            {t('homepage.specialMenu.premiumOnly')}
-                          </>
-                        ) : (
-                          <>
-                            {t('homepage.specialMenu.viewDetails')}
-                            <ArrowRight className="h-3 w-3 ml-1" />
-                          </>
-                        )}
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
-        </section>
+        {/* 会員メニュー - カテゴリ一覧の直下 */}
+        <MemberMenuCards />
 
         {/* ライブウェディングバナー */}
         <section className="py-6">
@@ -682,11 +598,30 @@ const HomePage: React.FC = () => {
                       }}
                     />
                   </div>
-                ) : (
-                  <div className="w-32 h-20 md:w-full md:h-[200px] flex-shrink-0 overflow-hidden rounded-l-lg md:rounded-l-none md:rounded-t-lg bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
-                    <span className="text-6xl opacity-30">📰</span>
-                  </div>
-                )}
+                ) : (() => {
+                  const externalEmbed = detectExternalEmbed(article.body || '');
+                  if (externalEmbed) {
+                    return (
+                      <OgpThumbnail
+                        url={externalEmbed.originalUrl}
+                        alt={article.title || (externalEmbed.type === 'standfm' ? 'stand.fm' : 'Suno AI')}
+                        className="w-32 h-20 md:w-full md:h-[200px] flex-shrink-0 overflow-hidden rounded-l-lg md:rounded-l-none md:rounded-t-lg bg-gray-100 flex items-center justify-center"
+                        imgClassName="w-full h-full object-cover"
+                        fallback={
+                          <div className="w-32 h-20 md:w-full md:h-[200px] flex-shrink-0 overflow-hidden rounded-l-lg md:rounded-l-none md:rounded-t-lg bg-gradient-to-br from-purple-100 to-pink-100 flex flex-col items-center justify-center gap-1">
+                            <div className="text-3xl">{externalEmbed.type === 'standfm' ? '🎙️' : '🎵'}</div>
+                            <span className="text-xs font-medium text-gray-600">{externalEmbed.type === 'standfm' ? 'stand.fm' : 'Suno AI'}</span>
+                          </div>
+                        }
+                      />
+                    );
+                  }
+                  return (
+                    <div className="w-32 h-20 md:w-full md:h-[200px] flex-shrink-0 overflow-hidden rounded-l-lg md:rounded-l-none md:rounded-t-lg bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
+                      <span className="text-6xl opacity-30">📰</span>
+                    </div>
+                  );
+                })()}
                 <CardContent className="p-2 md:p-5 flex-1">
                   <div className="hidden md:flex items-center gap-2 mb-3">
                     <span className="text-xs bg-gray-800 text-white px-2.5 py-1 rounded font-medium">
@@ -713,8 +648,8 @@ const HomePage: React.FC = () => {
                       </button>
                     )}
                   </div>
-                  <p className="hidden md:block text-sm text-slate-600 mb-4 line-clamp-3 leading-relaxed">
-                    {article.display_text || article.body}
+                  <p className="hidden md:block text-sm text-slate-600 mb-4 leading-relaxed overflow-hidden">
+                    {(article.display_text || article.body || '').replace(/\n+/g, ' ').slice(0, 50)}
                   </p>
                   <div className="hidden md:flex items-center justify-between text-xs text-slate-500 pt-3 border-t border-gray-100">
                     <span>{new Date(article.created_at).toLocaleDateString('ja-JP', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '/')}</span>
@@ -737,9 +672,6 @@ const HomePage: React.FC = () => {
               <div className="text-left">
                 <p className="text-sm md:text-base text-slate-500 mb-1">{t('cta.communityTitle')}</p>
                 <p className="text-lg md:text-xl font-serif text-slate-900">{t('cta.communitySubtitle')}</p>
-                <p className="mt-2 text-sm md:text-base text-slate-500">
-                  {t('cta.freeUserNote')}
-                </p>
               </div>
               <div className="flex flex-col gap-3">
                 <Button

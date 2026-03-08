@@ -52,7 +52,7 @@ async def list_rooms(
     is_active: bool = Query(True),
     page: int = Query(1, ge=1),
     size: int = Query(20, ge=1, le=50),
-    current_user: Optional[User] = Depends(get_optional_user),
+    current_user: User = Depends(require_premium),
     db: Session = Depends(get_db),
 ):
     user_identity = get_user_identity(current_user.id, db) if current_user else None

@@ -3,7 +3,6 @@ import json
 import os
 import re
 import io
-import imghdr
 import logging
 from datetime import datetime, timezone
 from typing import Optional, List
@@ -209,8 +208,16 @@ async def upload_image(
     data = await file.read()
     if len(data) > UPLOAD_MAX_MB * 1024 * 1024:
         raise HTTPException(status_code=400, detail="File too large")
-    kind = imghdr.what(None, h=data)
-    if kind not in ("jpeg", "png", "webp", "rgb"):
+    def _detect_kind(d: bytes) -> str:
+        if len(d) >= 8 and d[:8] == b'\x89PNG\r\n\x1a\n':
+            return "png"
+        if len(d) >= 3 and d[:3] == b'\xff\xd8\xff':
+            return "jpeg"
+        if len(d) >= 12 and d[:4] == b'RIFF' and d[8:12] == b'WEBP':
+            return "webp"
+        return "unknown"
+    kind = _detect_kind(data)
+    if kind not in ("jpeg", "png", "webp"):
         raise HTTPException(status_code=400, detail="Invalid image content")
 
     fname = f"{uuid.uuid4().hex}.{ext}"

@@ -38,6 +38,58 @@ def _extract_title(html: str) -> str | None:
     return unescape(m.group(1)).strip() if m else None
 
 
+@router.get("/resolve-suno")
+async def resolve_suno(url: str = Query(..., description="Suno short URL to resolve")):
+    """Resolve suno.com short share URL (/s/{id}) to full song URL and return embed info."""
+    if not url.startswith(("http://", "https://")):
+        raise HTTPException(status_code=400, detail="Invalid URL")
+
+    try:
+        async with httpx.AsyncClient(
+            follow_redirects=True,
+            timeout=_TIMEOUT,
+            headers={
+                "User-Agent": "Mozilla/5.0 (compatible; CaratBot/1.0)",
+                "Accept": "text/html,application/xhtml+xml",
+            },
+        ) as client:
+            resp = await client.get(url)
+            final_url = str(resp.url)
+
+            # Extract UUID from /song/{uuid} path
+            m = re.search(r"/song/([a-f0-9-]{36})", final_url)
+            if m:
+                song_id = m.group(1)
+                return JSONResponse(
+                    content={
+                        "song_id": song_id,
+                        "embed_url": f"https://suno.com/embed/{song_id}",
+                        "song_url": final_url,
+                    },
+                    headers={"Cache-Control": "public, max-age=86400"},
+                )
+
+            # Fallback: try to find song ID in the HTML meta tags
+            html = resp.text[:_MAX_BYTES]
+            og_url = _extract_meta(html, "og:url") or ""
+            m2 = re.search(r"/song/([a-f0-9-]{36})", og_url)
+            if m2:
+                song_id = m2.group(1)
+                return JSONResponse(
+                    content={
+                        "song_id": song_id,
+                        "embed_url": f"https://suno.com/embed/{song_id}",
+                        "song_url": og_url,
+                    },
+                    headers={"Cache-Control": "public, max-age=86400"},
+                )
+
+    except Exception:
+        pass
+
+    raise HTTPException(status_code=404, detail="Could not resolve Suno song ID")
+
+
 @router.get("")
 async def get_ogp(url: str = Query(..., description="URL to fetch OGP metadata from")):
     if not url.startswith(("http://", "https://")):

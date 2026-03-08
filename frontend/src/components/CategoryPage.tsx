@@ -6,11 +6,12 @@ import { useLanguage } from '../contexts/LanguageContext';
 import { Button } from './ui/button';
 import { Card, CardContent } from './ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
-import { ArrowLeft, Plus, MessageCircle, Filter, SortAsc, Globe } from 'lucide-react';
+import { ArrowLeft, Plus, MessageCircle, Filter, SortAsc, Globe, LayoutGrid, List } from 'lucide-react';
 import LikeButton from './common/LikeButton';
 import { Post } from '../types/Post';
 import { getYouTubeThumbnail, extractYouTubeUrlFromText } from '../utils/youtube';
 import { detectExternalEmbed } from '../utils/embedExtractors';
+import OgpThumbnail from './common/OgpThumbnail';
 import { getPostImageUrl } from '../utils/imageUtils';
 import { API_URL } from '../config';
 
@@ -80,6 +81,7 @@ const CategoryPage: React.FC = () => {
   const [timeRange, setTimeRange] = useState(searchParams.get('range') || 'all');
   const [selectedTag, setSelectedTag] = useState(searchParams.get('tag') || '');
   const [selectedSubcategory, setSelectedSubcategory] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<'card' | 'list'>('card');
   const editPostId = searchParams.get('edit');
 
   const isValidCategory = categoryKey && categoryKeys.includes(categoryKey as CategoryKey);
@@ -341,6 +343,25 @@ const CategoryPage: React.FC = () => {
             </div>
           )}
         </div>
+        {/* カード/リスト切り替え */}
+        <div className="flex items-center gap-1 border border-pink-200 rounded-lg p-0.5">
+          <button
+            onClick={() => setViewMode('card')}
+            className={`p-2 rounded-md transition-colors ${viewMode === 'card' ? 'bg-pink-500 text-white' : 'text-gray-500 hover:bg-gray-100'}`}
+            title="カード表示"
+            aria-label="カード表示"
+          >
+            <LayoutGrid className="h-4 w-4" />
+          </button>
+          <button
+            onClick={() => setViewMode('list')}
+            className={`p-2 rounded-md transition-colors ${viewMode === 'list' ? 'bg-pink-500 text-white' : 'text-gray-500 hover:bg-gray-100'}`}
+            title="リスト表示"
+            aria-label="リスト表示"
+          >
+            <List className="h-4 w-4" />
+          </button>
+        </div>
       </div>
 
       {/* 投稿グリッド */}
@@ -381,7 +402,7 @@ const CategoryPage: React.FC = () => {
             )}
           </CardContent>
         </Card>
-      ) : (
+      ) : viewMode === 'card' ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5 lg:gap-6">
           {posts.map((post) => (
             <Card 
@@ -420,17 +441,25 @@ const CategoryPage: React.FC = () => {
                 const ytUrl = post.youtube_url || extractYouTubeUrlFromText(post.body || '') || '';
                 const ytThumb = getYouTubeThumbnail(ytUrl);
 
-                // stand.fm / suno.ai の場合はブランドカードを表示
+                // stand.fm / suno.ai の場合はOGPサムネイルを表示
                 if (!ytThumb) {
                   const externalEmbed = detectExternalEmbed(post.body || '');
                   if (externalEmbed) {
                     return (
-                      <div className="aspect-[3/2] w-full h-[220px] overflow-hidden rounded-t-2xl bg-gradient-to-br from-purple-100 to-pink-100 flex flex-col items-center justify-center gap-2">
-                        <div className="text-4xl">{externalEmbed.type === 'standfm' ? '🎙️' : '🎵'}</div>
-                        <span className="text-sm font-medium text-gray-600">
-                          {externalEmbed.type === 'standfm' ? 'stand.fm' : 'Suno AI'}
-                        </span>
-                      </div>
+                      <OgpThumbnail
+                        url={externalEmbed.originalUrl}
+                        alt={post.title || (externalEmbed.type === 'standfm' ? 'stand.fm' : 'Suno AI')}
+                        className="aspect-[3/2] w-full h-[220px] overflow-hidden rounded-t-2xl bg-gray-100 flex items-center justify-center"
+                        imgClassName="w-full h-full object-cover"
+                        fallback={
+                          <div className="aspect-[3/2] w-full h-[220px] overflow-hidden rounded-t-2xl bg-gradient-to-br from-purple-100 to-pink-100 flex flex-col items-center justify-center gap-2">
+                            <div className="text-4xl">{externalEmbed.type === 'standfm' ? '🎙️' : '🎵'}</div>
+                            <span className="text-sm font-medium text-gray-600">
+                              {externalEmbed.type === 'standfm' ? 'stand.fm' : 'Suno AI'}
+                            </span>
+                          </div>
+                        }
+                      />
                     );
                   }
                 }
@@ -505,6 +534,106 @@ const CategoryPage: React.FC = () => {
               </CardContent>
             </Card>
           ))}
+        </div>
+      ) : (
+        /* リスト表示 */
+        <div className="flex flex-col gap-3">
+          {posts.map((post) => {
+            const postImage = getPostImageUrl(post);
+            const ytUrl = post.youtube_url || extractYouTubeUrlFromText(post.body || '') || '';
+            const ytThumb = getYouTubeThumbnail(ytUrl);
+            const externalEmbed = !postImage && !ytThumb ? detectExternalEmbed(post.body || '') : null;
+            const thumbSrc = postImage || ytThumb || (externalEmbed ? null : getCategoryPlaceholder(post.category));
+            const finalThumb = thumbSrc
+              ? (thumbSrc.startsWith('http') ? thumbSrc : thumbSrc.startsWith('/assets/') ? thumbSrc : `${API_URL}${thumbSrc}`)
+              : null;
+
+            return (
+              <Card
+                key={post.id}
+                className="rounded-xl shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer border-pink-100"
+                onClick={() => navigate(`/posts/${post.id}`)}
+                role="button"
+                tabIndex={0}
+                aria-label={`投稿: ${post.title || post.body.substring(0, 50)}`}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    navigate(`/posts/${post.id}`);
+                  }
+                }}
+              >
+                <div className="flex flex-row">
+                  {/* サムネイル */}
+                  <div className="w-24 h-24 sm:w-32 sm:h-28 flex-shrink-0 overflow-hidden rounded-l-xl bg-gray-100 flex items-center justify-center">
+                    {externalEmbed ? (
+                      <OgpThumbnail
+                        url={externalEmbed.originalUrl}
+                        alt={post.title || ''}
+                        className="w-full h-full flex items-center justify-center"
+                        imgClassName="w-full h-full object-cover"
+                        fallback={
+                          <div className="w-full h-full bg-gradient-to-br from-purple-100 to-pink-100 flex items-center justify-center">
+                            <span className="text-2xl">{externalEmbed.type === 'standfm' ? '🎙️' : '🎵'}</span>
+                          </div>
+                        }
+                      />
+                    ) : finalThumb ? (
+                      <img
+                        src={finalThumb}
+                        alt={post.title || '投稿画像'}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <span className="text-3xl opacity-40">{categoryEmoji}</span>
+                    )}
+                  </div>
+
+                  {/* コンテンツ */}
+                  <div className="flex-1 p-3 sm:p-4 min-w-0 flex flex-col justify-between">
+                    <div>
+                      {(post.display_title || post.title) && (
+                        <h3 className="font-bold text-gray-900 line-clamp-1 text-sm sm:text-base mb-1">{post.display_title || post.title}</h3>
+                      )}
+                      <p className="text-gray-600 text-xs sm:text-sm line-clamp-2 mb-2">
+                        {(post.display_text || post.body || '').replace(/\n+/g, ' ').slice(0, 150)}
+                      </p>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3 text-xs text-gray-500">
+                        <span className="font-medium">{post.user_display_name || 'ユーザー'}</span>
+                        <span>{getRelativeTime(post.created_at)}</span>
+                      </div>
+                      <div className="flex items-center gap-3 text-xs text-gray-500">
+                        <LikeButton
+                          postId={post.id}
+                          initialLiked={post.is_liked || false}
+                          initialLikeCount={post.like_count || 0}
+                          onLikeChange={(liked, likeCount) => {
+                            setPosts(prevPosts =>
+                              prevPosts.map(p =>
+                                p.id === post.id
+                                  ? { ...p, is_liked: liked, like_count: likeCount }
+                                  : p
+                              )
+                            );
+                          }}
+                          token={token}
+                          apiUrl={API_URL}
+                          size="sm"
+                          source="card"
+                        />
+                        <div className="flex items-center gap-1">
+                          <MessageCircle className="h-3.5 w-3.5" />
+                          {formatNumber(post.comment_count || 0)}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </Card>
+            );
+          })}
         </div>
       )}
 

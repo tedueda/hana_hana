@@ -3,10 +3,16 @@ from sqlalchemy.orm import Session
 from sqlalchemy import desc, asc
 from typing import List, Optional
 from app.database import get_db
-from app.auth import get_current_user, get_optional_user
+from app.auth import get_current_user, get_current_active_user, get_optional_user
 from app import models, schemas
 
 router = APIRouter(prefix="/api/flea-market", tags=["flea-market"])
+
+
+def require_premium(current_user: models.User = Depends(get_current_active_user)) -> models.User:
+    if current_user.membership_type not in ("premium", "admin"):
+        raise HTTPException(status_code=403, detail={"error": "premium_required"})
+    return current_user
 
 # Flea market categories
 FLEA_MARKET_CATEGORIES = [
@@ -56,7 +62,7 @@ def list_items(
     limit: int = Query(20, ge=1, le=100),
     offset: int = Query(0, ge=0),
     db: Session = Depends(get_db),
-    current_user: Optional[models.User] = Depends(get_optional_user),
+    current_user: models.User = Depends(require_premium),
 ):
     """List flea market items with filters and sorting"""
     query = db.query(models.FleaMarketItem)
@@ -132,7 +138,7 @@ def list_items(
 def get_item(
     item_id: int,
     db: Session = Depends(get_db),
-    current_user: Optional[models.User] = Depends(get_optional_user),
+    current_user: models.User = Depends(require_premium),
 ):
     """Get a single flea market item by ID"""
     item = db.query(models.FleaMarketItem).filter(models.FleaMarketItem.id == item_id).first()

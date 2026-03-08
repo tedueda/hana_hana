@@ -55,3 +55,15 @@ export function extractYouTubeUrlFromText(text: string): string | null {
   const m = text.match(regex);
   return m ? m[1] : null;
 }
+
+// Extract YouTube URL from text and normalize it to standard watch URL format
+// This version is more robust and handles m.youtube.com and other formats
+export function extractYouTubeUrl(text: string): string | null {
+  if (!text) return null;
+  const youtubeRegex = /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/watch\?v=|youtu\.be\/|m\.youtube\.com\/watch\?v=)([a-zA-Z0-9_-]{11})/;
+  const match = text.match(youtubeRegex);
+  if (match) {
+    return `https://www.youtube.com/watch?v=${match[1]}`;
+  }
+  return null;
+}

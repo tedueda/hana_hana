@@ -3,7 +3,7 @@
     "home": "ホーム",
     "about": "サイトについて",
     "board": "掲示板",
-    "specialMenu": "特別メニュー",
+    "specialMenu": "会員メニュー",
     "account": "アカウント",
     "blog": "ブログ",
     "accountInfo": "アカウント情報",
@@ -17,12 +17,13 @@
       "boardGeneral": "掲示板",
       "news": "LGBTQ＋ニュース"
     },
-    "specialMenuItems": {
-      "matching": "会員マッチング",
-      "salon": "会員サロン",
-      "business": "ビジネス",
-      "liveWedding": "Live Wedding"
-    },
+        "specialMenuItems": {
+          "matching": "会員マッチング",
+          "salon": "会員サロン",
+          "business": "ビジネス",
+          "liveWedding": "Live Wedding"
+        },
+        "memberMenu": "会員メニュー",
     "aboutItems": {
       "aboutCarat": "Caratとは",
       "usage": "ご利用方法",
@@ -115,8 +116,11 @@
     "operatorLabel": "運営店主"
   },
   "homepage": {
+    "memberMenu": {
+      "title": "会員メニュー"
+    },
     "specialMenu": {
-      "title": "特別メニュー",
+      "title": "会員メニュー",
       "viewDetails": "詳細を見る",
       "premiumOnly": "有料会員限定",
       "matching": {
