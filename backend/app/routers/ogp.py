@@ -7,6 +7,7 @@ frontend can render a rich link preview without running into CORS issues.
 import httpx
 import re
 from html import unescape
+from urllib.parse import urlparse
 from fastapi import APIRouter, Query, HTTPException
 from fastapi.responses import JSONResponse
 
@@ -43,6 +44,10 @@ async def resolve_suno(url: str = Query(..., description="Suno short URL to reso
     """Resolve suno.com short share URL (/s/{id}) to full song URL and return embed info."""
     if not url.startswith(("http://", "https://")):
         raise HTTPException(status_code=400, detail="Invalid URL")
+
+    parsed = urlparse(url)
+    if parsed.hostname not in ('suno.com', 'www.suno.com', 'suno.ai', 'www.suno.ai'):
+        raise HTTPException(status_code=400, detail='URL must be a suno.com or suno.ai URL')
 
     try:
         async with httpx.AsyncClient(

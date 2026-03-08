@@ -124,7 +124,7 @@ def get_item(
 def create_item(
     item_data: schemas.ArtSaleItemCreate,
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(get_current_active_user),
+    current_user: models.User = Depends(require_premium),
 ):
     """Create a new art sale item"""
     item = models.ArtSaleItem(
@@ -184,7 +184,7 @@ def update_item(
     item_id: int,
     item_data: schemas.ArtSaleItemUpdate,
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(get_current_active_user),
+    current_user: models.User = Depends(require_premium),
 ):
     """Update an art sale item"""
     item = db.query(models.ArtSaleItem).filter(models.ArtSaleItem.id == item_id).first()
@@ -245,7 +245,7 @@ def update_item(
 def delete_item(
     item_id: int,
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(get_current_active_user),
+    current_user: models.User = Depends(require_premium),
 ):
     """Delete an art sale item"""
     item = db.query(models.ArtSaleItem).filter(models.ArtSaleItem.id == item_id).first()
