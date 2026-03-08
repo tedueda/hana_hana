@@ -8,7 +8,7 @@ export function usePremium() {
   const [isPremium, setIsPremium] = useState<boolean>(false);
 
   const evaluateFallback = useCallback(() => {
-    return (user as any)?.premium_status === true || (user as any)?.membership_type === 'premium';
+    return (user as any)?.premium_status === true || (user as any)?.membership_type === 'premium' || (user as any)?.membership_type === 'admin';
   }, [user]);
 
   const fetchStatus = useCallback(async () => {
