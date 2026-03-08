@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLanguage } from '../../contexts/LanguageContext';
-import { BACKEND_URL } from '../../config';
+import { API_URL } from '../../config';
 import { LANGUAGE_NAMES, LANGUAGE_FLAGS, SupportedLanguage } from '../../i18n';
 import { 
   User, Mail, Lock, AlertCircle, CheckCircle, Trash2, 
@@ -83,7 +83,7 @@ export default function AccountPage() {
     if (!token) return;
     
     try {
-      const res = await fetch(`${BACKEND_URL}/api/auth/me`, {
+      const res = await fetch(`${API_URL}/api/auth/me`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       
@@ -100,7 +100,7 @@ export default function AccountPage() {
       setEditPhoneNumber(data.phone_number || '');
       setEditResidenceCountry(data.residence_country || '');
       
-      const statsRes= await fetch(`${BACKEND_URL}/api/users/me/stats`, {
+      const statsRes= await fetch(`${API_URL}/api/users/me/stats`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       
@@ -122,7 +122,7 @@ export default function AccountPage() {
     setSaving(true);
 
     try {
-      const res = await fetch(`${BACKEND_URL}/api/account/me`, {
+      const res = await fetch(`${API_URL}/api/account/me`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -163,7 +163,7 @@ export default function AccountPage() {
     }
     
     try {
-      const res = await fetch(`${BACKEND_URL}/api/account/change-password`, {
+      const res = await fetch(`${API_URL}/api/account/change-password`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -206,7 +206,7 @@ export default function AccountPage() {
     }
     
     try {
-      const res = await fetch(`${BACKEND_URL}/api/account/delete`, {
+      const res = await fetch(`${API_URL}/api/account/delete`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
