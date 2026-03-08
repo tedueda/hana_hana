@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { Globe2, HeartHandshake, ShieldCheck, Sparkles, Users } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import tourismHero from '../assets/images/tourism01.jpg';
+import MemberMenuCards from '../components/MemberMenuCards';
 
 const AboutPage: React.FC = () => {
   const { t } = useTranslation();
@@ -94,25 +95,14 @@ const AboutPage: React.FC = () => {
 
       <section className="container mx-auto px-4 sm:px-6 md:px-8 py-12 md:py-16">
         <div className="max-w-5xl">
-          <h2 className="text-2xl md:text-3xl font-bold text-gray-900">{t('about.canDo.title')}</h2>
-          <p className="mt-3 text-gray-700 leading-relaxed">
-            {t('about.canDo.body')}
-          </p>
-
-          <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-5">
-            <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-              <h3 className="text-lg font-semibold text-gray-900">{t('about.canDo.cards.everyday.title')}</h3>
-              <p className="mt-2 text-sm text-gray-700 leading-relaxed">
-                {t('about.canDo.cards.everyday.body')}
-              </p>
-            </div>
-            <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-              <h3 className="text-lg font-semibold text-gray-900">{t('about.canDo.cards.expression.title')}</h3>
-              <p className="mt-2 text-sm text-gray-700 leading-relaxed">
-                {t('about.canDo.cards.expression.body')}
-              </p>
-            </div>
+          <div className="rounded-2xl border border-gray-200 bg-white p-8 md:p-10 shadow-sm">
+            <p className="text-lg md:text-xl leading-relaxed text-gray-900 whitespace-pre-line">
+              {'Caratは\n\n・マッチング\n・会員サロン\n・ビジネス\n\nの3つの機能で構成された\n会員制LGBTQ+コミュニティです。\n\n月会費1000円（税込）でご利用いただけます。\n\nビジネス機能は手数料不要です。\n会員同士で直接やり取りしてください。'}
+            </p>
           </div>
+
+          {/* 会員メニューカード */}
+          <MemberMenuCards />
         </div>
       </section>
 
