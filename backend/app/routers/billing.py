@@ -16,7 +16,7 @@ def get_billing_status(current_user: User = Depends(get_current_active_user), db
     追加で membership_type を返し、将来の拡張に備えます。
     """
     premium = (
-        current_user.membership_type == "premium"
+        current_user.membership_type in ("premium", "admin")
         or current_user.is_legacy_paid is True
         or getattr(current_user, 'subscription_status', None) == 'active'
     )
