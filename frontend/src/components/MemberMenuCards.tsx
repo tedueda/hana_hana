@@ -126,30 +126,60 @@ const MemberMenuCards: React.FC = () => {
             <h3 className="text-xl font-bold text-gray-900 mb-4 text-center">
               この機能は有料会員専用です。
             </h3>
-            <p className="text-sm text-gray-700 mb-6 text-center leading-relaxed">
-              ご利用にはログインのうえ、<br />
-              会員登録（月額1,000円・税込）が必要です。
-            </p>
-            <div className="flex flex-col gap-2">
-              <Button
-                onClick={() => {
-                  setShowModal(false);
-                  navigate('/login');
-                }}
-                className="w-full bg-black text-white hover:bg-gray-800"
-              >
-                ログイン
-              </Button>
-              <Button
-                onClick={() => {
-                  setShowModal(false);
-                  navigate('/subscribe');
-                }}
-                className="w-full bg-white text-gray-700 border border-gray-300 hover:bg-gray-100"
-              >
-                会員登録
-              </Button>
-            </div>
+            {user ? (
+              /* ログイン済みだが有料会員ではない場合 */
+              <>
+                <p className="text-sm text-gray-700 mb-6 text-center leading-relaxed">
+                  この機能をご利用いただくには、<br />
+                  有料会員登録（月額1,000円・税込）が必要です。
+                </p>
+                <div className="flex flex-col gap-2">
+                  <Button
+                    onClick={() => {
+                      setShowModal(false);
+                      navigate('/subscribe');
+                    }}
+                    className="w-full bg-black text-white hover:bg-gray-800"
+                  >
+                    会員登録
+                  </Button>
+                  <Button
+                    onClick={() => setShowModal(false)}
+                    className="w-full bg-white text-gray-700 border border-gray-300 hover:bg-gray-100"
+                  >
+                    閉じる
+                  </Button>
+                </div>
+              </>
+            ) : (
+              /* 未ログインの場合 */
+              <>
+                <p className="text-sm text-gray-700 mb-6 text-center leading-relaxed">
+                  ご利用にはログインのうえ、<br />
+                  会員登録（月額1,000円・税込）が必要です。
+                </p>
+                <div className="flex flex-col gap-2">
+                  <Button
+                    onClick={() => {
+                      setShowModal(false);
+                      navigate('/login');
+                    }}
+                    className="w-full bg-black text-white hover:bg-gray-800"
+                  >
+                    ログイン
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      setShowModal(false);
+                      navigate('/subscribe');
+                    }}
+                    className="w-full bg-white text-gray-700 border border-gray-300 hover:bg-gray-100"
+                  >
+                    会員登録
+                  </Button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}
