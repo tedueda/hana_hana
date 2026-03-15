@@ -1,18 +1,19 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
-import { API_URL } from '@/config';
+import { useAuth, resilientFetch } from '@/contexts/AuthContext';
 
 export function usePremium() {
   const { token, user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [isPremium, setIsPremium] = useState<boolean>(false);
 
-  const evaluateFallback = useCallback(() => {
-    return (user as any)?.premium_status === true
-      || (user as any)?.membership_type === 'premium'
-      || (user as any)?.membership_type === 'admin'
-      || (user as any)?.is_legacy_paid === true
-      || (user as any)?.subscription_status === 'active';
+  // user.premium はバックエンド /api/auth/me で計算済み（最も信頼性が高い）
+  const evaluateFromUser = useCallback((): boolean => {
+    if (!user) return false;
+    if (user.premium === true) return true;
+    return user.membership_type === 'premium'
+      || user.membership_type === 'admin'
+      || user.is_legacy_paid === true
+      || user.subscription_status === 'active';
   }, [user]);
 
   const fetchStatus = useCallback(async () => {
@@ -22,7 +23,16 @@ export function usePremium() {
         setIsPremium(false);
         return false;
       }
-      const res = await fetch(`${API_URL}/api/billing/status`, {
+
+      // まずユーザーオブジェクトから判定（/api/auth/me で計算済み）
+      const fromUser = evaluateFromUser();
+      if (fromUser) {
+        setIsPremium(true);
+        return true;
+      }
+
+      // billing API で再確認（resilientFetch で App Runner に直接フォールバック）
+      const res = await resilientFetch('/api/billing/status', {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -32,18 +42,18 @@ export function usePremium() {
         setIsPremium(!!data?.premium);
         return !!data?.premium;
       } else {
-        const fb = evaluateFallback();
-        setIsPremium(fb);
-        return fb;
+        setIsPremium(false);
+        return false;
       }
     } catch (_) {
-      const fb = evaluateFallback();
+      // API失敗時もユーザーオブジェクトから判定
+      const fb = evaluateFromUser();
       setIsPremium(fb);
       return fb;
     } finally {
       setLoading(false);
     }
-  }, [API_URL, token, evaluateFallback]);
+  }, [token, evaluateFromUser]);
 
   useEffect(() => {
     let cancelled = false;

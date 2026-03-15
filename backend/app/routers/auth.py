@@ -452,6 +452,12 @@ async def read_users_me(
         if profile and profile.avatar_url:
             avatar_url = profile.avatar_url
     
+    premium = (
+        current_user.membership_type in ("premium", "admin")
+        or current_user.is_legacy_paid is True
+        or getattr(current_user, 'subscription_status', None) == 'active'
+    )
+
     user_dict = {
         "id": current_user.id,
         "email": current_user.email,
@@ -464,6 +470,7 @@ async def read_users_me(
         "kyc_status": current_user.kyc_status or "UNVERIFIED",
         "subscription_status": current_user.subscription_status,
         "is_legacy_paid": current_user.is_legacy_paid,
+        "premium": premium,
     }
     
     return user_dict

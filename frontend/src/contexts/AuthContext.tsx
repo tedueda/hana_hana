@@ -27,6 +27,7 @@ interface User {
   kyc_status?: string;
   subscription_status?: string;
   is_legacy_paid?: boolean;
+  premium?: boolean;
 }
 
 interface AuthContextType {

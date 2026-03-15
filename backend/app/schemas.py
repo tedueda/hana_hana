@@ -33,6 +33,10 @@ class User(UserBase):
     is_active: bool
     created_at: datetime
     avatar_url: Optional[str] = None
+    kyc_status: Optional[str] = None
+    subscription_status: Optional[str] = None
+    is_legacy_paid: Optional[bool] = None
+    premium: Optional[bool] = None
     
     class Config:
         from_attributes = True
