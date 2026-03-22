@@ -325,6 +325,7 @@ def dev_check_user(
         "is_active": user.is_active,
         "membership_type": user.membership_type,
         "subscription_status": user.subscription_status,
+        "email_verified": user.email_verified,
         "stripe_customer_id": user.stripe_customer_id,
         "stripe_subscription_id": user.stripe_subscription_id,
         "created_at": user.created_at
