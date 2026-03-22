@@ -197,6 +197,7 @@ class UpdateUserRequest(BaseModel):
     is_active: Optional[bool] = None
     membership_type: Optional[str] = None
     subscription_status: Optional[str] = None
+    email_verified: Optional[bool] = None
 
 
 @router.put("/api/admin/users/update")
@@ -287,6 +288,9 @@ def dev_fix_user(
     if body.subscription_status is not None:
         user.subscription_status = body.subscription_status
         updates["subscription_status"] = body.subscription_status
+    if body.email_verified is not None:
+        user.email_verified = body.email_verified
+        updates["email_verified"] = body.email_verified
     
     db.commit()
     db.refresh(user)
