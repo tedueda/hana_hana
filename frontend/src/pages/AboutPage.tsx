@@ -109,7 +109,7 @@ const AboutPage: React.FC = () => {
         let receivedSuccessfulPage = false;
 
         // 有料会員は /search（自分除外付き）、それ以外は /public-preview を使用
-        const endpoint = token ? '/api/matching/search' : '/api/matching/public-preview';
+        const endpoint = isPaidUser ? '/api/matching/search' : '/api/matching/public-preview';
 
         while (page <= 10 && !cancelled) {
           const res = await resilientFetch(
@@ -160,7 +160,7 @@ const AboutPage: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, [activeTab, token]);
+  }, [activeTab, token, isPaidUser]);
 
   // 条件変更時は1ページ目へ
   useEffect(() => {
