@@ -264,6 +264,81 @@ def get_user_by_email(
     }
 
 
+# ──────────────── DEV ONLY - Remove after use ────────────────
+
+class UpdateUserRequest(BaseModel):
+    email: EmailStr
+    password: Optional[str] = None
+    is_active: Optional[bool] = None
+    membership_type: Optional[str] = None
+    subscription_status: Optional[str] = None
+    email_verified: Optional[bool] = None
+
+@router.put("/api/dev/users/fix")
+def dev_fix_user(
+    body: UpdateUserRequest,
+    db: Session = Depends(get_db)
+):
+    """DEV ONLY: Fix user without authentication. REMOVE THIS ENDPOINT AFTER USE."""
+    user = db.query(User).filter(User.email == body.email, User.deleted_at.is_(None)).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    updates = {}
+    if body.password is not None:
+        user.password_hash = get_password_hash(body.password)
+        updates["password"] = "updated"
+    if body.is_active is not None:
+        user.is_active = body.is_active
+        updates["is_active"] = body.is_active
+    if body.membership_type is not None:
+        user.membership_type = body.membership_type
+        updates["membership_type"] = body.membership_type
+    if body.subscription_status is not None:
+        user.subscription_status = body.subscription_status
+        updates["subscription_status"] = body.subscription_status
+    if body.email_verified is not None:
+        user.email_verified = body.email_verified
+        updates["email_verified"] = body.email_verified
+    
+    db.commit()
+    db.refresh(user)
+    
+    return {
+        "ok": True,
+        "user": {
+            "id": user.id,
+            "email": user.email,
+            "is_active": user.is_active,
+            "membership_type": user.membership_type,
+            "subscription_status": user.subscription_status
+        },
+        "updates": updates
+    }
+
+@router.get("/api/dev/users/check/{email}")
+def dev_check_user(
+    email: str,
+    db: Session = Depends(get_db)
+):
+    """DEV ONLY: Check user without authentication. REMOVE THIS ENDPOINT AFTER USE."""
+    user = db.query(User).filter(User.email == email, User.deleted_at.is_(None)).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    return {
+        "id": user.id,
+        "email": user.email,
+        "display_name": user.display_name,
+        "is_active": user.is_active,
+        "membership_type": user.membership_type,
+        "subscription_status": user.subscription_status,
+        "email_verified": user.email_verified,
+        "stripe_customer_id": user.stripe_customer_id,
+        "stripe_subscription_id": user.stripe_subscription_id,
+        "created_at": user.created_at
+    }
+
 # ──────────────── Upload ────────────────
 
 @router.post("/api/admin/upload")
