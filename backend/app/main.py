@@ -7,7 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
-from app.routers import auth, users, profiles, posts, comments, reactions, follows, notifications, media, billing, matching, categories, ops, account, donation, salon, flea_market, jewelry, live_wedding, art_sales, courses, translations, stripe_billing, ogp, contact, admin
+from app.routers import auth, users, profiles, posts, comments, reactions, follows, notifications, media, billing, matching, categories, ops, account, donation, salon, flea_market, jewelry, live_wedding, art_sales, courses, translations, stripe_billing, ogp, contact, admin, founder
 from app.database import Base, engine, get_db
 import os
 from pathlib import Path
@@ -314,6 +314,36 @@ def run_migrations():
             _add_column_if_missing("users", "role", "VARCHAR(20) DEFAULT 'user'")
             _add_column_if_missing("users", "payment_status", "VARCHAR(30) DEFAULT 'unpaid'")
             _add_column_if_missing("users", "deleted_at", "TIMESTAMPTZ")
+            # STEP③: Founder & Referral columns
+            _add_column_if_missing("users", "is_founder", "BOOLEAN DEFAULT FALSE")
+            _add_column_if_missing("users", "ref_code", "VARCHAR(20) UNIQUE")
+            _add_column_if_missing("users", "referred_by_user_id", "INTEGER REFERENCES users(id)")
+
+        # STEP③: Referrals table
+        if not _table_exists("referrals"):
+            try:
+                db.execute(
+                    text(
+                        """
+                        CREATE TABLE IF NOT EXISTS referrals (
+                            id SERIAL PRIMARY KEY,
+                            user_id INTEGER NOT NULL REFERENCES users(id),
+                            ref_code VARCHAR(20) NOT NULL,
+                            paid_at TIMESTAMPTZ,
+                            created_at TIMESTAMPTZ DEFAULT NOW()
+                        )
+                        """
+                    )
+                )
+                db.execute(text("CREATE INDEX IF NOT EXISTS ix_referrals_user_id ON referrals(user_id)"))
+                db.execute(text("CREATE INDEX IF NOT EXISTS ix_referrals_ref_code ON referrals(ref_code)"))
+                db.commit()
+                print("\u2705 Created table: referrals")
+            except Exception as e:
+                db.rollback()
+                print(f"\u26a0\ufe0f Failed creating table referrals: {e}")
+        else:
+            print("\u2705 referrals table already exists")
 
         if not _table_exists("blog_posts"):
             try:
@@ -499,6 +529,7 @@ app.include_router(stripe_billing.router)
 app.include_router(ogp.router)
 app.include_router(contact.router)
 app.include_router(admin.router)
+app.include_router(founder.router)
 
 @app.on_event("startup")
 def on_startup():
