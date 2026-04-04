@@ -19,9 +19,10 @@ export default defineConfig({
     allowedHosts: [
       '.devinapps.com',
     ],
+    // 相対パス /api 利用時用（通常は config の API_URL で本番 URL 直指定）
     proxy: {
       '/api': {
-        target: 'http://localhost:8000',
+        target: 'https://ddxdewgmen.ap-northeast-1.awsapprunner.com',
         changeOrigin: true,
       },
     },

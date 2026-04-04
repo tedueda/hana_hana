@@ -1,17 +1,36 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { API_URL, DIRECT_API_URL } from '@/config';
 
+/**
+ * API_URL → DIRECT_API_URL の順で試行。
+ * 相対パス（API_URL 空）で 404 になり、絶対 URL では届くケースに備え、成功レスポンスが得られるまで複数ベースを試す。
+ */
 export const resilientFetch = async (path: string, init?: RequestInit): Promise<Response> => {
-  for (const base of [API_URL, DIRECT_API_URL]) {
+  const rawBases = [API_URL, DIRECT_API_URL];
+  const bases: string[] = [];
+  const seen = new Set<string>();
+  for (const b of rawBases) {
+    const key = b ?? '';
+    if (seen.has(key)) continue;
+    seen.add(key);
+    bases.push(key);
+  }
+
+  let lastRes: Response | null = null;
+  for (const base of bases) {
     try {
       const res = await fetch(`${base}${path}`, init);
+      lastRes = res;
       const ct = res.headers.get('content-type') || '';
       if (ct.includes('text/html') && !path.endsWith('.html')) continue;
-      if (res.status < 500) return res;
+      if (res.ok) return res;
+      if (res.status >= 500) continue;
+      continue;
     } catch (e) {
-      console.warn(`Fetch failed for ${base || '(proxy)'}${path}`, e);
+      console.warn(`Fetch failed for ${base || '(relative)'}${path}`, e);
     }
   }
+  if (lastRes) return lastRes;
   throw new Error('All API endpoints failed');
 };
 
@@ -124,7 +143,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     
     try {
       console.log('🔑 Attempting login with API_URL:', API_URL);
-      console.log('🔑 Full login URL:', `${API_URL}/api/auth/token`);
+      console.log('🔑 Full login URL:', `${API_URL}/api/auth/login`);
       
       const formData = new URLSearchParams();
       formData.append('username', email);
@@ -132,7 +151,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       
       console.log('🔑 Request body:', formData.toString());
       
-      const response = await resilientFetch('/api/auth/token', {
+      const response = await resilientFetch('/api/auth/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',

@@ -15,7 +15,7 @@ interface DashboardData {
 }
 
 const LeaderDashboardPage: React.FC = () => {
-  const { user, token } = useAuth();
+  const { token } = useAuth();
   const navigate = useNavigate();
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);

@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { API_URL } from '@/config';
 import { BrowserRouter as Router, Routes, Route, Navigate, useParams, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { LanguageProvider } from './contexts/LanguageContext';
@@ -319,7 +320,7 @@ function AppContent() {
 
 function App() {
   React.useEffect(() => {
-    console.info('🚀 Build:', import.meta.env.VITE_BUILD_ID || 'dev', '| API:', import.meta.env.VITE_API_URL || 'default');
+    console.info('🚀 Build:', import.meta.env.VITE_BUILD_ID || 'dev', '| API:', API_URL || '(same-origin)');
   }, []);
 
   return (

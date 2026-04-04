@@ -1,43 +1,80 @@
-import React, { useState, useEffect } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import { ShieldCheck } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import aboutHero from '../assets/images/hero4.png';
 import AboutTabs, { AboutTabType } from '../components/AboutTabs';
-import MatchingFilter, { MatchingCategory } from '../components/MatchingFilter';
+import MatchingFilter, {
+  DEFAULT_MATCHING_FILTERS,
+  type MatchingSearchFilters,
+  type IdentityFilter,
+} from '../components/MatchingFilter';
 import MatchingCard, { MatchingCardItem } from '../components/MatchingCard';
 import BusinessFilter, { BusinessCategory } from '../components/BusinessFilter';
 import BusinessCard, { BusinessCardItem } from '../components/BusinessCard';
 import { API_URL } from '../config';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth, resilientFetch } from '../contexts/AuthContext';
 import { usePaidMember } from '../hooks/usePremium';
+
+const MATCHING_PAGE_SIZE = 20;
+
+function uniqSortedOptions(values: (string | null | undefined)[]): string[] {
+  const set = new Set<string>();
+  for (const v of values) {
+    const s = (v ?? '').trim();
+    if (s) set.add(s);
+  }
+  return [...set].sort((a, b) => a.localeCompare(b, 'ja'));
+}
+
+function matchesIdentityFilter(item: MatchingCardItem, identity: IdentityFilter): boolean {
+  if (identity === 'all') return true;
+  const id = (item.identity || '').trim();
+  const idLower = id.toLowerCase();
+  if (identity === 'lesbian') {
+    return id === 'レズ' || id === 'レズビアン' || idLower === 'lesbian';
+  }
+  if (identity === 'gay') {
+    return id === 'ゲイ' || idLower === 'gay';
+  }
+  return (
+    id !== 'ゲイ' &&
+    idLower !== 'gay' &&
+    id !== 'レズ' &&
+    id !== 'レズビアン' &&
+    idLower !== 'lesbian'
+  );
+}
 
 // Mock matching data for UI display
 const MOCK_MATCHING_DATA: MatchingCardItem[] = [
-  { user_id: 1, display_name: 'ユーザー A', identity: 'ゲイ', nationality: 'JP', prefecture: '東京都', age_band: '20代後半', meet_pref: 'パートナー探し' },
-  { user_id: 2, display_name: 'ユーザー B', identity: 'レズ', nationality: 'JP', prefecture: '大阪府', age_band: '30代前半', meet_pref: '友人探し' },
-  { user_id: 3, display_name: 'ユーザー C', identity: 'ゲイ', nationality: 'US', prefecture: '東京都', age_band: '20代前半', meet_pref: 'パートナー探し' },
-  { user_id: 4, display_name: 'ユーザー D', identity: 'レズ', nationality: 'KR', prefecture: '福岡県', age_band: '30代後半', meet_pref: '相談相手探し' },
-  { user_id: 5, display_name: 'ユーザー E', identity: 'バイセクシュアル', nationality: 'JP', prefecture: '京都府', age_band: '20代後半', meet_pref: '友人探し' },
-  { user_id: 6, display_name: 'ユーザー F', identity: 'ゲイ', nationality: 'JP', prefecture: '名古屋市', age_band: '40代前半', meet_pref: 'メンバー募集' },
-  { user_id: 7, display_name: 'ユーザー G', identity: 'トランスジェンダー', nationality: 'TH', prefecture: '東京都', age_band: '20代後半', meet_pref: 'パートナー探し' },
-  { user_id: 8, display_name: 'ユーザー H', identity: 'レズ', nationality: 'JP', prefecture: '横浜市', age_band: '30代前半', meet_pref: '友人探し' },
+  { user_id: 1, display_name: 'ユーザー A', identity: 'ゲイ', nationality: 'JP', prefecture: '東京都', age_band: '20代後半', occupation: '会社員', meet_pref: 'パートナー探し' },
+  { user_id: 2, display_name: 'ユーザー B', identity: 'レズ', nationality: 'JP', prefecture: '大阪府', age_band: '30代前半', occupation: '自営業', meet_pref: '友人探し' },
+  { user_id: 3, display_name: 'ユーザー C', identity: 'ゲイ', nationality: 'US', prefecture: '東京都', age_band: '20代前半', occupation: '学生', meet_pref: 'パートナー探し' },
+  { user_id: 4, display_name: 'ユーザー D', identity: 'レズ', nationality: 'KR', prefecture: '福岡県', age_band: '30代後半', occupation: '会社員', meet_pref: '相談相手探し' },
+  { user_id: 5, display_name: 'ユーザー E', identity: 'バイセクシュアル', nationality: 'JP', prefecture: '京都府', age_band: '20代後半', occupation: 'フリーランス', meet_pref: '友人探し' },
+  { user_id: 6, display_name: 'ユーザー F', identity: 'ゲイ', nationality: 'JP', prefecture: '名古屋市', age_band: '40代前半', occupation: '医療関係', meet_pref: 'メンバー募集' },
+  { user_id: 7, display_name: 'ユーザー G', identity: 'トランスジェンダー', nationality: 'TH', prefecture: '東京都', age_band: '20代後半', occupation: '会社員', meet_pref: 'パートナー探し' },
+  { user_id: 8, display_name: 'ユーザー H', identity: 'レズ', nationality: 'JP', prefecture: '横浜市', age_band: '30代前半', occupation: '教育関係', meet_pref: '友人探し' },
 ];
 
 const AboutPage: React.FC = () => {
   const { t } = useTranslation();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { user } = useAuth();
+  const navigate = useNavigate();
+  const { user, token } = useAuth();
   const { isPaidUser } = usePaidMember();
 
   // Tab state with URL preservation
   const initialTab = (searchParams.get('tab') as AboutTabType) || 'matching';
   const [activeTab, setActiveTab] = useState<AboutTabType>(initialTab);
 
-  // Matching filter state
-  const [matchingCategory, setMatchingCategory] = useState<MatchingCategory>('all');
+  // Matching filter & list state
+  const [matchingFilters, setMatchingFilters] = useState<MatchingSearchFilters>(DEFAULT_MATCHING_FILTERS);
   const [matchingItems, setMatchingItems] = useState<MatchingCardItem[]>([]);
   const [matchingLoading, setMatchingLoading] = useState(false);
+  const [matchingPage, setMatchingPage] = useState(1);
+  /** 1件も取得できなかったとき（HTTPエラー等）。DBが本当に0件のときは null のまま */
+  const [matchingFetchError, setMatchingFetchError] = useState<string | null>(null);
 
   // Business filter state
   const [businessCategory, setBusinessCategory] = useState<BusinessCategory>('all');
@@ -54,35 +91,89 @@ const AboutPage: React.FC = () => {
     setSearchParams({ tab });
   };
 
-  // Fetch matching data
+  // Fetch matching data（有料会員は複数ページを結合して最大取得）
   useEffect(() => {
-    const fetchMatching = async () => {
+    if (activeTab !== 'matching') return;
+
+    let cancelled = false;
+
+    const loadMatching = async () => {
       setMatchingLoading(true);
       try {
-        const res = await fetch(`${API_URL}/api/matching/search?page=1&size=50&_t=${Date.now()}`, {
-          headers: { 'Cache-Control': 'no-cache' },
-        });
-        if (res.ok) {
-          const data = await res.json();
-          const items: MatchingCardItem[] = Array.isArray(data) ? data : (data.items || []);
-          if (items.length > 0) {
-            setMatchingItems(items);
-          } else {
-            setMatchingItems(MOCK_MATCHING_DATA);
+        const headers: Record<string, string> = { 'Cache-Control': 'no-cache' };
+        if (token) headers.Authorization = `Bearer ${token}`;
+
+        const merged: MatchingCardItem[] = [];
+        let page = 1;
+        const size = 50;
+        let receivedSuccessfulPage = false;
+
+        while (page <= 10 && !cancelled) {
+          const res = await resilientFetch(
+            `/api/matching/search?page=${page}&size=${size}&_t=${Date.now()}`,
+            { headers },
+          );
+          if (!res.ok) {
+            if (!cancelled) {
+              setMatchingFetchError(
+                !receivedSuccessfulPage
+                  ? `サーバーから応答がありません（HTTP ${res.status}）。バックエンドに /api/matching/search がデプロイされているか確認してください。`
+                  : null,
+              );
+            }
+            break;
           }
-        } else {
-          setMatchingItems(MOCK_MATCHING_DATA);
+
+          const data = await res.json();
+          const items: MatchingCardItem[] = Array.isArray(data) ? data : data.items || [];
+          receivedSuccessfulPage = true;
+          merged.push(...items);
+
+          const total = typeof data.count === 'number' ? data.count : merged.length;
+          if (items.length < size || merged.length >= total) break;
+          page += 1;
+        }
+
+        if (!cancelled) {
+          if (receivedSuccessfulPage) {
+            setMatchingFetchError(null);
+          }
+          // 本番DBの結果をそのまま表示（0件のときはモックに差し替えない）
+          setMatchingItems(merged);
         }
       } catch {
-        setMatchingItems(MOCK_MATCHING_DATA);
+        if (!cancelled) {
+          if (import.meta.env.DEV) {
+            setMatchingFetchError(null);
+            setMatchingItems(MOCK_MATCHING_DATA);
+          } else {
+            setMatchingFetchError(
+              'バックエンドに接続できませんでした。ネットワークまたは CORS 設定を確認してください。',
+            );
+            setMatchingItems([]);
+          }
+        }
       } finally {
-        setMatchingLoading(false);
+        if (!cancelled) setMatchingLoading(false);
       }
     };
-    if (activeTab === 'matching') {
-      fetchMatching();
-    }
-  }, [activeTab]);
+
+    loadMatching();
+    return () => {
+      cancelled = true;
+    };
+  }, [activeTab, token]);
+
+  // 条件変更時は1ページ目へ
+  useEffect(() => {
+    setMatchingPage(1);
+  }, [
+    matchingFilters.nationality,
+    matchingFilters.ageBand,
+    matchingFilters.occupation,
+    matchingFilters.meetPref,
+    matchingFilters.identity,
+  ]);
 
   // Fetch business data
   useEffect(() => {
@@ -139,42 +230,68 @@ const AboutPage: React.FC = () => {
     }
   }, [activeTab, businessCategory]);
 
-  // Filter matching items by category
-  const filteredMatchingItems = matchingItems.filter((item) => {
-    if (matchingCategory === 'all') return true;
-    if (matchingCategory === 'lesbian') {
-      return item.identity === 'レズ' || item.identity === 'レズビアン' || item.identity === 'lesbian';
-    }
-    if (matchingCategory === 'gay') {
-      return item.identity === 'ゲイ' || item.identity === 'gay';
-    }
-    // 'other'
-    return item.identity !== 'ゲイ' && item.identity !== 'gay' && item.identity !== 'レズ' && item.identity !== 'レズビアン' && item.identity !== 'lesbian';
-  });
+// 固定のフィルターオプション（以前の設定を忠実に再現）
+const FIXED_FILTER_OPTIONS = {
+  nationalities: ['日本', 'アメリカ', '韓国', '中国', '台湾', '香港', 'タイ', 'ベトナム', 'フィリピン', 'インドネシア', 'マレーシア', 'シンガポール', 'インド', 'オーストラリア', 'ニュージーランド', 'イギリス', 'ドイツ', 'フランス', 'イタリア', 'スペイン', 'ポルトガル', 'オランダ', 'ベルギー', 'スイス', 'スウェーデン', 'ノルウェー', 'デンマーク', 'フィンランド', 'ロシア', 'カナダ', 'メキシコ', 'ブラジル', 'アルゼンチン', 'チリ', 'コロンビア', 'ペルー', 'その他'],
+  ageBands: ['10代', '20代前半', '20代後半', '30代前半', '30代後半', '40代前半', '40代後半', '50代前半', '50代後半', '60代以上'],
+  occupations: ['会社員', '自営業', 'フリーランス', '学生', '専門職', '公務員', 'パート・アルバイト', 'その他'],
+  meetPrefs: ['パートナー探し', '友人探し', '相談相手探し', 'メンバー募集', 'その他'],
+};
 
-  const handleMatchingCardClick = () => {
+  const matchingFilterOptions = useMemo(
+    () => ({
+      nationalities: FIXED_FILTER_OPTIONS.nationalities,
+      ageBands: FIXED_FILTER_OPTIONS.ageBands,
+      occupations: FIXED_FILTER_OPTIONS.occupations,
+      meetPrefs: FIXED_FILTER_OPTIONS.meetPrefs,
+    }),
+    [],
+  );
+
+  const filteredMatchingItems = useMemo(() => {
+    const f = matchingFilters;
+    return matchingItems.filter((item) => {
+      if (f.nationality && (item.nationality || '') !== f.nationality) return false;
+      if (f.ageBand && (item.age_band || '') !== f.ageBand) return false;
+      if (f.occupation && (item.occupation || '') !== f.occupation) return false;
+      if (f.meetPref && (item.meet_pref || '') !== f.meetPref) return false;
+      return matchesIdentityFilter(item, f.identity);
+    });
+  }, [
+    matchingItems,
+    matchingFilters.nationality,
+    matchingFilters.ageBand,
+    matchingFilters.occupation,
+    matchingFilters.meetPref,
+    matchingFilters.identity,
+  ]);
+
+  const matchingTotalPages = Math.max(1, Math.ceil(filteredMatchingItems.length / MATCHING_PAGE_SIZE));
+
+  useEffect(() => {
+    setMatchingPage((p) => Math.min(p, matchingTotalPages));
+  }, [matchingTotalPages]);
+
+  const safeMatchingPage = Math.min(matchingPage, matchingTotalPages);
+  const paginatedMatchingItems = filteredMatchingItems.slice(
+    (safeMatchingPage - 1) * MATCHING_PAGE_SIZE,
+    safeMatchingPage * MATCHING_PAGE_SIZE,
+  );
+
+  const handleMatchingCardClick = (userId: number) => {
     if (!user) {
       setShowLoginModal(true);
     } else if (!isPaidUser) {
       setShowUpgradeModal(true);
+    } else {
+      navigate(`/matching/users/${userId}`);
     }
   };
 
   return (
     <div className="bg-white">
-      {/* Hero section */}
-      <section className="container mx-auto px-4 sm:px-6 md:px-8 pt-8 md:pt-12">
-        <div className="max-w-5xl mx-auto overflow-hidden rounded-2xl">
-          <img
-            src={aboutHero}
-            alt="Carat about hero"
-            className="w-full h-48 sm:h-64 md:h-80 lg:h-96 object-cover"
-          />
-        </div>
-      </section>
-
       {/* Tabs */}
-      <section className="container mx-auto px-4 sm:px-6 md:px-8 pt-8">
+      <section className="container mx-auto px-4 sm:px-6 md:px-8 pt-8 md:pt-10">
         <AboutTabs activeTab={activeTab} onTabChange={handleTabChange} />
       </section>
 
@@ -190,29 +307,92 @@ const AboutPage: React.FC = () => {
               </div>
 
               <div className="mb-6">
-                <MatchingFilter activeCategory={matchingCategory} onCategoryChange={setMatchingCategory} />
+                <MatchingFilter
+                  value={matchingFilters}
+                  onChange={setMatchingFilters}
+                  options={matchingFilterOptions}
+                />
               </div>
+
+              {matchingFetchError && (
+                <div
+                  className="mb-6 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900"
+                  role="alert"
+                >
+                  {matchingFetchError}
+                </div>
+              )}
 
               {matchingLoading ? (
                 <div className="flex items-center justify-center py-12">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
                 </div>
               ) : filteredMatchingItems.length > 0 ? (
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-                  {filteredMatchingItems.map((item) => (
-                    <MatchingCard
-                      key={item.user_id}
-                      item={item}
-                      blurred={!isPaidUser}
-                      onClick={handleMatchingCardClick}
-                    />
-                  ))}
-                </div>
-              ) : (
+                <>
+                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+                    {paginatedMatchingItems.map((item) => (
+                      <MatchingCard
+                        key={item.user_id}
+                        item={item}
+                        blurred={!isPaidUser}
+                        onClick={() => handleMatchingCardClick(item.user_id)}
+                      />
+                    ))}
+                  </div>
+                  {matchingTotalPages > 1 && (
+                    <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
+                      <span className="text-sm text-gray-600">
+                        {safeMatchingPage} / {matchingTotalPages} ページ（全 {filteredMatchingItems.length} 件）
+                      </span>
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          disabled={safeMatchingPage <= 1}
+                          onClick={() => setMatchingPage((p) => Math.max(1, p - 1))}
+                          className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-800 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
+                        >
+                          前へ
+                        </button>
+                        <button
+                          type="button"
+                          disabled={safeMatchingPage >= matchingTotalPages}
+                          onClick={() => setMatchingPage((p) => p + 1)}
+                          className="rounded-lg border border-gray-900 bg-gray-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-black disabled:cursor-not-allowed disabled:opacity-40"
+                        >
+                          次へ
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </>
+              ) : matchingFetchError ? null : (
                 <div className="flex min-h-[300px] items-center justify-center rounded-2xl border-2 border-dashed border-gray-300 bg-white">
-                  <div className="text-center">
-                    <p className="text-lg font-medium text-gray-600">ユーザーが見つかりません</p>
-                    <p className="mt-2 text-sm text-gray-500">他のカテゴリーをお試しください</p>
+                  <div className="text-center px-4">
+                    {matchingItems.length === 0 ? (
+                      <>
+                        <p className="text-lg font-medium text-gray-600">
+                          掲載中のプロフィールがまだありません
+                        </p>
+                        <p className="mt-2 text-sm text-gray-500">
+                          API とは接続できています。本番 DB で matching_profiles の display_flag（掲載）が ON
+                          のユーザーがいるか確認してください。
+                        </p>
+                      </>
+                    ) : (
+                      <>
+                        <p className="text-lg font-medium text-gray-600">ユーザーが見つかりません</p>
+                        <p className="mt-2 text-sm text-gray-500">
+                          条件検索の各項目を「すべて」に戻すか、別の性自認タブに相当する条件をお試しください。
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => setMatchingFilters(DEFAULT_MATCHING_FILTERS)}
+                          className="mt-4 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-800 hover:bg-gray-50"
+                        >
+                          条件をリセット
+                        </button>
+                      </>
+                    )}
                   </div>
                 </div>
               )}
@@ -288,6 +468,28 @@ const AboutPage: React.FC = () => {
       {/* Safety section */}
       <section className="bg-gray-50 border-y border-gray-100">
         <div className="container mx-auto px-4 sm:px-6 md:px-8 py-12 md:py-16">
+          <div className="max-w-5xl mx-auto mb-12 md:mb-16">
+            <h2 className="text-3xl md:text-4xl font-serif font-bold text-gray-900 mb-6">
+              カラットとは
+            </h2>
+            <div className="rounded-3xl border border-gray-200 bg-white shadow-sm p-8 md:p-10">
+              <div className="text-gray-800 leading-relaxed">
+                <p>Caratは</p>
+                <p className="mt-1">・マッチング</p>
+                <p>・会員サロン</p>
+                <p>・ビジネス</p>
+                <p className="mt-4 text-gray-700">
+                  の3つの機能で構成された会員制LGBTQ+コミュニティです。
+                </p>
+                <p className="mt-4 text-gray-700">
+                  月会費1000円（税込）でご利用いただけます。
+                </p>
+                <p className="mt-4 text-gray-700">ビジネス機能は手数料不要です。</p>
+                <p className="mt-1 text-gray-700">会員同士で直接やり取りしてください。</p>
+              </div>
+            </div>
+          </div>
+
           <div className="max-w-5xl mx-auto">
             <div className="flex items-center gap-3">
               <div className="h-10 w-10 rounded-xl bg-gray-900 text-white flex items-center justify-center">

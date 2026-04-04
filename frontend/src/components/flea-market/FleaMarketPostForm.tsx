@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { ArrowLeft, Upload, X } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
+import { API_URL } from '@/config';
 
 interface Category {
   id: string;
@@ -18,8 +19,6 @@ interface FleaMarketPostFormProps {
   onCancel: () => void;
   onSuccess: () => void;
 }
-
-const API_URL = import.meta.env.VITE_API_URL || 'https://ddxdewgmen.ap-northeast-1.awsapprunner.com';
 
 const CATEGORY_LABELS: Record<string, string> = {
   electronics: '家電・スマホ・カメラ',

@@ -13,6 +13,8 @@ sqlalchemy = "^2.0.23"
 alembic = "^1.12.1"
 python-jose = {extras = ["cryptography"], version = "^3.3.0"}
 passlib = {extras = ["bcrypt"], version = "^1.7.4"}
+# bcrypt 4.1+ は __about__ を削除しており passlib 1.7.4 が起動時に警告を出すため上限を固定
+bcrypt = ">=4.0.1,<4.1"
 python-multipart = "^0.0.18"
 python-dotenv = "^1.0.0"
 pydantic = {extras = ["email"], version = "^2.5.0"}

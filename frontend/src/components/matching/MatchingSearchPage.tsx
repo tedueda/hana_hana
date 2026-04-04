@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth, resilientFetch } from '@/contexts/AuthContext';
 import { useSearchParams } from 'react-router-dom';
 import { TopTabs } from './TopTabs';
 import { MatchCard } from './MatchCard';
-import { API_URL } from '@/config';
+import { BACKEND_URL } from '@/config';
 import { SlidersHorizontal, X } from 'lucide-react';
 
 type MatchItem = {
@@ -42,30 +42,41 @@ const MatchingSearchPage: React.FC = () => {
     setError(null);
     
     try {
-      const params = new URLSearchParams({ page: "1", size: "50" });
-      
-      const url = `${API_URL}/api/matching/search?${params.toString()}&_t=${Date.now()}`;
       const headers: Record<string, string> = { 'Cache-Control': 'no-cache' };
       if (token) {
         headers['Authorization'] = `Bearer ${token}`;
       }
-      const res = await fetch(url, { headers });
-      
-      if (!res.ok) {
-        const text = await res.text();
-        throw new Error(text || `HTTP ${res.status}`);
+
+      // AWS 本番 API へ接続（resilientFetch: API_URL → DIRECT_API_URL の順で試行）
+      const merged: MatchItem[] = [];
+      let page = 1;
+      const size = 50;
+      while (page <= 10) {
+        const params = new URLSearchParams({ page: String(page), size: String(size) });
+        const res = await resilientFetch(
+          `/api/matching/search?${params.toString()}&_t=${Date.now()}`,
+          { headers },
+        );
+        if (!res.ok) {
+          const text = await res.text();
+          throw new Error(text || `HTTP ${res.status}`);
+        }
+        const data = await res.json();
+        const batch: MatchItem[] = Array.isArray(data) ? data : data.items || [];
+        merged.push(...batch);
+        const total = typeof data.count === 'number' ? data.count : merged.length;
+        if (batch.length < size || merged.length >= total) break;
+        page += 1;
       }
-      
-      const data = await res.json();
-      let fetchedItems: MatchItem[] = Array.isArray(data) ? data : (data.items || []);
-      
-      // 画像URLを常に有効に整形（相対→API_URL付与、ダミー画像は削除）
+
+      let fetchedItems = merged;
+
+      // 画像URLを整形（相対パスは BACKEND_URL＝本番直 or 解決済み API 基準）
       fetchedItems = fetchedItems.map((it) => {
         let avatar = it.avatar_url || '';
         if (avatar && !avatar.startsWith('http')) {
-          avatar = `${API_URL}${avatar}`;
+          avatar = `${BACKEND_URL}${avatar.startsWith('/') ? '' : '/'}${avatar}`;
         }
-        // ダミー画像は使用しない（空文字にする）
         if (!avatar || avatar.includes('dicebear')) {
           avatar = '';
         }

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Heart, MapPin, Clock, MessageCircle, ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { API_URL } from '@/config';
 
 interface Listing {
   id: number;
@@ -17,8 +18,6 @@ interface Listing {
   status: 'active' | 'sold' | 'completed';
   is_favorited: boolean;
 }
-
-const API_URL = import.meta.env.VITE_API_URL || 'https://ddxdewgmen.ap-northeast-1.awsapprunner.com';
 
 const conditionLabels: Record<string, string> = {
   new: '新品',

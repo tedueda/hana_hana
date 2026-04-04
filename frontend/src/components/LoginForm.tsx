@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
+import { API_URL } from '@/config';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -28,8 +29,8 @@ const LoginForm: React.FC = () => {
 
     console.log('🔐 LoginForm: Submitting login');
     console.log('🔐 Environment check:', {
-      VITE_API_URL: import.meta.env.VITE_API_URL,
-      VITE_API_BASE_URL: import.meta.env.VITE_API_BASE_URL,
+      API_URL,
+      VITE_LOCAL_API: import.meta.env.VITE_LOCAL_API,
       MODE: import.meta.env.MODE,
       DEV: import.meta.env.DEV,
       PROD: import.meta.env.PROD,

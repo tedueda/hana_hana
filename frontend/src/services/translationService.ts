@@ -4,8 +4,9 @@
 
 import { PostWithTranslation } from '../types/Post';
 import { getPreferredLanguage, SupportedLanguage } from '../utils/languageUtils';
+import { BACKEND_URL } from '@/config';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://ddxdewgmen.ap-northeast-1.awsapprunner.com';
+const API_BASE_URL = BACKEND_URL;
 
 export interface TranslationResponse {
   post: PostWithTranslation;
