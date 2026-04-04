@@ -143,15 +143,10 @@ const AboutPage: React.FC = () => {
         }
       } catch {
         if (!cancelled) {
-          if (import.meta.env.DEV) {
-            setMatchingFetchError(null);
-            setMatchingItems(MOCK_MATCHING_DATA);
-          } else {
-            setMatchingFetchError(
-              'バックエンドに接続できませんでした。ネットワークまたは CORS 設定を確認してください。',
-            );
-            setMatchingItems([]);
-          }
+          setMatchingFetchError(
+            'バックエンドに接続できませんでした。ネットワークまたは CORS 設定を確認してください。',
+          );
+          setMatchingItems([]);
         }
       } finally {
         if (!cancelled) setMatchingLoading(false);
