@@ -4,16 +4,15 @@ STEP③: 創業メンバー & 紹介制度 API
 import secrets
 import string
 from datetime import datetime, timedelta
-from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy import func as sql_func
 from pydantic import BaseModel
 
 from app.database import get_db
 from app.models import User, Referral
-from app.auth import get_current_active_user, get_optional_user
+from app.auth import get_current_active_user
 
 router = APIRouter(prefix="/api/founder", tags=["founder"])
 
@@ -143,10 +142,8 @@ async def apply_referral(
     if referrer.id == current_user.id:
         raise HTTPException(status_code=400, detail="Cannot refer yourself")
 
+    # Atomic: set referred_by + create referral record in one transaction
     current_user.referred_by_user_id = referrer.id
-    db.commit()
-
-    # Record in referrals table
     referral = Referral(user_id=current_user.id, ref_code=body.ref_code)
     db.add(referral)
     db.commit()
