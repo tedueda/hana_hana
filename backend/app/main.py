@@ -316,7 +316,7 @@ def run_migrations():
             _add_column_if_missing("users", "deleted_at", "TIMESTAMPTZ")
             # STEP③: Founder & Referral columns
             _add_column_if_missing("users", "is_founder", "BOOLEAN DEFAULT FALSE")
-            _add_column_if_missing("users", "ref_code", "VARCHAR(20)")
+            _add_column_if_missing("users", "ref_code", "VARCHAR(20) UNIQUE")
             _add_column_if_missing("users", "referred_by_user_id", "INTEGER REFERENCES users(id)")
 
         # STEP③: Referrals table

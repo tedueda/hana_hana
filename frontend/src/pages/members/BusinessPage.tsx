@@ -34,6 +34,12 @@ const BusinessPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<TabType>(initialTab);
   const [showPostGateModal, setShowPostGateModal] = useState(false);
 
+  const postRouteMap: Record<TabType, string> = {
+    'flea-market': '/create/flea-market',
+    'art-sales': '/create/art-sales',
+    'courses': '/create/courses',
+  };
+
   const handlePostClick = () => {
     if (!user) {
       navigate('/login');
@@ -43,8 +49,7 @@ const BusinessPage: React.FC = () => {
       setShowPostGateModal(true);
       return;
     }
-    // Paid user - navigate to post form (handled by each list component)
-    // For now, show a message that posting is available within each tab
+    navigate(postRouteMap[activeTab]);
   };
 
   const handleTabChange = (tabId: TabType) => {

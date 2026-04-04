@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from sqlalchemy import func as sql_func
+from sqlalchemy import func as sql_func, text
 from pydantic import BaseModel
 
 from app.database import get_db
@@ -81,11 +81,18 @@ async def register_as_founder(
     current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db),
 ):
-    """創業メンバーとして登録"""
+    """創業メンバーとして登録（排他制御付き）"""
     if current_user.is_founder:
         raise HTTPException(status_code=400, detail="Already a founder member")
 
-    total = db.query(sql_func.count(User.id)).filter(User.is_founder == True).scalar() or 0
+    # Use FOR UPDATE to lock founder rows and prevent TOCTOU race condition
+    total = (
+        db.query(sql_func.count(User.id))
+        .filter(User.is_founder == True)
+        .with_for_update()
+        .scalar()
+        or 0
+    )
     if total >= FOUNDER_LIMIT:
         raise HTTPException(status_code=409, detail="Founder registration is closed (200 members reached)")
 
