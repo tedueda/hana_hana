@@ -1,4 +1,4 @@
-from typing import List, Optional, Dict, Set
+from typing import List, Optional, Dict, Set, Tuple
 from fastapi import APIRouter, Depends, HTTPException, Query, WebSocket, WebSocketDisconnect
 from sqlalchemy import and_, or_, func, select
 from sqlalchemy.orm import Session
@@ -16,6 +16,55 @@ def require_premium(current_user: User = Depends(get_current_active_user)) -> Us
     if current_user.membership_type not in ("premium", "admin"):
         raise HTTPException(status_code=403, detail={"error": "premium_required"})
     return current_user
+
+
+def _serialize_matching_profile_rows(db: Session, rows: List[Tuple[MatchingProfile, User]]) -> List[dict]:
+    """(MatchingProfile, User) の行から、検索／プレビューAPI用の item 配列を組み立てる。"""
+    if not rows:
+        return []
+    user_ids = [prof.user_id for prof, _ in rows]
+    main_images: Dict[int, str] = {}
+    try:
+        subq = (
+            db.query(
+                MatchingProfileImage.profile_id,
+                func.min(MatchingProfileImage.display_order).label("min_order"),
+            )
+            .filter(MatchingProfileImage.profile_id.in_(user_ids))
+            .group_by(MatchingProfileImage.profile_id)
+            .subquery()
+        )
+        images = (
+            db.query(MatchingProfileImage)
+            .join(
+                subq,
+                and_(
+                    MatchingProfileImage.profile_id == subq.c.profile_id,
+                    MatchingProfileImage.display_order == subq.c.min_order,
+                ),
+            )
+            .all()
+        )
+        main_images = {img.profile_id: img.image_url for img in images}
+    except Exception:
+        pass
+
+    return [
+        {
+            "user_id": prof.user_id,
+            "display_name": user.display_name or f"User {prof.user_id}",
+            "nationality": getattr(prof, "nationality", None) or "",
+            "prefecture": prof.prefecture,
+            "age_band": prof.age_band,
+            "occupation": prof.occupation or "",
+            "meet_pref": prof.meet_pref or "",
+            "identity": prof.identity,
+            "romance_targets": prof.romance_targets or [],
+            "avatar_url": main_images.get(prof.user_id) or getattr(prof, "avatar_url", None) or "",
+            "bio": prof.bio or "",
+        }
+        for prof, user in rows
+    ]
 
 
 @router.get("/profiles/me")
@@ -254,51 +303,29 @@ def search_profiles(
             )
     total = q.count()
     rows = q.offset((page - 1) * size).limit(size).all()
-    
-    # Get main image for each profile (first image by display_order)
-    user_ids = [prof.user_id for prof, _ in rows]
-    main_images = {}
-    if user_ids:
-        try:
-            subq = (
-                db.query(
-                    MatchingProfileImage.profile_id,
-                    func.min(MatchingProfileImage.display_order).label('min_order')
-                )
-                .filter(MatchingProfileImage.profile_id.in_(user_ids))
-                .group_by(MatchingProfileImage.profile_id)
-                .subquery()
-            )
-            
-            images = (
-                db.query(MatchingProfileImage)
-                .join(
-                    subq,
-                    and_(
-                        MatchingProfileImage.profile_id == subq.c.profile_id,
-                        MatchingProfileImage.display_order == subq.c.min_order
-                    )
-                )
-                .all()
-            )
-            
-            main_images = {img.profile_id: img.image_url for img in images}
-        except Exception:
-            pass
-    
-    items = [
-        {
-            "user_id": prof.user_id,
-            "display_name": user.display_name or f"User {prof.user_id}",
-            "nationality": getattr(prof, 'nationality', None) or "",
-            "prefecture": prof.prefecture,
-            "age_band": prof.age_band,
-            "identity": prof.identity,
-            "romance_targets": prof.romance_targets or [],
-            "avatar_url": main_images.get(prof.user_id) or getattr(prof, 'avatar_url', None) or "",
-        }
-        for prof, user in rows
-    ]
+    items = _serialize_matching_profile_rows(db, rows)
+    return {"items": items, "page": page, "size": size, "count": total}
+
+
+@router.get("/public-preview")
+def public_matching_preview(
+    page: int = Query(1, ge=1),
+    size: int = Query(50, ge=1, le=50),
+    db: Session = Depends(get_db),
+    current_user: Optional[User] = Depends(get_optional_user),
+):
+    """
+    掲載中（display_flag=True）のマッチングプロフィール一覧。
+    About ページの会員マッチング等で、未ログイン・非有料でも本番DBのプレビューを表示するための公開エンドポイント。
+    ログイン時は自分自身を一覧から除外する。
+    """
+    q = db.query(MatchingProfile, User).join(User, User.id == MatchingProfile.user_id)
+    q = q.filter(MatchingProfile.display_flag == True)
+    if current_user is not None:
+        q = q.filter(MatchingProfile.user_id != current_user.id)
+    total = q.count()
+    rows = q.offset((page - 1) * size).limit(size).all()
+    items = _serialize_matching_profile_rows(db, rows)
     return {"items": items, "page": page, "size": size, "count": total}
 
 

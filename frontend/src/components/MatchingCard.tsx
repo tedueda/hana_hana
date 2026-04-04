@@ -9,8 +9,10 @@ export interface MatchingCardItem {
   nationality?: string | null;
   prefecture?: string | null;
   age_band?: string | null;
+  occupation?: string | null;
   avatar_url?: string | null;
   meet_pref?: string | null;
+  bio?: string | null;
 }
 
 interface MatchingCardProps {
@@ -32,12 +34,21 @@ const MatchingCard: React.FC<MatchingCardProps> = ({ item, blurred = true, onCli
     >
       {/* Image area */}
       <div className="relative aspect-[3/4] bg-gradient-to-br from-gray-100 to-gray-200">
-        {/* Blurred avatar placeholder */}
-        <div className={`h-full w-full flex items-center justify-center bg-gradient-to-br from-gray-200 to-gray-300 ${blurred ? 'blur-sm' : ''}`}>
-          <div className="w-20 h-20 bg-gray-400 rounded-full flex items-center justify-center">
-            <span className="text-white text-3xl">👤</span>
+        {/* Avatar image display */}
+        {item.avatar_url ? (
+          <img
+            src={item.avatar_url}
+            alt={item.display_name || 'ユーザー'}
+            className={`h-full w-full object-cover ${blurred ? 'blur-md' : ''}`}
+          />
+        ) : (
+          /* Fallback placeholder */
+          <div className={`h-full w-full flex items-center justify-center bg-gradient-to-br from-gray-200 to-gray-300 ${blurred ? 'blur-sm' : ''}`}>
+            <div className="w-20 h-20 bg-gray-400 rounded-full flex items-center justify-center">
+              <span className="text-white text-3xl">👤</span>
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Nationality badge (top-left) */}
         {item.nationality && (
@@ -83,9 +94,18 @@ const MatchingCard: React.FC<MatchingCardProps> = ({ item, blurred = true, onCli
       {/* Bottom section */}
       <div className="p-2.5">
         {item.meet_pref && (
-          <span className="inline-block text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-full">
+          <span className="inline-block text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-full mb-2">
             {item.meet_pref}
           </span>
+        )}
+        {item.bio ? (
+          <p className="text-xs text-gray-700 leading-relaxed line-clamp-3">
+            {item.bio}
+          </p>
+        ) : (
+          <p className="text-xs text-gray-400 italic">
+            自己紹介はまだありません
+          </p>
         )}
       </div>
     </article>
