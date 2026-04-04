@@ -1,27 +1,25 @@
 import React, { useState } from 'react';
-import { ArrowLeft, ShoppingBag, Palette, GraduationCap, Radio } from 'lucide-react';
+import { ArrowLeft, ShoppingBag, Palette, GraduationCap } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import FleaMarketList from '../../components/flea-market/FleaMarketList';
 import ArtSaleList from '../../components/art-sales/ArtSaleList';
 import CourseList from '../../components/courses/CourseList';
 
-type TabType = 'flea-market' | 'art-sales' | 'courses' | 'live-streaming';
+type TabType = 'flea-market' | 'art-sales' | 'courses';
 
 const tabIcons: Record<TabType, React.ReactNode> = {
   'flea-market': <ShoppingBag className="w-5 h-5" />,
   'art-sales': <Palette className="w-5 h-5" />,
   'courses': <GraduationCap className="w-5 h-5" />,
-  'live-streaming': <Radio className="w-5 h-5" />,
 };
 
-const tabKeys: TabType[] = ['flea-market', 'art-sales', 'courses', 'live-streaming'];
+const tabKeys: TabType[] = ['flea-market', 'art-sales', 'courses'];
 
 const tabTranslationKeys: Record<TabType, string> = {
   'flea-market': 'fleaMarket',
   'art-sales': 'artSales',
   'courses': 'courses',
-  'live-streaming': 'liveStreaming',
 };
 
 const BusinessPage: React.FC = () => {
@@ -44,14 +42,6 @@ const BusinessPage: React.FC = () => {
         return <ArtSaleList />;
       case 'courses':
         return <CourseList />;
-      case 'live-streaming':
-        return (
-          <div className="text-center py-16">
-            <Radio className="w-16 h-16 mx-auto text-gray-300 mb-4" />
-            <h3 className="text-xl font-semibold text-gray-600 mb-2">{t('business.tabs.liveStreaming')}</h3>
-            <p className="text-gray-500">{t('business.comingSoon')}</p>
-          </div>
-        );
       default:
         return null;
     }
@@ -71,8 +61,12 @@ const BusinessPage: React.FC = () => {
             </button>
           </div>
           <div className="text-center mb-8">
-            <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">{t('business.title')}</h1>
-            <p className="text-xl text-gray-600">{t('business.subtitle')}</p>
+            <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">ビジネス</h1>
+            <p className="text-xl text-gray-600 mb-2">フリマ・作品販売・講座</p>
+            <p className="text-sm text-gray-500">
+              手数料はかかりません。ユーザー同士で販売ができます。<br />
+              ※非会員の方も購入可能
+            </p>
           </div>
         </div>
       </section>
