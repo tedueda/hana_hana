@@ -62,6 +62,9 @@ import { AudioProvider } from './contexts/AudioContext';
 import GlobalAudioPlayer from './components/GlobalAudioPlayer';
 import EmailVerificationPendingPage from './pages/EmailVerificationPendingPage';
 import VerifyEmailPage from './pages/VerifyEmailPage';
+import FounderBanner from './components/FounderBanner';
+import ReferralTracker from './components/ReferralTracker';
+import LeaderDashboardPage from './pages/LeaderDashboardPage';
 
 const FeedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { isLoading } = useAuth();
@@ -101,9 +104,11 @@ function AppContent() {
   const isHome = location.pathname === '/' || location.pathname === '/feed';
   return (
     <div className="min-h-screen bg-white">
+      <FounderBanner />
       <Header />
       <ScrollToTop />
       <GlobalAudioPlayer />
+      <ReferralTracker />
       <main className={`bg-white ${isHome ? '' : 'pt-40 md:pt-32'}`}>
         <Routes>
           <Route path="/login" element={
@@ -244,8 +249,8 @@ function AppContent() {
                     {/* Salon routes - 有料会員専用 */}
                     <Route path="/salon" element={<PaidMemberRoute><SalonPage /></PaidMemberRoute>} />
                     <Route path="/salon/rooms/:roomId" element={<PaidMemberRoute><SalonRoomDetailPage /></PaidMemberRoute>} />
-                    {/* Business page - 有料会員専用 */}
-                    <Route path="/business" element={<PaidMemberRoute><BusinessPage /></PaidMemberRoute>} />
+                    {/* Business page - 閲覧は誰でもOK（出品・チャットは有料会員のみ） */}
+                    <Route path="/business" element={<BusinessPage />} />
                     {/* Jewelry Shopping routes */}
                     <Route path="/jewelry" element={<JewelryProductList />} />
                     <Route path="/jewelry/:id" element={<JewelryProductDetail />} />
@@ -276,6 +281,12 @@ function AppContent() {
             </FeedRoute>
           } />
           <Route path="/admin" element={<AdminPage />} />
+          {/* STEP③: Leader dashboard - role=leader only */}
+          <Route path="/leader-dashboard" element={
+            <FeedRoute>
+              <LeaderDashboardPage />
+            </FeedRoute>
+          } />
           <Route path="/blog" element={<PublicBlogListPage />} />
           <Route path="/blog/:slug" element={<PublicBlogDetailPage />} />
           <Route path="/blog-members" element={

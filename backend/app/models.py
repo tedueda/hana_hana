@@ -55,6 +55,11 @@ class User(Base):
     payment_status = Column(String(30), server_default="unpaid", nullable=True)
     deleted_at = Column(DateTime(timezone=True), nullable=True)
 
+    # STEP③: Founder & Referral fields
+    is_founder = Column(Boolean, default=False)
+    ref_code = Column(String(20), unique=True, nullable=True, index=True)
+    referred_by_user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+
     __table_args__ = (
         CheckConstraint("membership_type IN ('free', 'premium', 'admin')", name="check_membership_type"),
     )
@@ -1038,6 +1043,20 @@ class BlogPostTranslation(Base):
     )
 
     blog_post = relationship("BlogPost")
+
+
+# ===== STEP③: Referral tracking =====
+
+class Referral(Base):
+    __tablename__ = "referrals"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    ref_code = Column(String(20), nullable=False, index=True)
+    paid_at = Column(DateTime(timezone=True), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    user = relationship("User")
 
 
 class AuditLog(Base):

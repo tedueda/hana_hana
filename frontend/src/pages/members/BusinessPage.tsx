@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
-import { ArrowLeft, ShoppingBag, Palette, GraduationCap } from 'lucide-react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { ArrowLeft, ShoppingBag, Palette, GraduationCap, Plus } from 'lucide-react';
+import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { useAuth } from '../../contexts/AuthContext';
+import { usePaidMember } from '../../hooks/usePremium';
 import FleaMarketList from '../../components/flea-market/FleaMarketList';
 import ArtSaleList from '../../components/art-sales/ArtSaleList';
 import CourseList from '../../components/courses/CourseList';
@@ -25,9 +27,25 @@ const tabTranslationKeys: Record<TabType, string> = {
 const BusinessPage: React.FC = () => {
   const navigate = useNavigate();
   const { t } = useTranslation();
+  const { user } = useAuth();
+  const { isPaidUser } = usePaidMember();
   const [searchParams, setSearchParams] = useSearchParams();
   const initialTab = (searchParams.get('tab') as TabType) || 'flea-market';
   const [activeTab, setActiveTab] = useState<TabType>(initialTab);
+  const [showPostGateModal, setShowPostGateModal] = useState(false);
+
+  const handlePostClick = () => {
+    if (!user) {
+      navigate('/login');
+      return;
+    }
+    if (!isPaidUser) {
+      setShowPostGateModal(true);
+      return;
+    }
+    // Paid user - navigate to post form (handled by each list component)
+    // For now, show a message that posting is available within each tab
+  };
 
   const handleTabChange = (tabId: TabType) => {
     setActiveTab(tabId);
@@ -94,9 +112,50 @@ const BusinessPage: React.FC = () => {
 
       <section className="py-8">
         <div className="max-w-7xl mx-auto px-4">
+          {/* Post button for paid members */}
+          {isPaidUser && (
+            <div className="mb-6 flex justify-end">
+              <button
+                onClick={handlePostClick}
+                className="flex items-center gap-2 px-4 py-2 bg-gray-900 text-white rounded-lg font-medium hover:bg-black transition-colors"
+              >
+                <Plus className="w-5 h-5" />
+                新規出品
+              </button>
+            </div>
+          )}
           {renderTabContent()}
         </div>
       </section>
+
+      {/* Post Gate Modal (非有料会員) */}
+      {showPostGateModal && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setShowPostGateModal(false)}>
+          <div className="bg-white rounded-xl p-6 max-w-sm w-full" onClick={(e) => e.stopPropagation()}>
+            <div className="text-center">
+              <div className="text-4xl mb-4">💼</div>
+              <h3 className="text-lg font-semibold mb-2">出品は有料会員限定です</h3>
+              <p className="text-gray-600 mb-6 text-sm">
+                ビジネス機能での出品には有料会員登録（月額1,000円・税込）が必要です。
+              </p>
+              <div className="flex gap-2">
+                <Link
+                  to="/subscribe"
+                  className="flex-1 px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800 text-center text-sm font-medium"
+                >
+                  会員登録
+                </Link>
+                <button
+                  onClick={() => setShowPostGateModal(false)}
+                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 text-center text-sm font-medium"
+                >
+                  閉じる
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -10,6 +10,7 @@ import BusinessFilter, { BusinessCategory } from '../components/BusinessFilter';
 import BusinessCard, { BusinessCardItem } from '../components/BusinessCard';
 import { API_URL } from '../config';
 import { useAuth } from '../contexts/AuthContext';
+import { usePaidMember } from '../hooks/usePremium';
 
 // Mock matching data for UI display
 const MOCK_MATCHING_DATA: MatchingCardItem[] = [
@@ -27,6 +28,7 @@ const AboutPage: React.FC = () => {
   const { t } = useTranslation();
   const [searchParams, setSearchParams] = useSearchParams();
   const { user } = useAuth();
+  const { isPaidUser } = usePaidMember();
 
   // Tab state with URL preservation
   const initialTab = (searchParams.get('tab') as AboutTabType) || 'matching';
@@ -44,6 +46,8 @@ const AboutPage: React.FC = () => {
 
   // Login modal state
   const [showLoginModal, setShowLoginModal] = useState(false);
+  // Premium upgrade modal state (logged in but not paid)
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
   const handleTabChange = (tab: AboutTabType) => {
     setActiveTab(tab);
@@ -151,6 +155,8 @@ const AboutPage: React.FC = () => {
   const handleMatchingCardClick = () => {
     if (!user) {
       setShowLoginModal(true);
+    } else if (!isPaidUser) {
+      setShowUpgradeModal(true);
     }
   };
 
@@ -197,7 +203,7 @@ const AboutPage: React.FC = () => {
                     <MatchingCard
                       key={item.user_id}
                       item={item}
-                      blurred={true}
+                      blurred={!isPaidUser}
                       onClick={handleMatchingCardClick}
                     />
                   ))}
@@ -357,7 +363,7 @@ const AboutPage: React.FC = () => {
         </div>
       </section>
 
-      {/* Login Modal */}
+      {/* Login Modal (未ログイン) */}
       {showLoginModal && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setShowLoginModal(false)}>
           <div className="bg-white rounded-xl p-6 max-w-sm w-full" onClick={(e) => e.stopPropagation()}>
@@ -382,6 +388,37 @@ const AboutPage: React.FC = () => {
                 >
                   会員登録
                 </Link>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Upgrade Modal (ログイン済み・非有料会員) */}
+      {showUpgradeModal && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setShowUpgradeModal(false)}>
+          <div className="bg-white rounded-xl p-6 max-w-sm w-full" onClick={(e) => e.stopPropagation()}>
+            <div className="text-center">
+              <div className="h-12 w-12 mx-auto bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                <ShieldCheck className="h-6 w-6 text-gray-500" />
+              </div>
+              <h3 className="text-lg font-semibold mb-2">この機能は有料会員専用です</h3>
+              <p className="text-gray-600 mb-6 text-sm">
+                プロフィール詳細の閲覧には有料会員登録（月額1,000円・税込）が必要です。
+              </p>
+              <div className="flex gap-2">
+                <Link
+                  to="/subscribe"
+                  className="flex-1 px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800 text-center text-sm font-medium"
+                >
+                  会員登録
+                </Link>
+                <button
+                  onClick={() => setShowUpgradeModal(false)}
+                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 text-center text-sm font-medium"
+                >
+                  閉じる
+                </button>
               </div>
             </div>
           </div>
