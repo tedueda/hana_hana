@@ -96,6 +96,48 @@ async def list_rooms(
     return result
 
 
+@router.get("/public-rooms")
+async def list_public_rooms(
+    room_type: Optional[str] = Query(None),
+    page: int = Query(1, ge=1),
+    size: int = Query(20, ge=1, le=50),
+    db: Session = Depends(get_db),
+):
+    """サロンルーム一覧（公開）。未ログインユーザーでもテーマ・説明を閲覧可能。"""
+    q = db.query(SalonRoom).filter(SalonRoom.is_active == True)
+
+    if room_type:
+        q = q.filter(SalonRoom.room_type == room_type)
+
+    q = q.order_by(SalonRoom.created_at.desc())
+    rooms = q.offset((page - 1) * size).limit(size).all()
+
+    result = []
+    for room in rooms:
+        participant_count = db.query(func.count(SalonParticipant.id)).filter(
+            SalonParticipant.room_id == room.id
+        ).scalar()
+
+        creator = db.query(User).filter(User.id == room.creator_id).first()
+
+        result.append({
+            "id": room.id,
+            "creator_id": room.creator_id,
+            "theme": room.theme,
+            "description": room.description,
+            "target_identities": room.target_identities,
+            "room_type": room.room_type,
+            "allow_anonymous": room.allow_anonymous,
+            "is_active": room.is_active,
+            "created_at": room.created_at,
+            "updated_at": room.updated_at,
+            "participant_count": participant_count,
+            "creator_display_name": creator.display_name if creator else None,
+        })
+
+    return result
+
+
 @router.post("/rooms", response_model=SalonRoomSchema, status_code=201)
 def create_room(
     room_data: SalonRoomCreate,
