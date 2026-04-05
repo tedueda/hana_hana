@@ -358,6 +358,8 @@ const FIXED_FILTER_OPTIONS = {
   const handleSalonRoomClick = (roomId: number) => {
     if (!user) {
       setShowLoginModal(true);
+    } else if (!isPaidUser) {
+      setShowUpgradeModal(true);
     } else {
       navigate(`/salon/rooms/${roomId}`);
     }
