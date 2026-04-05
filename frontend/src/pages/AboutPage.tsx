@@ -108,16 +108,19 @@ const AboutPage: React.FC = () => {
         const size = 50;
         let receivedSuccessfulPage = false;
 
+        // 有料会員は /search（自分除外付き）、それ以外は /public-preview を使用
+        const endpoint = isPaidUser ? '/api/matching/search' : '/api/matching/public-preview';
+
         while (page <= 10 && !cancelled) {
           const res = await resilientFetch(
-            `/api/matching/search?page=${page}&size=${size}&_t=${Date.now()}`,
+            `${endpoint}?page=${page}&size=${size}&_t=${Date.now()}`,
             { headers },
           );
           if (!res.ok) {
             if (!cancelled) {
               setMatchingFetchError(
                 !receivedSuccessfulPage
-                  ? `サーバーから応答がありません（HTTP ${res.status}）。バックエンドに /api/matching/search がデプロイされているか確認してください。`
+                  ? `サーバーから応答がありません（HTTP ${res.status}）。バックエンドに ${endpoint} がデプロイされているか確認してください。`
                   : null,
               );
             }
@@ -157,7 +160,7 @@ const AboutPage: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, [activeTab, token]);
+  }, [activeTab, token, isPaidUser]);
 
   // 条件変更時は1ページ目へ
   useEffect(() => {
