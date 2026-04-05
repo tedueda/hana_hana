@@ -221,6 +221,7 @@ const AboutPage: React.FC = () => {
         if (!res.ok) {
           if (!cancelled) {
             setSalonError(`サーバーから応答がありません（HTTP ${res.status}）`);
+            setSalonRooms([]);
           }
           return;
         }
