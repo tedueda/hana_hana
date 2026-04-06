@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
-import { ShieldCheck, MessageCircle, Users, Lock, Unlock } from 'lucide-react';
+import { ShieldCheck, MessageCircle, Users, Lock, Unlock, LayoutGrid, List as ListIcon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import AboutTabs, { AboutTabType } from '../components/AboutTabs';
 import MatchingFilter, {
@@ -38,6 +38,7 @@ const ROOM_TYPE_LABELS: Record<string, string> = {
 };
 
 const MATCHING_PAGE_SIZE = 20;
+const SALON_PAGE_SIZE = 20;
 
 function uniqSortedOptions(values: (string | null | undefined)[]): string[] {
   const set = new Set<string>();
@@ -108,6 +109,8 @@ const AboutPage: React.FC = () => {
   const [salonLoading, setSalonLoading] = useState(false);
   const [salonError, setSalonError] = useState<string | null>(null);
   const [salonRoomType, setSalonRoomType] = useState<string | null>(null);
+  const [salonViewMode, setSalonViewMode] = useState<'card' | 'list'>('card');
+  const [salonPage, setSalonPage] = useState(1);
 
   // Login modal state
   const [showLoginModal, setShowLoginModal] = useState(false);
@@ -366,6 +369,23 @@ const FIXED_FILTER_OPTIONS = {
     }
   };
 
+  // Reset salon page when filter changes
+  useEffect(() => {
+    setSalonPage(1);
+  }, [salonRoomType]);
+
+  const salonTotalPages = Math.max(1, Math.ceil(salonRooms.length / SALON_PAGE_SIZE));
+
+  useEffect(() => {
+    setSalonPage((p) => Math.min(p, salonTotalPages));
+  }, [salonTotalPages]);
+
+  const safeSalonPage = Math.min(salonPage, salonTotalPages);
+  const paginatedSalonRooms = salonRooms.slice(
+    (safeSalonPage - 1) * SALON_PAGE_SIZE,
+    safeSalonPage * SALON_PAGE_SIZE,
+  );
+
   const salonRoomTypes = [
     { value: null, label: 'すべて' },
     { value: 'consultation', label: '相談' },
@@ -493,22 +513,50 @@ const FIXED_FILTER_OPTIONS = {
                 <p className="text-gray-600">安心して交流できる場所 - テーマ別のチャットルームで自由に交流できます</p>
               </div>
 
-              {/* Room type filter */}
-              <div className="flex gap-2 overflow-x-auto pb-2 mb-6">
-                {salonRoomTypes.map((type) => (
+              {/* Room type filter + view toggle */}
+              <div className="flex items-center justify-between gap-4 mb-6">
+                <div className="flex gap-2 overflow-x-auto pb-2">
+                  {salonRoomTypes.map((type) => (
+                    <button
+                      key={type.value || 'all'}
+                      type="button"
+                      onClick={() => setSalonRoomType(type.value)}
+                      className={`rounded-lg px-4 py-2 text-sm font-medium whitespace-nowrap transition-colors ${
+                        salonRoomType === type.value
+                          ? 'bg-gray-900 text-white'
+                          : 'border border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
+                      }`}
+                    >
+                      {type.label}
+                    </button>
+                  ))}
+                </div>
+                <div className="flex gap-1 shrink-0">
                   <button
-                    key={type.value || 'all'}
                     type="button"
-                    onClick={() => setSalonRoomType(type.value)}
-                    className={`rounded-lg px-4 py-2 text-sm font-medium whitespace-nowrap transition-colors ${
-                      salonRoomType === type.value
+                    onClick={() => setSalonViewMode('card')}
+                    className={`rounded-lg p-2 transition-colors ${
+                      salonViewMode === 'card'
                         ? 'bg-gray-900 text-white'
-                        : 'border border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
+                        : 'border border-gray-300 bg-white text-gray-500 hover:bg-gray-50'
                     }`}
+                    aria-label="カード表示"
                   >
-                    {type.label}
+                    <LayoutGrid className="h-4 w-4" />
                   </button>
-                ))}
+                  <button
+                    type="button"
+                    onClick={() => setSalonViewMode('list')}
+                    className={`rounded-lg p-2 transition-colors ${
+                      salonViewMode === 'list'
+                        ? 'bg-gray-900 text-white'
+                        : 'border border-gray-300 bg-white text-gray-500 hover:bg-gray-50'
+                    }`}
+                    aria-label="一覧表示"
+                  >
+                    <ListIcon className="h-4 w-4" />
+                  </button>
+                </div>
               </div>
 
               {salonError && (
@@ -525,57 +573,128 @@ const FIXED_FILTER_OPTIONS = {
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
                 </div>
               ) : salonRooms.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {salonRooms.map((room) => (
-                    <div
-                      key={room.id}
-                      onClick={() => handleSalonRoomClick(room.id)}
-                      className="group cursor-pointer rounded-xl border border-gray-200 bg-white p-5 shadow-sm hover:shadow-lg transition-all duration-300 hover:scale-[1.02]"
-                    >
-                      <div className="flex items-start justify-between mb-3">
-                        <span className="text-xs font-medium px-2 py-1 rounded-full bg-gray-100 text-gray-700">
-                          {ROOM_TYPE_LABELS[room.room_type] || room.room_type}
-                        </span>
-                        <div className="flex items-center gap-1 text-gray-500">
-                          {room.allow_anonymous ? (
-                            <Unlock className="h-4 w-4" />
-                          ) : (
-                            <Lock className="h-4 w-4" />
+                <>
+                  {salonViewMode === 'card' ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {paginatedSalonRooms.map((room) => (
+                        <div
+                          key={room.id}
+                          onClick={() => handleSalonRoomClick(room.id)}
+                          className="group cursor-pointer rounded-xl border border-gray-200 bg-white p-5 shadow-sm hover:shadow-lg transition-all duration-300 hover:scale-[1.02]"
+                        >
+                          <div className="flex items-start justify-between mb-3">
+                            <span className="text-xs font-medium px-2 py-1 rounded-full bg-gray-100 text-gray-700">
+                              {ROOM_TYPE_LABELS[room.room_type] || room.room_type}
+                            </span>
+                            <div className="flex items-center gap-1 text-gray-500">
+                              {room.allow_anonymous ? (
+                                <Unlock className="h-4 w-4" />
+                              ) : (
+                                <Lock className="h-4 w-4" />
+                              )}
+                            </div>
+                          </div>
+
+                          <h3 className="font-semibold text-lg text-gray-900 mb-2 line-clamp-2 group-hover:text-gray-700">
+                            {room.theme}
+                          </h3>
+
+                          <p className="text-sm text-gray-600 mb-4 line-clamp-3">
+                            {room.description}
+                          </p>
+
+                          <div className="flex items-center justify-between text-sm text-gray-500 pt-3 border-t border-gray-100">
+                            <div className="flex items-center gap-4">
+                              <span className="flex items-center gap-1">
+                                <Users className="h-4 w-4" />
+                                {room.participant_count}人
+                              </span>
+                              <span className="flex items-center gap-1">
+                                <MessageCircle className="h-4 w-4" />
+                              </span>
+                            </div>
+                            <span className="text-xs">
+                              {new Date(room.created_at).toLocaleDateString()}
+                            </span>
+                          </div>
+
+                          {room.creator_display_name && (
+                            <div className="mt-2 text-xs text-gray-400">
+                              作成者: {room.creator_display_name}
+                            </div>
                           )}
                         </div>
-                      </div>
-
-                      <h3 className="font-semibold text-lg text-gray-900 mb-2 line-clamp-2 group-hover:text-gray-700">
-                        {room.theme}
-                      </h3>
-
-                      <p className="text-sm text-gray-600 mb-4 line-clamp-3">
-                        {room.description}
-                      </p>
-
-                      <div className="flex items-center justify-between text-sm text-gray-500 pt-3 border-t border-gray-100">
-                        <div className="flex items-center gap-4">
-                          <span className="flex items-center gap-1">
-                            <Users className="h-4 w-4" />
-                            {room.participant_count}人
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <MessageCircle className="h-4 w-4" />
-                          </span>
-                        </div>
-                        <span className="text-xs">
-                          {new Date(room.created_at).toLocaleDateString()}
-                        </span>
-                      </div>
-
-                      {room.creator_display_name && (
-                        <div className="mt-2 text-xs text-gray-400">
-                          作成者: {room.creator_display_name}
-                        </div>
-                      )}
+                      ))}
                     </div>
-                  ))}
-                </div>
+                  ) : (
+                    <div className="divide-y divide-gray-200 rounded-xl border border-gray-200 bg-white overflow-hidden">
+                      {paginatedSalonRooms.map((room) => (
+                        <div
+                          key={room.id}
+                          onClick={() => handleSalonRoomClick(room.id)}
+                          className="group cursor-pointer px-5 py-4 hover:bg-gray-50 transition-colors"
+                        >
+                          <div className="flex items-center justify-between gap-4">
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 mb-1">
+                                <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-gray-100 text-gray-700 shrink-0">
+                                  {ROOM_TYPE_LABELS[room.room_type] || room.room_type}
+                                </span>
+                                <h3 className="font-semibold text-gray-900 truncate group-hover:text-gray-700">
+                                  {room.theme}
+                                </h3>
+                              </div>
+                              <p className="text-sm text-gray-500 truncate">
+                                {room.description}
+                              </p>
+                            </div>
+                            <div className="flex items-center gap-4 text-sm text-gray-500 shrink-0">
+                              <span className="flex items-center gap-1">
+                                <Users className="h-4 w-4" />
+                                {room.participant_count}人
+                              </span>
+                              <span className="text-xs">
+                                {new Date(room.created_at).toLocaleDateString()}
+                              </span>
+                              {room.allow_anonymous ? (
+                                <Unlock className="h-3.5 w-3.5" />
+                              ) : (
+                                <Lock className="h-3.5 w-3.5" />
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Pagination */}
+                  {salonTotalPages > 1 && (
+                    <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
+                      <span className="text-sm text-gray-600">
+                        {safeSalonPage} / {salonTotalPages} ページ（全 {salonRooms.length} 件）
+                      </span>
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          disabled={safeSalonPage <= 1}
+                          onClick={() => setSalonPage((p) => Math.max(1, p - 1))}
+                          className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-800 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
+                        >
+                          前へ
+                        </button>
+                        <button
+                          type="button"
+                          disabled={safeSalonPage >= salonTotalPages}
+                          onClick={() => setSalonPage((p) => p + 1)}
+                          className="rounded-lg border border-gray-900 bg-gray-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-black disabled:cursor-not-allowed disabled:opacity-40"
+                        >
+                          次へ
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </>
               ) : salonError ? null : (
                 <div className="flex min-h-[300px] items-center justify-center rounded-2xl border-2 border-dashed border-gray-300 bg-white">
                   <div className="text-center px-4">
