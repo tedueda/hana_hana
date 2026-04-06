@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
-import { ShieldCheck } from 'lucide-react';
+import { ShieldCheck, MessageCircle, Users, Lock, Unlock } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import AboutTabs, { AboutTabType } from '../components/AboutTabs';
 import MatchingFilter, {
@@ -14,6 +14,28 @@ import BusinessCard, { BusinessCardItem } from '../components/BusinessCard';
 import { API_URL } from '../config';
 import { useAuth, resilientFetch } from '../contexts/AuthContext';
 import { usePaidMember } from '../hooks/usePremium';
+
+interface SalonRoom {
+  id: number;
+  creator_id: number;
+  theme: string;
+  description: string;
+  target_identities: string[];
+  room_type: string;
+  allow_anonymous: boolean;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+  participant_count: number;
+  creator_display_name: string | null;
+}
+
+const ROOM_TYPE_LABELS: Record<string, string> = {
+  consultation: '相談',
+  exchange: '交流',
+  story: 'ストーリー',
+  other: 'その他',
+};
 
 const MATCHING_PAGE_SIZE = 20;
 
@@ -81,6 +103,12 @@ const AboutPage: React.FC = () => {
   const [businessItems, setBusinessItems] = useState<BusinessCardItem[]>([]);
   const [businessLoading, setBusinessLoading] = useState(false);
 
+  // Salon state
+  const [salonRooms, setSalonRooms] = useState<SalonRoom[]>([]);
+  const [salonLoading, setSalonLoading] = useState(false);
+  const [salonError, setSalonError] = useState<string | null>(null);
+  const [salonRoomType, setSalonRoomType] = useState<string | null>(null);
+
   // Login modal state
   const [showLoginModal, setShowLoginModal] = useState(false);
   // Premium upgrade modal state (logged in but not paid)
@@ -108,16 +136,19 @@ const AboutPage: React.FC = () => {
         const size = 50;
         let receivedSuccessfulPage = false;
 
+        // 有料会員は /search（自分除外付き）、それ以外は /public-preview を使用
+        const endpoint = isPaidUser ? '/api/matching/search' : '/api/matching/public-preview';
+
         while (page <= 10 && !cancelled) {
           const res = await resilientFetch(
-            `/api/matching/search?page=${page}&size=${size}&_t=${Date.now()}`,
+            `${endpoint}?page=${page}&size=${size}&_t=${Date.now()}`,
             { headers },
           );
           if (!res.ok) {
             if (!cancelled) {
               setMatchingFetchError(
                 !receivedSuccessfulPage
-                  ? `サーバーから応答がありません（HTTP ${res.status}）。バックエンドに /api/matching/search がデプロイされているか確認してください。`
+                  ? `サーバーから応答がありません（HTTP ${res.status}）。バックエンドに ${endpoint} がデプロイされているか確認してください。`
                   : null,
               );
             }
@@ -157,7 +188,7 @@ const AboutPage: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, [activeTab, token]);
+  }, [activeTab, token, isPaidUser]);
 
   // 条件変更時は1ページ目へ
   useEffect(() => {
@@ -169,6 +200,48 @@ const AboutPage: React.FC = () => {
     matchingFilters.meetPref,
     matchingFilters.identity,
   ]);
+
+  // Fetch salon rooms (public endpoint)
+  useEffect(() => {
+    if (activeTab !== 'salon') return;
+
+    let cancelled = false;
+
+    const loadSalonRooms = async () => {
+      setSalonLoading(true);
+      setSalonError(null);
+      try {
+        const params = new URLSearchParams({ page: '1', size: '50' });
+        if (salonRoomType) params.append('room_type', salonRoomType);
+
+        const res = await resilientFetch(
+          `/api/salon/public-rooms?${params}`,
+          { headers: { 'Cache-Control': 'no-cache' } },
+        );
+        if (!res.ok) {
+          if (!cancelled) {
+            setSalonError(`サーバーから応答がありません（HTTP ${res.status}）`);
+            setSalonRooms([]);
+          }
+          return;
+        }
+        const data = await res.json();
+        if (!cancelled) {
+          setSalonRooms(Array.isArray(data) ? data : []);
+        }
+      } catch {
+        if (!cancelled) {
+          setSalonError('サロンの取得に失敗しました。');
+          setSalonRooms([]);
+        }
+      } finally {
+        if (!cancelled) setSalonLoading(false);
+      }
+    };
+
+    loadSalonRooms();
+    return () => { cancelled = true; };
+  }, [activeTab, salonRoomType]);
 
   // Fetch business data
   useEffect(() => {
@@ -282,6 +355,24 @@ const FIXED_FILTER_OPTIONS = {
       navigate(`/matching/users/${userId}`);
     }
   };
+
+  const handleSalonRoomClick = (roomId: number) => {
+    if (!user) {
+      setShowLoginModal(true);
+    } else if (!isPaidUser) {
+      setShowUpgradeModal(true);
+    } else {
+      navigate(`/salon/rooms/${roomId}`);
+    }
+  };
+
+  const salonRoomTypes = [
+    { value: null, label: 'すべて' },
+    { value: 'consultation', label: '相談' },
+    { value: 'exchange', label: '交流' },
+    { value: 'story', label: 'ストーリー' },
+    { value: 'other', label: 'その他' },
+  ];
 
   return (
     <div className="bg-white">
@@ -399,21 +490,110 @@ const FIXED_FILTER_OPTIONS = {
             <div>
               <div className="mb-6">
                 <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">会員サロン</h2>
-                <p className="text-gray-600">安心して交流できる場所 - 有料会員限定のコミュニティ</p>
+                <p className="text-gray-600">安心して交流できる場所 - テーマ別のチャットルームで自由に交流できます</p>
               </div>
-              <div className="rounded-2xl border border-gray-200 bg-gray-50 p-8 text-center">
-                <div className="text-5xl mb-4">💬</div>
-                <h3 className="text-xl font-semibold text-gray-900 mb-2">会員サロンは有料会員専用です</h3>
-                <p className="text-gray-600 mb-6">
-                  会員登録をすると、安心して交流できるサロン機能をご利用いただけます。
-                </p>
-                <Link
-                  to="/subscribe"
-                  className="inline-flex items-center justify-center rounded-lg bg-gray-900 px-6 py-3 text-sm font-semibold text-white hover:bg-black transition-colors"
+
+              {/* Room type filter */}
+              <div className="flex gap-2 overflow-x-auto pb-2 mb-6">
+                {salonRoomTypes.map((type) => (
+                  <button
+                    key={type.value || 'all'}
+                    type="button"
+                    onClick={() => setSalonRoomType(type.value)}
+                    className={`rounded-lg px-4 py-2 text-sm font-medium whitespace-nowrap transition-colors ${
+                      salonRoomType === type.value
+                        ? 'bg-gray-900 text-white'
+                        : 'border border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
+                    }`}
+                  >
+                    {type.label}
+                  </button>
+                ))}
+              </div>
+
+              {salonError && (
+                <div
+                  className="mb-6 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900"
+                  role="alert"
                 >
-                  会員登録はこちら
-                </Link>
-              </div>
+                  {salonError}
+                </div>
+              )}
+
+              {salonLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+                </div>
+              ) : salonRooms.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {salonRooms.map((room) => (
+                    <div
+                      key={room.id}
+                      onClick={() => handleSalonRoomClick(room.id)}
+                      className="group cursor-pointer rounded-xl border border-gray-200 bg-white p-5 shadow-sm hover:shadow-lg transition-all duration-300 hover:scale-[1.02]"
+                    >
+                      <div className="flex items-start justify-between mb-3">
+                        <span className="text-xs font-medium px-2 py-1 rounded-full bg-gray-100 text-gray-700">
+                          {ROOM_TYPE_LABELS[room.room_type] || room.room_type}
+                        </span>
+                        <div className="flex items-center gap-1 text-gray-500">
+                          {room.allow_anonymous ? (
+                            <Unlock className="h-4 w-4" />
+                          ) : (
+                            <Lock className="h-4 w-4" />
+                          )}
+                        </div>
+                      </div>
+
+                      <h3 className="font-semibold text-lg text-gray-900 mb-2 line-clamp-2 group-hover:text-gray-700">
+                        {room.theme}
+                      </h3>
+
+                      <p className="text-sm text-gray-600 mb-4 line-clamp-3">
+                        {room.description}
+                      </p>
+
+                      <div className="flex items-center justify-between text-sm text-gray-500 pt-3 border-t border-gray-100">
+                        <div className="flex items-center gap-4">
+                          <span className="flex items-center gap-1">
+                            <Users className="h-4 w-4" />
+                            {room.participant_count}人
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <MessageCircle className="h-4 w-4" />
+                          </span>
+                        </div>
+                        <span className="text-xs">
+                          {new Date(room.created_at).toLocaleDateString()}
+                        </span>
+                      </div>
+
+                      {room.creator_display_name && (
+                        <div className="mt-2 text-xs text-gray-400">
+                          作成者: {room.creator_display_name}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : salonError ? null : (
+                <div className="flex min-h-[300px] items-center justify-center rounded-2xl border-2 border-dashed border-gray-300 bg-white">
+                  <div className="text-center px-4">
+                    <MessageCircle className="h-12 w-12 mx-auto text-gray-400 mb-4" />
+                    <p className="text-lg font-medium text-gray-600">サロンルームがまだありません</p>
+                    <p className="mt-2 text-sm text-gray-500">
+                      最初のサロンルームを作成してみましょう
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* Non-auth info banner */}
+              {!user && salonRooms.length > 0 && (
+                <div className="mt-6 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900">
+                  サロンに参加するにはログインまたは会員登録が必要です。ルームをクリックしてログインしてください。
+                </div>
+              )}
             </div>
           )}
 
@@ -568,9 +748,9 @@ const FIXED_FILTER_OPTIONS = {
               <div className="h-12 w-12 mx-auto bg-gray-100 rounded-full flex items-center justify-center mb-4">
                 <ShieldCheck className="h-6 w-6 text-gray-500" />
               </div>
-              <h3 className="text-lg font-semibold mb-2">このプロフィールの詳細閲覧は会員限定です</h3>
+              <h3 className="text-lg font-semibold mb-2">この機能は会員限定です</h3>
               <p className="text-gray-600 mb-6 text-sm">
-                詳細を確認するにはログインまたは会員登録が必要です。
+                ご利用にはログインまたは会員登録が必要です。
               </p>
               <div className="flex gap-2">
                 <Link
