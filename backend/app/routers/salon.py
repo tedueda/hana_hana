@@ -100,7 +100,7 @@ async def list_rooms(
 async def list_public_rooms(
     room_type: Optional[str] = Query(None),
     page: int = Query(1, ge=1),
-    size: int = Query(20, ge=1, le=50),
+    size: int = Query(20, ge=1, le=200),
     db: Session = Depends(get_db),
 ):
     """サロンルーム一覧（公開）。未ログインユーザーでもテーマ・説明を閲覧可能。"""
