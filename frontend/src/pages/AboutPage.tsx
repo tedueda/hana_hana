@@ -214,7 +214,7 @@ const AboutPage: React.FC = () => {
       setSalonLoading(true);
       setSalonError(null);
       try {
-        const params = new URLSearchParams({ page: '1', size: '200' });
+        const params = new URLSearchParams({ page: '1', size: '50' });
         if (salonRoomType) params.append('room_type', salonRoomType);
 
         const res = await resilientFetch(
