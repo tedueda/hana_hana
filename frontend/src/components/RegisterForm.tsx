@@ -131,7 +131,7 @@ const RegisterForm: React.FC = () => {
             )}
           </div>
           <CardTitle className="text-2xl sm:text-3xl md:text-4xl text-carat-black">
-            {isFounderFree ? '創業メンバー登録' : '会員登録'}
+            会員登録
           </CardTitle>
           <CardDescription className="text-lg md:text-xl text-carat-gray5">
             {isFounderFree
@@ -141,7 +141,7 @@ const RegisterForm: React.FC = () => {
           {/* Founder free banner */}
           {isFounderFree && (
             <div className="mt-3 bg-purple-50 border border-purple-200 rounded-lg p-3 text-sm text-purple-700">
-              <p className="font-semibold">創業メンバー特典</p>
+              <p className="font-semibold">紹介特典</p>
               <p>紹介コード: <span className="font-mono font-bold">{refCode}</span></p>
               <p>残り枠: {refValidation?.remaining}名 / {refValidation?.limit}名</p>
             </div>
@@ -149,7 +149,7 @@ const RegisterForm: React.FC = () => {
           {/* Cap reached message */}
           {isCapReached && (
             <div className="mt-3 bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-sm text-yellow-700">
-              <p className="font-semibold">創業メンバー枠は満員になりました</p>
+              <p className="font-semibold">無料枠は満員になりました</p>
               <p>{refValidation?.founder_display_name}さんからの紹介ですが、無料枠（{refValidation?.limit}名）に達したため、通常の有料会員登録となります。</p>
             </div>
           )}
@@ -295,7 +295,7 @@ const RegisterForm: React.FC = () => {
               className="w-full bg-black text-white hover:bg-gray-800 transition-colors text-lg font-bold py-6 shadow-lg hover:shadow-xl"
               disabled={isLoading || !agreeTerms || !agreeAge}
             >
-              {isLoading ? '登録中...' : isFounderFree ? '無料で登録する（創業メンバー）' : '登録して本人確認へ'}
+              {isLoading ? '登録中...' : isFounderFree ? '無料で登録する' : '登録して本人確認へ'}
             </Button>
           </form>
           <div className="mt-6 text-center space-y-2">
