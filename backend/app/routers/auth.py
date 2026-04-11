@@ -396,7 +396,7 @@ async def register(user: UserCreate, db: Session = Depends(get_db)):
         is_founder_free_member=founder_free,
         subscription_exempt=founder_free,
         referred_by_founder_code=founder_code_val,
-        ref_code_used=ref_code,
+        ref_code_used=founder_code_val,
     )
     db.add(db_user)
     db.flush()
