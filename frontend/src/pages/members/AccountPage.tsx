@@ -295,7 +295,7 @@ export default function AccountPage() {
               <Crown className="w-6 h-6 mx-auto mb-2 text-purple-600" />
               <p className="text-sm text-gray-600">{t('account.status.premiumMember')}</p>
               <p className="text-lg font-bold text-purple-600">
-                {account?.membership_type === 'premium' ? t('account.status.premiumMember') : t('account.status.freeMember')}
+                {(account?.membership_type === 'premium' || account?.membership_type === 'founder_free') ? t('account.status.premiumMember') : t('account.status.freeMember')}
               </p>
             </div>
             
@@ -441,7 +441,7 @@ export default function AccountPage() {
               </label>
               <input
                 type="text"
-                value={account?.membership_type === 'premium' ? t('account.status.premiumMember') : t('account.status.freeMember')}
+                value={(account?.membership_type === 'premium' || account?.membership_type === 'founder_free') ? t('account.status.premiumMember') : t('account.status.freeMember')}
                 disabled
                 className="w-full px-4 py-2 border border-gray-200 rounded-lg bg-gray-50 text-gray-500"
               />

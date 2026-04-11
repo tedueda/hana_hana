@@ -96,7 +96,7 @@ const JewelryProductDetail: React.FC = () => {
       return;
     }
 
-    if (user.membership_type !== 'premium' && user.membership_type !== 'admin') {
+    if (user.membership_type !== 'premium' && user.membership_type !== 'admin' && user.membership_type !== 'founder_free') {
       console.log('プレミアム会員ではない - モーダル表示');
       setShowPremiumModal(true);
       return;
@@ -327,7 +327,7 @@ const JewelryProductDetail: React.FC = () => {
               {addingToCart ? '追加中...' : isSoldOut ? '売り切れ' : 'カートに入れる'}
             </button>
 
-            {user && (user.membership_type === 'premium' || user.membership_type === 'admin') && (
+            {user && (user.membership_type === 'premium' || user.membership_type === 'admin' || user.membership_type === 'founder_free') && (
               <button
                 onClick={() => navigate('/jewelry/cart')}
                 className="flex-1 py-4 border border-gray-900 text-gray-900 rounded-lg font-bold hover:bg-gray-100"

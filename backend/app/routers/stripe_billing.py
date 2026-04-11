@@ -690,7 +690,8 @@ async def handle_subscription_updated(data: dict, db: Session):
         if status == "active":
             user.is_active = True
         elif status in ["canceled", "unpaid"]:
-            user.is_active = False
+            if not user.is_legacy_paid and not user.subscription_exempt:
+                user.is_active = False
         db.commit()
         logger.info(f"Subscription updated for user {user.id}: {status}")
 
@@ -702,8 +703,8 @@ async def handle_subscription_deleted(data: dict, db: Session):
     user = db.query(User).filter(User.stripe_customer_id == customer_id).first()
     if user:
         user.subscription_status = "canceled"
-        # Don't deactivate legacy paid users
-        if not user.is_legacy_paid:
+        # Don't deactivate legacy paid or founder_free users
+        if not user.is_legacy_paid and not user.subscription_exempt:
             user.is_active = False
         db.commit()
         logger.info(f"Subscription deleted for user {user.id}")

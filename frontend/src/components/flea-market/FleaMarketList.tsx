@@ -40,7 +40,7 @@ const FleaMarketList: React.FC = () => {
   const { t } = useTranslation();
   const { user } = useAuth();
   // token removed - not currently used
-  const isPaidUser = user?.membership_type === 'premium' || user?.membership_type === 'admin';
+  const isPaidUser = user?.membership_type === 'premium' || user?.membership_type === 'admin' || user?.membership_type === 'founder_free';
 
   const [items, setItems] = useState<FleaMarketItem[]>([]);
   const [loading, setLoading] = useState(true);

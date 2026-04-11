@@ -39,7 +39,7 @@ const MatchingUserProfilePage: React.FC = () => {
   const navigate = useNavigate();
   const { token, user } = useAuth();
   // 有料会員かどうか
-  const isPaidUser = user?.membership_type === 'premium' || user?.membership_type === 'admin';
+  const isPaidUser = user?.membership_type === 'premium' || user?.membership_type === 'admin' || user?.membership_type === 'founder_free';
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

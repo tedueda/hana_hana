@@ -48,7 +48,7 @@ const ArtSaleList: React.FC = () => {
   const navigate = useNavigate();
   const { t } = useTranslation();
   const { user } = useAuth();
-  const isPaidUser = user?.membership_type === 'premium' || user?.membership_type === 'admin';
+  const isPaidUser = user?.membership_type === 'premium' || user?.membership_type === 'admin' || user?.membership_type === 'founder_free';
 
   const [items, setItems] = useState<ArtSaleItem[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
