@@ -23,6 +23,7 @@ class UserCreate(UserBase):
     password: str
     phone_number: Optional[str] = None
     residence_country: Optional[str] = None
+    ref: Optional[str] = None
 
 class UserUpdate(BaseModel):
     display_name: Optional[str] = None

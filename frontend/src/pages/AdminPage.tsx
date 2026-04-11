@@ -11,7 +11,7 @@ import {
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog';
-import { Search, Trash2, Upload, Sparkles, Eye, Send, ChevronLeft, ChevronRight, LogOut, Pencil } from 'lucide-react';
+import { Search, Trash2, Upload, Sparkles, Eye, Send, ChevronLeft, ChevronRight, LogOut, Pencil, Copy, QrCode, Download, Check, X } from 'lucide-react';
 import { BACKEND_URL } from '@/config';
 
 const AdminPage: React.FC = () => {
@@ -38,12 +38,20 @@ const AdminPage: React.FC = () => {
         </Button>
       </div>
       <Tabs defaultValue="users">
-        <TabsList className="mb-6">
+        <TabsList className="mb-6 flex-wrap">
           <TabsTrigger value="users">ユーザー管理</TabsTrigger>
+          <TabsTrigger value="founders">創業メンバー管理</TabsTrigger>
+          <TabsTrigger value="referrals">紹介登録一覧</TabsTrigger>
           <TabsTrigger value="blog">ブログ作成</TabsTrigger>
         </TabsList>
         <TabsContent value="users">
           <UserManagementTab token={adminToken} />
+        </TabsContent>
+        <TabsContent value="founders">
+          <FounderManagementTab token={adminToken} />
+        </TabsContent>
+        <TabsContent value="referrals">
+          <ReferralListTab token={adminToken} />
         </TabsContent>
         <TabsContent value="blog">
           <BlogGeneratorTab token={adminToken} />
@@ -626,6 +634,445 @@ const BlogGeneratorTab: React.FC<{ token: string }> = ({ token }) => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+    </div>
+  );
+};
+
+// ===== Founder Management Tab =====
+interface FounderItem {
+  id: number;
+  founder_code: string;
+  display_name: string;
+  is_active: boolean;
+  max_invites: number | null;
+  referral_count: number;
+  referral_url: string;
+  created_at: string;
+  updated_at: string;
+}
+
+const FounderManagementTab: React.FC<{ token: string }> = ({ token }) => {
+  const [founders, setFounders] = useState<FounderItem[]>([]);
+  const [totalFounderFree, setTotalFounderFree] = useState(0);
+  const [founderFreeLimit, setFounderFreeLimit] = useState(200);
+  const [loading, setLoading] = useState(true);
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editName, setEditName] = useState('');
+  const [copiedCode, setCopiedCode] = useState<string | null>(null);
+  const [qrDialog, setQrDialog] = useState<{ open: boolean; code: string; dataUrl: string }>({ open: false, code: '', dataUrl: '' });
+
+  const fetchFounders = useCallback(async () => {
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/admin/founders`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setFounders(data.items);
+        setTotalFounderFree(data.total_founder_free_members);
+        setFounderFreeLimit(data.founder_free_limit);
+      }
+    } catch (e) {
+      console.error('Failed to fetch founders', e);
+    } finally {
+      setLoading(false);
+    }
+  }, [token]);
+
+  useEffect(() => { fetchFounders(); }, [fetchFounders]);
+
+  const handleToggleActive = async (id: number, currentActive: boolean) => {
+    try {
+      await fetch(`${BACKEND_URL}/api/admin/founders/${id}`, {
+        method: 'PUT',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ is_active: !currentActive }),
+      });
+      fetchFounders();
+    } catch (e) {
+      console.error('Failed to toggle founder', e);
+    }
+  };
+
+  const handleSaveName = async (id: number) => {
+    try {
+      await fetch(`${BACKEND_URL}/api/admin/founders/${id}`, {
+        method: 'PUT',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ display_name: editName }),
+      });
+      setEditingId(null);
+      fetchFounders();
+    } catch (e) {
+      console.error('Failed to update founder name', e);
+    }
+  };
+
+  const handleCopyUrl = (code: string, url: string) => {
+    navigator.clipboard.writeText(url);
+    setCopiedCode(code);
+    setTimeout(() => setCopiedCode(null), 2000);
+  };
+
+  const handleShowQr = async (id: number, code: string) => {
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/admin/founders/${id}/qr`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setQrDialog({ open: true, code, dataUrl: data.qr_data_url });
+      }
+    } catch (e) {
+      console.error('Failed to fetch QR', e);
+    }
+  };
+
+  const progressPercent = Math.min((totalFounderFree / founderFreeLimit) * 100, 100);
+
+  if (loading) return <div className="text-center py-8">読み込み中...</div>;
+
+  return (
+    <div className="space-y-6">
+      {/* Quota Progress */}
+      <div className="bg-white rounded-lg border p-6">
+        <h3 className="text-lg font-semibold mb-3">創業メンバー枠</h3>
+        <div className="flex items-center gap-4 mb-2">
+          <div className="flex-1 bg-gray-200 rounded-full h-4 overflow-hidden">
+            <div
+              className={`h-full rounded-full transition-all ${progressPercent >= 90 ? 'bg-red-500' : progressPercent >= 70 ? 'bg-yellow-500' : 'bg-green-500'}`}
+              style={{ width: `${progressPercent}%` }}
+            />
+          </div>
+          <span className="text-sm font-medium whitespace-nowrap">
+            {totalFounderFree} / {founderFreeLimit} 名
+          </span>
+        </div>
+        <p className="text-sm text-gray-500">
+          残り {Math.max(founderFreeLimit - totalFounderFree, 0)} 名の無料枠があります
+        </p>
+      </div>
+
+      {/* Founder List */}
+      <div className="bg-white rounded-lg border">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>コード</TableHead>
+              <TableHead>表示名</TableHead>
+              <TableHead className="text-center">紹介数</TableHead>
+              <TableHead>紹介URL</TableHead>
+              <TableHead className="text-center">QR</TableHead>
+              <TableHead className="text-center">状態</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {founders.map((f) => (
+              <TableRow key={f.id} className={!f.is_active ? 'opacity-50' : ''}>
+                <TableCell className="font-mono font-bold">{f.founder_code}</TableCell>
+                <TableCell>
+                  {editingId === f.id ? (
+                    <div className="flex items-center gap-1">
+                      <Input
+                        value={editName}
+                        onChange={(e) => setEditName(e.target.value)}
+                        className="h-8 w-40"
+                        onKeyDown={(e) => e.key === 'Enter' && handleSaveName(f.id)}
+                      />
+                      <Button size="sm" variant="ghost" onClick={() => handleSaveName(f.id)}>
+                        <Check className="h-4 w-4 text-green-600" />
+                      </Button>
+                      <Button size="sm" variant="ghost" onClick={() => setEditingId(null)}>
+                        <X className="h-4 w-4 text-red-600" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-1">
+                      <span>{f.display_name}</span>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => { setEditingId(f.id); setEditName(f.display_name); }}
+                      >
+                        <Pencil className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  )}
+                </TableCell>
+                <TableCell className="text-center">{f.referral_count}</TableCell>
+                <TableCell>
+                  <div className="flex items-center gap-1">
+                    <span className="text-xs text-gray-500 truncate max-w-[200px]">{f.referral_url}</span>
+                    <Button size="sm" variant="ghost" onClick={() => handleCopyUrl(f.founder_code, f.referral_url)}>
+                      {copiedCode === f.founder_code ? <Check className="h-3 w-3 text-green-600" /> : <Copy className="h-3 w-3" />}
+                    </Button>
+                  </div>
+                </TableCell>
+                <TableCell className="text-center">
+                  <Button size="sm" variant="ghost" onClick={() => handleShowQr(f.id, f.founder_code)}>
+                    <QrCode className="h-4 w-4" />
+                  </Button>
+                </TableCell>
+                <TableCell className="text-center">
+                  <Button
+                    size="sm"
+                    variant={f.is_active ? 'default' : 'outline'}
+                    onClick={() => handleToggleActive(f.id, f.is_active)}
+                    className="text-xs"
+                  >
+                    {f.is_active ? '有効' : '無効'}
+                  </Button>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+
+      {/* QR Code Dialog */}
+      <Dialog open={qrDialog.open} onOpenChange={(open) => setQrDialog((prev) => ({ ...prev, open }))}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>QRコード: {qrDialog.code}</DialogTitle>
+            <DialogDescription>このQRコードをスキャンすると紹介登録ページに遷移します</DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-center py-4">
+            {qrDialog.dataUrl && <img src={qrDialog.dataUrl} alt={`QR Code for ${qrDialog.code}`} className="w-64 h-64" />}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setQrDialog({ open: false, code: '', dataUrl: '' })}>閉じる</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+};
+
+// ===== Referral List Tab =====
+interface ReferralItem {
+  id: number;
+  user_id: number;
+  user_display_name: string;
+  user_email: string;
+  founder_code: string | null;
+  founder_display_name: string | null;
+  ref_code: string;
+  status: string;
+  membership_type: string;
+  registered_at: string;
+}
+
+const ReferralListTab: React.FC<{ token: string }> = ({ token }) => {
+  const [referrals, setReferrals] = useState<ReferralItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [founderCodeFilter, setFounderCodeFilter] = useState('');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const pageSize = 20;
+
+  const fetchReferrals = useCallback(async () => {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams();
+      params.set('page', String(page));
+      params.set('page_size', String(pageSize));
+      if (founderCodeFilter) params.set('founder_code', founderCodeFilter);
+      if (dateFrom) params.set('date_from', dateFrom);
+      if (dateTo) params.set('date_to', dateTo);
+      if (searchQuery) params.set('query', searchQuery);
+
+      const res = await fetch(`${BACKEND_URL}/api/admin/referrals?${params.toString()}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setReferrals(data.items);
+        setTotal(data.total);
+      }
+    } catch (e) {
+      console.error('Failed to fetch referrals', e);
+    } finally {
+      setLoading(false);
+    }
+  }, [token, page, founderCodeFilter, dateFrom, dateTo, searchQuery]);
+
+  useEffect(() => { fetchReferrals(); }, [fetchReferrals]);
+
+  const handleCsvExport = async () => {
+    try {
+      const params = new URLSearchParams();
+      if (founderCodeFilter) params.set('founder_code', founderCodeFilter);
+      if (dateFrom) params.set('date_from', dateFrom);
+      if (dateTo) params.set('date_to', dateTo);
+      if (searchQuery) params.set('query', searchQuery);
+
+      const res = await fetch(`${BACKEND_URL}/api/admin/referrals/csv?${params.toString()}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `referrals_${new Date().toISOString().slice(0, 10)}.csv`;
+        a.click();
+        URL.revokeObjectURL(url);
+      }
+    } catch (e) {
+      console.error('Failed to export CSV', e);
+    }
+  };
+
+  const totalPages = Math.ceil(total / pageSize);
+
+  const statusLabel = (s: string) => {
+    switch (s) {
+      case 'registered': return '登録済み';
+      case 'active': return 'アクティブ';
+      case 'inactive': return '非アクティブ';
+      default: return s;
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      {/* Filters */}
+      <div className="bg-white rounded-lg border p-4">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
+          <div>
+            <label className="text-xs text-gray-500 mb-1 block">紹介コード</label>
+            <Input
+              placeholder="例: Ca01"
+              value={founderCodeFilter}
+              onChange={(e) => { setFounderCodeFilter(e.target.value); setPage(1); }}
+              className="h-9"
+            />
+          </div>
+          <div>
+            <label className="text-xs text-gray-500 mb-1 block">開始日</label>
+            <Input
+              type="date"
+              value={dateFrom}
+              onChange={(e) => { setDateFrom(e.target.value); setPage(1); }}
+              className="h-9"
+            />
+          </div>
+          <div>
+            <label className="text-xs text-gray-500 mb-1 block">終了日</label>
+            <Input
+              type="date"
+              value={dateTo}
+              onChange={(e) => { setDateTo(e.target.value); setPage(1); }}
+              className="h-9"
+            />
+          </div>
+          <div>
+            <label className="text-xs text-gray-500 mb-1 block">検索（名前/メール）</label>
+            <div className="relative">
+              <Search className="absolute left-2 top-2.5 h-4 w-4 text-gray-400" />
+              <Input
+                placeholder="検索..."
+                value={searchQuery}
+                onChange={(e) => { setSearchQuery(e.target.value); setPage(1); }}
+                className="h-9 pl-8"
+              />
+            </div>
+          </div>
+          <div className="flex items-end">
+            <Button size="sm" variant="outline" onClick={handleCsvExport} className="h-9">
+              <Download className="h-4 w-4 mr-1" />
+              CSV
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      {/* Results summary */}
+      <div className="text-sm text-gray-500">
+        全 {total} 件{totalPages > 1 && ` （ページ ${page} / ${totalPages}）`}
+      </div>
+
+      {/* Referral Table */}
+      <div className="bg-white rounded-lg border">
+        {loading ? (
+          <div className="text-center py-8">読み込み中...</div>
+        ) : referrals.length === 0 ? (
+          <div className="text-center py-8 text-gray-500">紹介登録データがありません</div>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>登録日</TableHead>
+                <TableHead>ユーザー名</TableHead>
+                <TableHead>メール</TableHead>
+                <TableHead>紹介コード</TableHead>
+                <TableHead>紹介元</TableHead>
+                <TableHead>会員種別</TableHead>
+                <TableHead>ステータス</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {referrals.map((r) => (
+                <TableRow key={r.id}>
+                  <TableCell className="text-sm">
+                    {r.registered_at ? new Date(r.registered_at).toLocaleDateString('ja-JP') : '-'}
+                  </TableCell>
+                  <TableCell>{r.user_display_name}</TableCell>
+                  <TableCell className="text-sm text-gray-500">{r.user_email}</TableCell>
+                  <TableCell className="font-mono">{r.founder_code || r.ref_code}</TableCell>
+                  <TableCell>{r.founder_display_name || '-'}</TableCell>
+                  <TableCell>
+                    <span className={`text-xs px-2 py-1 rounded-full ${
+                      r.membership_type === 'founder_free'
+                        ? 'bg-purple-100 text-purple-700'
+                        : r.membership_type === 'premium'
+                          ? 'bg-blue-100 text-blue-700'
+                          : 'bg-gray-100 text-gray-700'
+                    }`}>
+                      {r.membership_type === 'founder_free' ? '創業無料' : r.membership_type === 'premium' ? '有料' : r.membership_type}
+                    </span>
+                  </TableCell>
+                  <TableCell>
+                    <span className={`text-xs px-2 py-1 rounded-full ${
+                      r.status === 'active' ? 'bg-green-100 text-green-700' : r.status === 'registered' ? 'bg-yellow-100 text-yellow-700' : 'bg-gray-100 text-gray-700'
+                    }`}>
+                      {statusLabel(r.status)}
+                    </span>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        )}
+      </div>
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex justify-center items-center gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={page <= 1}
+            onClick={() => setPage((p) => p - 1)}
+          >
+            <ChevronLeft className="h-4 w-4" />
+            前へ
+          </Button>
+          <span className="text-sm">{page} / {totalPages}</span>
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={page >= totalPages}
+            onClick={() => setPage((p) => p + 1)}
+          >
+            次へ
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
+      )}
     </div>
   );
 };

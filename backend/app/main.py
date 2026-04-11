@@ -67,6 +67,30 @@ def _seed_admin_user(db):
         print(f"⚠️ Failed seeding admin: {e}")
 
 
+def _seed_founders(db):
+    """Seed 10 initial founder codes (Ca01-Ca10) if not already present."""
+    try:
+        existing = db.execute(text("SELECT COUNT(*) FROM founders")).scalar()
+        if existing >= 10:
+            print("✅ Founders already seeded")
+            return
+        for i in range(1, 11):
+            code = f"Ca{i:02d}"
+            name = f"創業メンバー{i:02d}"
+            db.execute(
+                text(
+                    "INSERT INTO founders (founder_code, display_name, is_active) "
+                    "VALUES (:code, :name, TRUE) ON CONFLICT (founder_code) DO NOTHING"
+                ),
+                {"code": code, "name": name},
+            )
+        db.commit()
+        print("✅ Seeded 10 founder codes (Ca01-Ca10)")
+    except Exception as e:
+        db.rollback()
+        print(f"⚠️ Failed seeding founders: {e}")
+
+
 @app.on_event("startup")
 def run_migrations():
     """Run database migrations on startup"""
@@ -318,8 +342,63 @@ def run_migrations():
             _add_column_if_missing("users", "is_founder", "BOOLEAN DEFAULT FALSE")
             _add_column_if_missing("users", "ref_code", "VARCHAR(20) UNIQUE")
             _add_column_if_missing("users", "referred_by_user_id", "INTEGER REFERENCES users(id)")
+            # Founder referral system columns
+            _add_column_if_missing("users", "subscription_exempt", "BOOLEAN DEFAULT FALSE")
+            _add_column_if_missing("users", "is_founder_free_member", "BOOLEAN DEFAULT FALSE")
+            _add_column_if_missing("users", "referred_by_founder_code", "VARCHAR(20)")
+            _add_column_if_missing("users", "ref_code_used", "VARCHAR(20)")
+            # Update membership_type constraint to include founder_free
+            try:
+                db.execute(text("ALTER TABLE users DROP CONSTRAINT IF EXISTS check_membership_type"))
+                db.execute(text(
+                    "ALTER TABLE users ADD CONSTRAINT check_membership_type "
+                    "CHECK (membership_type IN ('free', 'premium', 'admin', 'founder_free'))"
+                ))
+                db.commit()
+            except Exception:
+                db.rollback()
 
-        # STEP③: Referrals table
+        # Founders table
+        if not _table_exists("founders"):
+            try:
+                db.execute(
+                    text(
+                        """
+                        CREATE TABLE IF NOT EXISTS founders (
+                            id SERIAL PRIMARY KEY,
+                            founder_code VARCHAR(20) UNIQUE NOT NULL,
+                            display_name VARCHAR(100) NOT NULL,
+                            is_active BOOLEAN DEFAULT TRUE,
+                            max_invites INTEGER,
+                            created_at TIMESTAMPTZ DEFAULT NOW(),
+                            updated_at TIMESTAMPTZ DEFAULT NOW()
+                        )
+                        """
+                    )
+                )
+                db.execute(text("CREATE INDEX IF NOT EXISTS ix_founders_founder_code ON founders(founder_code)"))
+                db.commit()
+                print("\u2705 Created table: founders")
+                # Seed initial 10 founder codes
+                _seed_founders(db)
+            except Exception as e:
+                db.rollback()
+                print(f"\u26a0\ufe0f Failed creating table founders: {e}")
+        else:
+            print("\u2705 founders table already exists")
+            # Ensure founders are seeded even if table existed
+            _seed_founders(db)
+
+        # Referrals table - add new columns if exists
+        if _table_exists("referrals"):
+            _add_column_if_missing("referrals", "founder_code", "VARCHAR(20)")
+            _add_column_if_missing("referrals", "status", "VARCHAR(20) DEFAULT 'registered'")
+            _add_column_if_missing("referrals", "registered_at", "TIMESTAMPTZ DEFAULT NOW()")
+            _add_column_if_missing("referrals", "updated_at", "TIMESTAMPTZ DEFAULT NOW()")
+            db.execute(text("CREATE INDEX IF NOT EXISTS ix_referrals_founder_code ON referrals(founder_code)"))
+            db.commit()
+
+        # Referrals table
         if not _table_exists("referrals"):
             try:
                 db.execute(

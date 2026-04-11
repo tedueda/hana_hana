@@ -5,7 +5,7 @@ from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 from app.database import get_db
-from app.models import User, Profile, MatchingProfile
+from app.models import User, Profile, MatchingProfile, Founder, Referral
 from app.schemas import UserCreate, User as UserSchema, Token, PhoneVerificationRequest, PhoneVerificationConfirm, UserRegistrationStep1
 from app.auth import authenticate_user, create_access_token, get_password_hash, get_current_active_user, get_current_admin_user, ACCESS_TOKEN_EXPIRE_MINUTES
 from app.sms_service import sms_service
@@ -350,9 +350,11 @@ async def register_with_phone(user_data: UserRegistrationStep1, db: Session = De
     
     return user
 
+FOUNDER_FREE_LIMIT = int(os.getenv("FOUNDER_FREE_LIMIT", "200"))
+
 @router.post("/register", response_model=UserSchema)
 async def register(user: UserCreate, db: Session = Depends(get_db)):
-    """Email-based user registration"""
+    """Email-based user registration with optional founder referral code"""
     # メールアドレスの重複チェック
     db_user = db.query(User).filter(User.email == user.email).first()
     if db_user:
@@ -360,36 +362,70 @@ async def register(user: UserCreate, db: Session = Depends(get_db)):
             status_code=400,
             detail="Email already registered"
         )
-    
+
     hashed_password = get_password_hash(user.password)
-    
+
+    # Check if ref code is a valid active founder code
+    founder_free = False
+    founder_code_val = None
+    ref_code = user.ref if user.ref else None
+
+    if ref_code:
+        founder = db.query(Founder).filter(
+            Founder.founder_code == ref_code,
+            Founder.is_active == True,
+        ).first()
+        if founder:
+            # Check cap with FOR UPDATE lock to prevent race condition
+            total = db.query(User).filter(
+                User.is_founder_free_member == True,
+                User.deleted_at.is_(None),
+            ).count()
+            if total < FOUNDER_FREE_LIMIT:
+                founder_free = True
+                founder_code_val = founder.founder_code
+
     db_user = User(
         email=user.email,
         password_hash=hashed_password,
         display_name=user.display_name,
         phone_number=user.phone_number,
         residence_country=user.residence_country,
-        membership_type="premium"
+        membership_type="founder_free" if founder_free else "premium",
+        is_founder_free_member=founder_free,
+        subscription_exempt=founder_free,
+        referred_by_founder_code=founder_code_val,
+        ref_code_used=ref_code,
     )
     db.add(db_user)
     db.commit()
     db.refresh(db_user)
-    
+
     db_profile = Profile(
         user_id=db_user.id,
         handle=f"user_{db_user.id}"
     )
     db.add(db_profile)
-    
+
     db_matching_profile = MatchingProfile(
         user_id=db_user.id,
-        display_flag=True,  # デフォルトで公開
+        display_flag=True,
         prefecture='未設定'
     )
     db.add(db_matching_profile)
-    
+
+    # Create referral record if founder code was used
+    if founder_code_val:
+        referral = Referral(
+            user_id=db_user.id,
+            ref_code=founder_code_val,
+            founder_code=founder_code_val,
+            status="registered",
+        )
+        db.add(referral)
+
     db.commit()
-    
+
     return db_user
 
 @router.post("/login", response_model=Token)
@@ -401,7 +437,9 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = 
             detail="Incorrect email or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    if not user.is_legacy_paid:
+    # Skip subscription checks for legacy paid users and founder_free members
+    _skip_checks = user.is_legacy_paid or getattr(user, 'subscription_exempt', False)
+    if not _skip_checks:
         if not getattr(user, 'email_verified', False):
             raise HTTPException(status_code=403, detail="EMAIL_NOT_VERIFIED")
         if getattr(user, 'kyc_status', 'UNVERIFIED') != 'VERIFIED':
@@ -423,7 +461,8 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
             detail="Incorrect email or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    if not user.is_legacy_paid:
+    _skip_checks = user.is_legacy_paid or getattr(user, 'subscription_exempt', False)
+    if not _skip_checks:
         if not getattr(user, 'email_verified', False):
             raise HTTPException(status_code=403, detail="EMAIL_NOT_VERIFIED")
         if getattr(user, 'kyc_status', 'UNVERIFIED') != 'VERIFIED':
@@ -453,8 +492,9 @@ async def read_users_me(
             avatar_url = profile.avatar_url
     
     premium = (
-        current_user.membership_type in ("premium", "admin")
+        current_user.membership_type in ("premium", "admin", "founder_free")
         or current_user.is_legacy_paid is True
+        or getattr(current_user, 'subscription_exempt', False) is True
         or getattr(current_user, 'subscription_status', None) == 'active'
     )
 
