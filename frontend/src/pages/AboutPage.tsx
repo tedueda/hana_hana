@@ -40,15 +40,6 @@ const ROOM_TYPE_LABELS: Record<string, string> = {
 const MATCHING_PAGE_SIZE = 20;
 const SALON_PAGE_SIZE = 20;
 
-function uniqSortedOptions(values: (string | null | undefined)[]): string[] {
-  const set = new Set<string>();
-  for (const v of values) {
-    const s = (v ?? '').trim();
-    if (s) set.add(s);
-  }
-  return [...set].sort((a, b) => a.localeCompare(b, 'ja'));
-}
-
 function matchesIdentityFilter(item: MatchingCardItem, identity: IdentityFilter): boolean {
   if (identity === 'all') return true;
   const id = (item.identity || '').trim();
@@ -67,18 +58,6 @@ function matchesIdentityFilter(item: MatchingCardItem, identity: IdentityFilter)
     idLower !== 'lesbian'
   );
 }
-
-// Mock matching data for UI display
-const MOCK_MATCHING_DATA: MatchingCardItem[] = [
-  { user_id: 1, display_name: 'ユーザー A', identity: 'ゲイ', nationality: 'JP', prefecture: '東京都', age_band: '20代後半', occupation: '会社員', meet_pref: 'パートナー探し' },
-  { user_id: 2, display_name: 'ユーザー B', identity: 'レズ', nationality: 'JP', prefecture: '大阪府', age_band: '30代前半', occupation: '自営業', meet_pref: '友人探し' },
-  { user_id: 3, display_name: 'ユーザー C', identity: 'ゲイ', nationality: 'US', prefecture: '東京都', age_band: '20代前半', occupation: '学生', meet_pref: 'パートナー探し' },
-  { user_id: 4, display_name: 'ユーザー D', identity: 'レズ', nationality: 'KR', prefecture: '福岡県', age_band: '30代後半', occupation: '会社員', meet_pref: '相談相手探し' },
-  { user_id: 5, display_name: 'ユーザー E', identity: 'バイセクシュアル', nationality: 'JP', prefecture: '京都府', age_band: '20代後半', occupation: 'フリーランス', meet_pref: '友人探し' },
-  { user_id: 6, display_name: 'ユーザー F', identity: 'ゲイ', nationality: 'JP', prefecture: '名古屋市', age_band: '40代前半', occupation: '医療関係', meet_pref: 'メンバー募集' },
-  { user_id: 7, display_name: 'ユーザー G', identity: 'トランスジェンダー', nationality: 'TH', prefecture: '東京都', age_band: '20代後半', occupation: '会社員', meet_pref: 'パートナー探し' },
-  { user_id: 8, display_name: 'ユーザー H', identity: 'レズ', nationality: 'JP', prefecture: '横浜市', age_band: '30代前半', occupation: '教育関係', meet_pref: '友人探し' },
-];
 
 const AboutPage: React.FC = () => {
   const { t } = useTranslation();
