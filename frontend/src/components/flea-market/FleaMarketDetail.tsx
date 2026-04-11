@@ -37,7 +37,7 @@ const FleaMarketDetail: React.FC<FleaMarketDetailProps> = ({ item, onBack, onRef
   const { currentLanguage } = useLanguage();
   const { user } = useAuth();
   const token = localStorage.getItem('token');
-  const isPaidUser = user?.membership_type === 'premium' || user?.membership_type === 'admin';
+  const isPaidUser = user?.membership_type === 'premium' || user?.membership_type === 'admin' || user?.membership_type === 'founder_free';
   const isOwner = user?.id === item.user_id;
 
   const [currentImageIndex, setCurrentImageIndex] = useState(0);

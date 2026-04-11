@@ -12,6 +12,7 @@ export function usePremium() {
     if (user.premium === true) return true;
     return user.membership_type === 'premium'
       || user.membership_type === 'admin'
+      || user.membership_type === 'founder_free'
       || user.is_legacy_paid === true
       || user.subscription_status === 'active';
   }, [user]);

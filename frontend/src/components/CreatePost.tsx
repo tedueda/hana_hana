@@ -259,7 +259,7 @@ const CreatePost: React.FC = () => {
   const CategoryIcon = selectedCategory?.icon || PlusCircle;
 
   // Check if user is premium member
-  const isPremiumMember = user?.membership_type === 'premium' || user?.membership_type === 'admin';
+  const isPremiumMember = user?.membership_type === 'premium' || user?.membership_type === 'admin' || user?.membership_type === 'founder_free';
 
   // Show login prompt if not logged in
   if (showLoginPrompt && (!user || isAnonymous)) {

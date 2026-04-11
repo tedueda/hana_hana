@@ -15,10 +15,15 @@ export function useFounderStatus() {
   const fetchStatus = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await resilientFetch('/api/founder/status');
+      const res = await resilientFetch('/api/founder/quota');
       if (res.ok) {
-        const data: FounderStatus = await res.json();
-        setStatus(data);
+        const data = await res.json();
+        setStatus({
+          total_founders: data.total,
+          remaining_slots: data.remaining,
+          limit: data.limit,
+          is_accepting: data.accepting,
+        });
       }
     } catch (e) {
       console.warn('Failed to fetch founder status:', e);

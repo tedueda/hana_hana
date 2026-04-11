@@ -55,13 +55,18 @@ class User(Base):
     payment_status = Column(String(30), server_default="unpaid", nullable=True)
     deleted_at = Column(DateTime(timezone=True), nullable=True)
 
-    # STEP③: Founder & Referral fields
+    # Founder & Referral fields
     is_founder = Column(Boolean, default=False)
     ref_code = Column(String(20), unique=True, nullable=True, index=True)
     referred_by_user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    # Founder referral system fields
+    subscription_exempt = Column(Boolean, default=False)
+    is_founder_free_member = Column(Boolean, default=False)
+    referred_by_founder_code = Column(String(20), nullable=True)
+    ref_code_used = Column(String(20), nullable=True)
 
     __table_args__ = (
-        CheckConstraint("membership_type IN ('free', 'premium', 'admin')", name="check_membership_type"),
+        CheckConstraint("membership_type IN ('free', 'premium', 'admin', 'founder_free')", name="check_membership_type"),
     )
     
     profile = relationship("Profile", back_populates="user", uselist=False)
@@ -1045,7 +1050,21 @@ class BlogPostTranslation(Base):
     blog_post = relationship("BlogPost")
 
 
-# ===== STEP③: Referral tracking =====
+# ===== Founder Members =====
+
+class Founder(Base):
+    __tablename__ = "founders"
+
+    id = Column(Integer, primary_key=True, index=True)
+    founder_code = Column(String(20), unique=True, nullable=False, index=True)
+    display_name = Column(String(100), nullable=False)
+    is_active = Column(Boolean, default=True)
+    max_invites = Column(Integer, nullable=True)  # Future use
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+
+# ===== Referral tracking =====
 
 class Referral(Base):
     __tablename__ = "referrals"
@@ -1053,8 +1072,12 @@ class Referral(Base):
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     ref_code = Column(String(20), nullable=False, index=True)
+    founder_code = Column(String(20), nullable=True, index=True)
+    status = Column(String(20), server_default="registered", nullable=False)
+    registered_at = Column(DateTime(timezone=True), server_default=func.now())
     paid_at = Column(DateTime(timezone=True), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
     user = relationship("User")
 

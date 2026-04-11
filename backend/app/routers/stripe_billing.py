@@ -80,13 +80,13 @@ def get_or_create_stripe_customer(db: Session, user: User) -> str:
 
 
 def is_user_paid_member(user: User) -> bool:
-    """Check if user has paid member access (subscription active OR legacy paid)."""
-    return user.is_legacy_paid or user.subscription_status == "active"
+    """Check if user has paid member access (subscription active OR legacy paid OR founder free)."""
+    return user.is_legacy_paid or user.subscription_status == "active" or user.subscription_exempt
 
 
 def is_user_kyc_verified(user: User) -> bool:
-    """Check if user has completed KYC (verified OR legacy paid)."""
-    return user.is_legacy_paid or user.kyc_status == "VERIFIED"
+    """Check if user has completed KYC (verified OR legacy paid OR founder free)."""
+    return user.is_legacy_paid or user.kyc_status == "VERIFIED" or user.subscription_exempt
 
 
 def can_user_perform_action(user: User) -> bool:
@@ -657,7 +657,8 @@ async def handle_checkout_completed(data: dict, db: Session):
         user.stripe_subscription_id = subscription_id
         user.subscription_status = "active"
         user.is_active = True
-        user.membership_type = "premium"
+        if user.membership_type != "founder_free":
+            user.membership_type = "premium"
         db.commit()
         logger.info(f"Checkout completed for user {user.id}")
 
@@ -674,7 +675,8 @@ async def handle_subscription_created(data: dict, db: Session):
         user.subscription_status = status
         if status == "active":
             user.is_active = True
-            user.membership_type = "premium"
+            if user.membership_type != "founder_free":
+                user.membership_type = "premium"
         db.commit()
         logger.info(f"Subscription created for user {user.id}: {status}")
 
@@ -690,7 +692,8 @@ async def handle_subscription_updated(data: dict, db: Session):
         if status == "active":
             user.is_active = True
         elif status in ["canceled", "unpaid"]:
-            user.is_active = False
+            if not user.is_legacy_paid and not user.subscription_exempt:
+                user.is_active = False
         db.commit()
         logger.info(f"Subscription updated for user {user.id}: {status}")
 
@@ -702,8 +705,8 @@ async def handle_subscription_deleted(data: dict, db: Session):
     user = db.query(User).filter(User.stripe_customer_id == customer_id).first()
     if user:
         user.subscription_status = "canceled"
-        # Don't deactivate legacy paid users
-        if not user.is_legacy_paid:
+        # Don't deactivate legacy paid or founder_free users
+        if not user.is_legacy_paid and not user.subscription_exempt:
             user.is_active = False
         db.commit()
         logger.info(f"Subscription deleted for user {user.id}")

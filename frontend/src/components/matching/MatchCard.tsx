@@ -33,7 +33,7 @@ export function MatchCard({ item }: { item: Item }) {
   const navigate = useNavigate();
   const { user } = useAuth();
   // 有料会員かどうか
-  const isPaidUser = user?.membership_type === 'premium' || user?.membership_type === 'admin';
+  const isPaidUser = user?.membership_type === 'premium' || user?.membership_type === 'admin' || user?.membership_type === 'founder_free';
   const isLoggedIn = !!user;
 
   async function handleLike(e: React.MouseEvent) {

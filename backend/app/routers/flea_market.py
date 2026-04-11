@@ -10,7 +10,7 @@ router = APIRouter(prefix="/api/flea-market", tags=["flea-market"])
 
 
 def require_premium(current_user: models.User = Depends(get_current_active_user)) -> models.User:
-    if current_user.membership_type not in ("premium", "admin"):
+    if current_user.membership_type not in ("premium", "admin", "founder_free"):
         raise HTTPException(status_code=403, detail={"error": "premium_required"})
     return current_user
 
@@ -174,7 +174,7 @@ def create_item(
 ):
     """Create a new flea market item (premium members only)"""
     # Check if user is premium
-    if current_user.membership_type not in ["premium", "admin"]:
+    if current_user.membership_type not in ["premium", "admin", "founder_free"]:
         raise HTTPException(
             status_code=403,
             detail="Premium membership required to post items"
@@ -330,7 +330,7 @@ def create_chat(
 ):
     """Start a chat about an item (premium members only)"""
     # Check if user is premium
-    if current_user.membership_type not in ["premium", "admin"]:
+    if current_user.membership_type not in ["premium", "admin", "founder_free"]:
         raise HTTPException(
             status_code=403,
             detail="Premium membership required to contact sellers"

@@ -58,8 +58,8 @@ def extract_youtube_video_id(url: str) -> Optional[str]:
 
 
 def require_paid_user(current_user: models.User = Depends(get_current_active_user)) -> models.User:
-    """有料会員（premium または admin）のみ許可"""
-    if current_user.membership_type not in ("premium", "admin"):
+    """有料会員（premium, admin, founder_free）のみ許可"""
+    if current_user.membership_type not in ("premium", "admin", "founder_free"):
         raise HTTPException(status_code=403, detail={"error": "premium_required"})
     return current_user
 

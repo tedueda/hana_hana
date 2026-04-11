@@ -30,7 +30,7 @@ const MatchingChatsPage: React.FC = () => {
   const navigate = useNavigate();
   // ログイン状態と有料会員かどうか
   const isLoggedIn = !!user;
-  const isPaidUser = user?.membership_type === 'premium' || user?.membership_type === 'admin';
+  const isPaidUser = user?.membership_type === 'premium' || user?.membership_type === 'admin' || user?.membership_type === 'founder_free';
   const [loading, setLoading] = useState(false);
   const [items, setItems] = useState<ChatItem[]>([]);
   const [requests, setRequests] = useState<ChatRequest[]>([]);

@@ -30,7 +30,7 @@ const MatchingLikesPage: React.FC = () => {
   const { token, user } = useAuth();
   const navigate = useNavigate();
   // 有料会員かどうか
-  const isPaidUser = user?.membership_type === 'premium' || user?.membership_type === 'admin';
+  const isPaidUser = user?.membership_type === 'premium' || user?.membership_type === 'admin' || user?.membership_type === 'founder_free';
   const [loading, setLoading] = useState(false);
   const [items, setItems] = useState<LikeItem[]>([]);
   const [error, setError] = useState<string | null>(null);

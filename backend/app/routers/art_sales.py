@@ -11,7 +11,7 @@ router = APIRouter(prefix="/api/art-sales", tags=["art-sales"])
 
 
 def require_premium(current_user: models.User = Depends(get_current_active_user)) -> models.User:
-    if current_user.membership_type not in ("premium", "admin"):
+    if current_user.membership_type not in ("premium", "admin", "founder_free"):
         raise HTTPException(status_code=403, detail={"error": "premium_required"})
     return current_user
 

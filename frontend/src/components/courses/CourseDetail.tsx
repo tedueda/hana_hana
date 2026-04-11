@@ -63,7 +63,7 @@ const CourseDetail: React.FC<CourseDetailProps> = ({ course, onBack, onEdit, onD
   const { user, token } = useAuth();
   const isOwner = user?.id === course.owner_user_id;
   const isAdmin = user?.membership_type === 'admin';
-  const isPaidUser = user?.membership_type === 'premium' || user?.membership_type === 'admin';
+  const isPaidUser = user?.membership_type === 'premium' || user?.membership_type === 'admin' || user?.membership_type === 'founder_free';
   const canEdit = isOwner || isAdmin;
 
   const [currentImageIndex, setCurrentImageIndex] = useState(0);

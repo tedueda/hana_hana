@@ -19,7 +19,7 @@ from slowapi.util import get_remote_address
 
 from app.database import get_db
 from app.auth import get_current_admin_user, verify_password, create_access_token, get_password_hash
-from app.models import User, BlogPost, BlogPostTranslation, AuditLog
+from app.models import User, BlogPost, BlogPostTranslation, AuditLog, Founder, Referral
 
 logger = logging.getLogger(__name__)
 
@@ -733,3 +733,345 @@ def public_blog_detail(slug: str, lang: str = Query("ja"), db: Session = Depends
         published_at=post.published_at,
         created_at=post.created_at,
     )
+
+
+# ──────────────── Founder Management ────────────────
+
+FOUNDER_FREE_LIMIT = int(os.getenv("FOUNDER_FREE_LIMIT", "200"))
+SITE_URL = os.getenv("SITE_URL", "https://carat-community.com")
+
+
+class FounderItem(BaseModel):
+    id: int
+    founder_code: str
+    display_name: str
+    is_active: bool
+    max_invites: Optional[int] = None
+    referral_count: int = 0
+    referral_url: str = ""
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
+
+
+class FounderListResponse(BaseModel):
+    items: List[FounderItem]
+    total_founder_free_members: int
+    founder_free_limit: int
+
+
+class FounderCreateRequest(BaseModel):
+    founder_code: str
+    display_name: str
+    is_active: bool = True
+    max_invites: Optional[int] = None
+
+
+class FounderUpdateRequest(BaseModel):
+    display_name: Optional[str] = None
+    is_active: Optional[bool] = None
+    max_invites: Optional[int] = None
+
+
+@router.get("/api/admin/founders", response_model=FounderListResponse)
+def list_founders(
+    current_user: User = Depends(get_current_admin_user),
+    db: Session = Depends(get_db),
+):
+    founders = db.query(Founder).order_by(Founder.id).all()
+    total_founder_free = db.query(User).filter(
+        User.is_founder_free_member == True,
+        User.deleted_at.is_(None),
+    ).count()
+
+    items = []
+    for f in founders:
+        count = db.query(Referral).filter(Referral.founder_code == f.founder_code).count()
+        items.append(FounderItem(
+            id=f.id,
+            founder_code=f.founder_code,
+            display_name=f.display_name,
+            is_active=f.is_active,
+            max_invites=f.max_invites,
+            referral_count=count,
+            referral_url=f"{SITE_URL}/register?ref={f.founder_code}",
+            created_at=f.created_at,
+            updated_at=f.updated_at,
+        ))
+    return FounderListResponse(
+        items=items,
+        total_founder_free_members=total_founder_free,
+        founder_free_limit=FOUNDER_FREE_LIMIT,
+    )
+
+
+@router.post("/api/admin/founders")
+def create_founder(
+    body: FounderCreateRequest,
+    request: Request,
+    current_user: User = Depends(get_current_admin_user),
+    db: Session = Depends(get_db),
+):
+    existing = db.query(Founder).filter(Founder.founder_code == body.founder_code).first()
+    if existing:
+        raise HTTPException(status_code=400, detail="Founder code already exists")
+    founder = Founder(
+        founder_code=body.founder_code,
+        display_name=body.display_name,
+        is_active=body.is_active,
+        max_invites=body.max_invites,
+    )
+    db.add(founder)
+    db.commit()
+    db.refresh(founder)
+    _write_audit(db, current_user.id, "FOUNDER_CREATE", request,
+                 target_type="founder", target_id=str(founder.id),
+                 metadata={"founder_code": body.founder_code})
+    return {"ok": True, "id": founder.id, "founder_code": founder.founder_code}
+
+
+@router.put("/api/admin/founders/{founder_id}")
+def update_founder(
+    founder_id: int,
+    body: FounderUpdateRequest,
+    request: Request,
+    current_user: User = Depends(get_current_admin_user),
+    db: Session = Depends(get_db),
+):
+    founder = db.query(Founder).filter(Founder.id == founder_id).first()
+    if not founder:
+        raise HTTPException(status_code=404, detail="Founder not found")
+    updates = {}
+    if body.display_name is not None:
+        founder.display_name = body.display_name
+        updates["display_name"] = body.display_name
+    if body.is_active is not None:
+        founder.is_active = body.is_active
+        updates["is_active"] = body.is_active
+    if body.max_invites is not None:
+        founder.max_invites = body.max_invites
+        updates["max_invites"] = body.max_invites
+    db.commit()
+    db.refresh(founder)
+    _write_audit(db, current_user.id, "FOUNDER_UPDATE", request,
+                 target_type="founder", target_id=str(founder.id), metadata=updates)
+    return {"ok": True, "founder_code": founder.founder_code}
+
+
+@router.get("/api/admin/founders/{founder_id}/qr")
+def get_founder_qr(
+    founder_id: int,
+    current_user: User = Depends(get_current_admin_user),
+    db: Session = Depends(get_db),
+):
+    founder = db.query(Founder).filter(Founder.id == founder_id).first()
+    if not founder:
+        raise HTTPException(status_code=404, detail="Founder not found")
+    url = f"{SITE_URL}/register?ref={founder.founder_code}"
+    try:
+        import qrcode
+        qr = qrcode.QRCode(version=1, box_size=10, border=4)
+        qr.add_data(url)
+        qr.make(fit=True)
+        img = qr.make_image(fill_color="black", back_color="white")
+        buf = io.BytesIO()
+        img.save(buf, format="PNG")
+        buf.seek(0)
+        import base64
+        b64 = base64.b64encode(buf.read()).decode()
+        return {"url": url, "qr_data_url": f"data:image/png;base64,{b64}"}
+    except ImportError:
+        return {"url": url, "qr_data_url": None, "error": "qrcode library not installed"}
+
+
+# ──────────────── Referral List ────────────────
+
+class ReferralListItem(BaseModel):
+    id: int
+    user_id: int
+    user_display_name: str = ""
+    user_email: str = ""
+    founder_code: Optional[str] = None
+    founder_display_name: Optional[str] = None
+    ref_code: str = ""
+    membership_type: str = ""
+    status: str = "registered"
+    registered_at: Optional[datetime] = None
+    created_at: Optional[datetime] = None
+
+
+class ReferralListResponse(BaseModel):
+    items: List[ReferralListItem]
+    total: int
+    page: int
+    page_size: int
+
+
+@router.get("/api/admin/referrals", response_model=ReferralListResponse)
+def list_referrals(
+    founder_code: str = "",
+    date_from: str = "",
+    date_to: str = "",
+    query: str = "",
+    page: int = 1,
+    page_size: int = 20,
+    current_user: User = Depends(get_current_admin_user),
+    db: Session = Depends(get_db),
+):
+    q = db.query(Referral).join(User, Referral.user_id == User.id)
+    if founder_code:
+        q = q.filter(Referral.founder_code == founder_code)
+    if date_from:
+        try:
+            dt = datetime.fromisoformat(date_from)
+            q = q.filter(Referral.created_at >= dt)
+        except ValueError:
+            pass
+    if date_to:
+        try:
+            dt = datetime.fromisoformat(date_to)
+            q = q.filter(Referral.created_at <= dt)
+        except ValueError:
+            pass
+    if query:
+        pattern = f"%{query}%"
+        q = q.filter(or_(User.display_name.ilike(pattern), User.email.ilike(pattern)))
+    total = q.count()
+    refs = q.order_by(Referral.created_at.desc()).offset((page - 1) * page_size).limit(page_size).all()
+
+    # Cache founder display names
+    founder_names: dict[str, str] = {}
+    for f in db.query(Founder).all():
+        founder_names[f.founder_code] = f.display_name
+
+    items = []
+    for r in refs:
+        user = r.user
+        items.append(ReferralListItem(
+            id=r.id,
+            user_id=r.user_id,
+            user_display_name=user.display_name if user else "",
+            user_email=user.email if user else "",
+            founder_code=r.founder_code,
+            founder_display_name=founder_names.get(r.founder_code or "", None),
+            ref_code=r.ref_code,
+            membership_type=user.membership_type if user else "",
+            status=r.status or "registered",
+            registered_at=r.registered_at,
+            created_at=r.created_at,
+        ))
+    return ReferralListResponse(items=items, total=total, page=page, page_size=page_size)
+
+
+@router.get("/api/admin/referrals/csv")
+def export_referrals_csv(
+    founder_code: str = "",
+    date_from: str = "",
+    date_to: str = "",
+    query: str = "",
+    current_user: User = Depends(get_current_admin_user),
+    db: Session = Depends(get_db),
+):
+    q = db.query(Referral).join(User, Referral.user_id == User.id)
+    if founder_code:
+        q = q.filter(Referral.founder_code == founder_code)
+    if date_from:
+        try:
+            dt = datetime.fromisoformat(date_from)
+            q = q.filter(Referral.created_at >= dt)
+        except ValueError:
+            pass
+    if date_to:
+        try:
+            dt = datetime.fromisoformat(date_to)
+            q = q.filter(Referral.created_at <= dt)
+        except ValueError:
+            pass
+    if query:
+        pattern = f"%{query}%"
+        q = q.filter(or_(User.display_name.ilike(pattern), User.email.ilike(pattern)))
+    refs = q.order_by(Referral.created_at.desc()).all()
+
+    founder_names: dict[str, str] = {}
+    for f in db.query(Founder).all():
+        founder_names[f.founder_code] = f.display_name
+
+    import csv
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(["ID", "登録日", "表示名", "メール", "紹介コード", "紹介元表示名", "会員種別", "ステータス"])
+    for r in refs:
+        user = r.user
+        writer.writerow([
+            r.id,
+            r.created_at.strftime("%Y-%m-%d %H:%M") if r.created_at else "",
+            user.display_name if user else "",
+            user.email if user else "",
+            r.founder_code or "",
+            founder_names.get(r.founder_code or "", ""),
+            user.membership_type if user else "",
+            r.status or "registered",
+        ])
+
+    from starlette.responses import StreamingResponse
+    output.seek(0)
+    return StreamingResponse(
+        iter([output.getvalue()]),
+        media_type="text/csv",
+        headers={"Content-Disposition": "attachment; filename=referrals.csv"},
+    )
+
+
+# ──────────────── Referral Validation (Public) ────────────────
+
+@router.get("/api/referrals/validate")
+def validate_referral(ref: str = "", db: Session = Depends(get_db)):
+    """Validate a referral code. Returns founder info and availability."""
+    if not ref:
+        return {"valid": False, "reason": "no_code"}
+
+    founder = db.query(Founder).filter(Founder.founder_code == ref).first()
+    if not founder:
+        return {"valid": False, "reason": "invalid_code"}
+    if not founder.is_active:
+        return {"valid": False, "reason": "inactive_code"}
+
+    total_founder_free = db.query(User).filter(
+        User.is_founder_free_member == True,
+        User.deleted_at.is_(None),
+    ).count()
+
+    if total_founder_free >= FOUNDER_FREE_LIMIT:
+        return {
+            "valid": False,
+            "reason": "cap_reached",
+            "founder_display_name": founder.display_name,
+            "total": total_founder_free,
+            "limit": FOUNDER_FREE_LIMIT,
+        }
+
+    return {
+        "valid": True,
+        "founder_code": founder.founder_code,
+        "founder_display_name": founder.display_name,
+        "remaining": FOUNDER_FREE_LIMIT - total_founder_free,
+        "total": total_founder_free,
+        "limit": FOUNDER_FREE_LIMIT,
+    }
+
+
+# ──────────────── Founder Status (Public) ────────────────
+
+@router.get("/api/founder/quota")
+def founder_quota(db: Session = Depends(get_db)):
+    """Public endpoint showing founder free member quota."""
+    total_founder_free = db.query(User).filter(
+        User.is_founder_free_member == True,
+        User.deleted_at.is_(None),
+    ).count()
+    return {
+        "total": total_founder_free,
+        "limit": FOUNDER_FREE_LIMIT,
+        "remaining": max(0, FOUNDER_FREE_LIMIT - total_founder_free),
+        "cap_reached": total_founder_free >= FOUNDER_FREE_LIMIT,
+        "accepting": total_founder_free < FOUNDER_FREE_LIMIT,
+    }
