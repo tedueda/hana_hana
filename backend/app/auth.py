@@ -87,7 +87,7 @@ async def get_current_active_user(current_user: User = Depends(get_current_user)
     return current_user
 
 async def get_current_premium_user(current_user: User = Depends(get_current_active_user)):
-    if current_user.membership_type not in ("premium", "admin"):
+    if current_user.membership_type not in ("premium", "admin", "founder_free"):
         raise HTTPException(status_code=403, detail="Premium membership required")
     return current_user
 
@@ -101,13 +101,13 @@ async def get_current_admin_user(current_user: User = Depends(get_current_active
 
 
 def is_user_paid_member(user: User) -> bool:
-    """Check if user has paid member access (subscription active OR legacy paid)."""
-    return user.is_legacy_paid or user.subscription_status == "active"
+    """Check if user has paid member access (subscription active OR legacy paid OR founder free)."""
+    return user.is_legacy_paid or user.subscription_status == "active" or user.subscription_exempt
 
 
 def is_user_kyc_verified(user: User) -> bool:
-    """Check if user has completed KYC (verified OR legacy paid)."""
-    return user.is_legacy_paid or user.kyc_status == "VERIFIED"
+    """Check if user has completed KYC (verified OR legacy paid OR founder free)."""
+    return user.is_legacy_paid or user.kyc_status == "VERIFIED" or user.subscription_exempt
 
 
 def can_user_perform_action(user: User) -> bool:
