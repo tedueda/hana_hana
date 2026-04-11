@@ -395,8 +395,12 @@ def run_migrations():
             _add_column_if_missing("referrals", "status", "VARCHAR(20) DEFAULT 'registered'")
             _add_column_if_missing("referrals", "registered_at", "TIMESTAMPTZ DEFAULT NOW()")
             _add_column_if_missing("referrals", "updated_at", "TIMESTAMPTZ DEFAULT NOW()")
-            db.execute(text("CREATE INDEX IF NOT EXISTS ix_referrals_founder_code ON referrals(founder_code)"))
-            db.commit()
+            try:
+                db.execute(text("CREATE INDEX IF NOT EXISTS ix_referrals_founder_code ON referrals(founder_code)"))
+                db.commit()
+            except Exception as e:
+                db.rollback()
+                print(f"⚠️ Failed creating index ix_referrals_founder_code: {e}")
 
         # Referrals table
         if not _table_exists("referrals"):

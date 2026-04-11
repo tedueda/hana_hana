@@ -965,12 +965,30 @@ def list_referrals(
 @router.get("/api/admin/referrals/csv")
 def export_referrals_csv(
     founder_code: str = "",
+    date_from: str = "",
+    date_to: str = "",
+    query: str = "",
     current_user: User = Depends(get_current_admin_user),
     db: Session = Depends(get_db),
 ):
     q = db.query(Referral).join(User, Referral.user_id == User.id)
     if founder_code:
         q = q.filter(Referral.founder_code == founder_code)
+    if date_from:
+        try:
+            dt = datetime.fromisoformat(date_from)
+            q = q.filter(Referral.created_at >= dt)
+        except ValueError:
+            pass
+    if date_to:
+        try:
+            dt = datetime.fromisoformat(date_to)
+            q = q.filter(Referral.created_at <= dt)
+        except ValueError:
+            pass
+    if query:
+        pattern = f"%{query}%"
+        q = q.filter(or_(User.display_name.ilike(pattern), User.email.ilike(pattern)))
     refs = q.order_by(Referral.created_at.desc()).all()
 
     founder_names: dict[str, str] = {}
