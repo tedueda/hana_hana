@@ -35,7 +35,7 @@ def require_premium(user: User):
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="ログインが必要です"
         )
-    if user.membership_type not in ["premium", "admin"]:
+    if user.membership_type not in ["premium", "admin", "founder_free"]:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="この機能は有料会員限定です"

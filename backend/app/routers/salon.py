@@ -21,7 +21,7 @@ VALID_IDENTITIES = [
 
 
 def require_premium(current_user: User = Depends(get_current_active_user)) -> User:
-    if current_user.membership_type != "premium" and current_user.membership_type != "admin":
+    if current_user.membership_type not in ("premium", "admin", "founder_free"):
         raise HTTPException(status_code=403, detail={"error": "premium_required", "message": "プレミアム会員のみ利用可能です"})
     return current_user
 

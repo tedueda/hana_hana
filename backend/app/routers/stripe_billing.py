@@ -80,13 +80,13 @@ def get_or_create_stripe_customer(db: Session, user: User) -> str:
 
 
 def is_user_paid_member(user: User) -> bool:
-    """Check if user has paid member access (subscription active OR legacy paid)."""
-    return user.is_legacy_paid or user.subscription_status == "active"
+    """Check if user has paid member access (subscription active OR legacy paid OR founder free)."""
+    return user.is_legacy_paid or user.subscription_status == "active" or user.subscription_exempt
 
 
 def is_user_kyc_verified(user: User) -> bool:
-    """Check if user has completed KYC (verified OR legacy paid)."""
-    return user.is_legacy_paid or user.kyc_status == "VERIFIED"
+    """Check if user has completed KYC (verified OR legacy paid OR founder free)."""
+    return user.is_legacy_paid or user.kyc_status == "VERIFIED" or user.subscription_exempt
 
 
 def can_user_perform_action(user: User) -> bool:
