@@ -63,7 +63,6 @@ import { AudioProvider } from './contexts/AudioContext';
 import GlobalAudioPlayer from './components/GlobalAudioPlayer';
 import EmailVerificationPendingPage from './pages/EmailVerificationPendingPage';
 import VerifyEmailPage from './pages/VerifyEmailPage';
-import FounderBanner from './components/FounderBanner';
 import ReferralTracker from './components/ReferralTracker';
 import LeaderDashboardPage from './pages/LeaderDashboardPage';
 
@@ -105,7 +104,6 @@ function AppContent() {
   const isHome = location.pathname === '/' || location.pathname === '/feed';
   return (
     <div className="min-h-screen bg-white">
-      <FounderBanner />
       <Header />
       <ScrollToTop />
       <GlobalAudioPlayer />
