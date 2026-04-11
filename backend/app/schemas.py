@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, field_validator
 from typing import Optional, List
 from datetime import datetime, date
 from enum import Enum
@@ -24,6 +24,13 @@ class UserCreate(UserBase):
     phone_number: Optional[str] = None
     residence_country: Optional[str] = None
     ref: Optional[str] = None
+
+    @field_validator('ref')
+    @classmethod
+    def ref_max_length(cls, v: Optional[str]) -> Optional[str]:
+        if v is not None and len(v) > 20:
+            raise ValueError('ref code must be 20 characters or fewer')
+        return v
 
 class UserUpdate(BaseModel):
     display_name: Optional[str] = None

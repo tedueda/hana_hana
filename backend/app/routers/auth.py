@@ -399,8 +399,7 @@ async def register(user: UserCreate, db: Session = Depends(get_db)):
         ref_code_used=ref_code,
     )
     db.add(db_user)
-    db.commit()
-    db.refresh(db_user)
+    db.flush()
 
     db_profile = Profile(
         user_id=db_user.id,
@@ -426,6 +425,7 @@ async def register(user: UserCreate, db: Session = Depends(get_db)):
         db.add(referral)
 
     db.commit()
+    db.refresh(db_user)
 
     return db_user
 
