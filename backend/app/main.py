@@ -408,14 +408,19 @@ def run_migrations():
                             id SERIAL PRIMARY KEY,
                             user_id INTEGER NOT NULL REFERENCES users(id),
                             ref_code VARCHAR(20) NOT NULL,
+                            founder_code VARCHAR(20),
+                            status VARCHAR(20) DEFAULT 'registered',
+                            registered_at TIMESTAMPTZ DEFAULT NOW(),
                             paid_at TIMESTAMPTZ,
-                            created_at TIMESTAMPTZ DEFAULT NOW()
+                            created_at TIMESTAMPTZ DEFAULT NOW(),
+                            updated_at TIMESTAMPTZ DEFAULT NOW()
                         )
                         """
                     )
                 )
                 db.execute(text("CREATE INDEX IF NOT EXISTS ix_referrals_user_id ON referrals(user_id)"))
                 db.execute(text("CREATE INDEX IF NOT EXISTS ix_referrals_ref_code ON referrals(ref_code)"))
+                db.execute(text("CREATE INDEX IF NOT EXISTS ix_referrals_founder_code ON referrals(founder_code)"))
                 db.commit()
                 print("\u2705 Created table: referrals")
             except Exception as e:

@@ -376,7 +376,8 @@ async def register(user: UserCreate, db: Session = Depends(get_db)):
             Founder.is_active == True,
         ).first()
         if founder:
-            # Check cap with FOR UPDATE lock to prevent race condition
+            # Use advisory lock to prevent race condition on cap check
+            db.execute(text("SELECT pg_advisory_xact_lock(202504)"))
             total = db.query(User).filter(
                 User.is_founder_free_member == True,
                 User.deleted_at.is_(None),

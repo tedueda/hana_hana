@@ -737,7 +737,7 @@ def public_blog_detail(slug: str, lang: str = Query("ja"), db: Session = Depends
 
 # ──────────────── Founder Management ────────────────
 
-FOUNDER_FREE_LIMIT = 200
+FOUNDER_FREE_LIMIT = int(os.getenv("FOUNDER_FREE_LIMIT", "200"))
 SITE_URL = os.getenv("SITE_URL", "https://carat-community.com")
 
 
