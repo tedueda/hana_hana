@@ -657,7 +657,8 @@ async def handle_checkout_completed(data: dict, db: Session):
         user.stripe_subscription_id = subscription_id
         user.subscription_status = "active"
         user.is_active = True
-        user.membership_type = "premium"
+        if user.membership_type != "founder_free":
+            user.membership_type = "premium"
         db.commit()
         logger.info(f"Checkout completed for user {user.id}")
 
@@ -674,7 +675,8 @@ async def handle_subscription_created(data: dict, db: Session):
         user.subscription_status = status
         if status == "active":
             user.is_active = True
-            user.membership_type = "premium"
+            if user.membership_type != "founder_free":
+                user.membership_type = "premium"
         db.commit()
         logger.info(f"Subscription created for user {user.id}: {status}")
 
