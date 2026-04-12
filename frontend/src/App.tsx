@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { API_URL } from '@/config';
-import { BrowserRouter as Router, Routes, Route, Navigate, useParams, useLocation } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useParams, useLocation, useSearchParams } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { LanguageProvider } from './contexts/LanguageContext';
 import Header from './components/Header';
@@ -89,6 +89,22 @@ const PublicRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 const RequestsRedirect: React.FC = () => {
   const { requestId } = useParams<{ requestId: string }>();
   return <Navigate to={`/matching/chats/requests/${requestId}`} replace />;
+};
+
+/**
+ * HomeRedirect: handles / route.
+ * If ?ref= param exists and user is not logged in, redirect to /subscribe?ref=...
+ * Otherwise redirect to /feed as usual.
+ */
+const HomeRedirect: React.FC = () => {
+  const { user } = useAuth();
+  const [searchParams] = useSearchParams();
+  const ref = searchParams.get('ref');
+
+  if (ref && !user) {
+    return <Navigate to={`/subscribe?ref=${encodeURIComponent(ref)}`} replace />;
+  }
+  return <Navigate to="/feed" replace />;
 };
 
 function ScrollToTop() {
@@ -307,7 +323,7 @@ function AppContent() {
           <Route path="/board/tourism" element={<Navigate to="/category/tourism" replace />} />
           {/* Funding redirect to category */}
           <Route path="/funding" element={<Navigate to="/category/funding" replace />} />
-          <Route path="/" element={<Navigate to="/feed" />} />
+          <Route path="/" element={<HomeRedirect />} />
         </Routes>
       </main>
       <Footer />

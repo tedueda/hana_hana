@@ -16,16 +16,12 @@ const ReferralTracker: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // On mount: capture ref code from URL → cookie, redirect to register if not logged in
+  // On mount: capture ref code from URL → cookie
+  // Note: redirect from /?ref=... to /subscribe?ref=... is handled by HomeRedirect in App.tsx
   useEffect(() => {
-    const refCode = extractRefCodeFromURL();
+    extractRefCodeFromURL();
     initReferralTracking();
-
-    // If ref code is in URL and user is not logged in, redirect to register page
-    if (refCode && !user && location.pathname === '/') {
-      navigate(`/subscribe?ref=${encodeURIComponent(refCode)}`, { replace: true });
-    }
-  }, [user, navigate, location.pathname]);
+  }, [location.pathname]);
 
   // After login: apply saved ref code to account (one-time)
   useEffect(() => {
