@@ -33,8 +33,14 @@ const VerifyEmailPage: React.FC = () => {
           localStorage.setItem('token', data.access_token);
           localStorage.setItem('user', JSON.stringify(data.user));
           setStatus('success');
+          // Founder free members skip KYC, go directly to home
+          const isFounderFree = data.user?.is_founder_free_member || data.user?.subscription_exempt;
           setTimeout(() => {
-            navigate('/kyc-verification');
+            if (isFounderFree) {
+              navigate('/');
+            } else {
+              navigate('/kyc-verification');
+            }
           }, 2000);
         } else if (response.ok && data.status === 'already_verified') {
           setStatus('already_verified');
@@ -77,7 +83,7 @@ const VerifyEmailPage: React.FC = () => {
               {t('verify_email.success', 'メールアドレスが確認されました！')}
             </h1>
             <p className="text-gray-600">
-              {t('verify_email.redirecting', 'KYC本人確認ページへ移動します...')}
+              {t('verify_email.redirecting', 'ホームページへ移動します...')}
             </p>
           </>
         )}
