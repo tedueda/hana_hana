@@ -3,17 +3,16 @@
  * Invisible component that runs on app mount to:
  * 1. Check URL for ?ref=XXXX parameter
  * 2. Save referral code to cookie (30 days)
- * 3. Redirect to /subscribe?ref=XXXX if not logged in
- * 4. Apply referral code to user account after login
+ * 3. Apply referral code to user account after login
+ * Note: Redirect from /?ref=XXXX to /subscribe?ref=XXXX is handled by HomeRedirect in App.tsx
  */
 import { useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import { useAuth, resilientFetch } from '../contexts/AuthContext';
 import { initReferralTracking, getRefCodeFromCookie, extractRefCodeFromURL } from '../utils/referral';
 
 const ReferralTracker: React.FC = () => {
   const { user, token } = useAuth();
-  const navigate = useNavigate();
   const location = useLocation();
 
   // On mount: capture ref code from URL → cookie

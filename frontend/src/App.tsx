@@ -97,9 +97,13 @@ const RequestsRedirect: React.FC = () => {
  * Otherwise redirect to /feed as usual.
  */
 const HomeRedirect: React.FC = () => {
-  const { user } = useAuth();
+  const { user, isLoading } = useAuth();
   const [searchParams] = useSearchParams();
   const ref = searchParams.get('ref');
+
+  if (isLoading) {
+    return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
+  }
 
   if (ref && !user) {
     return <Navigate to={`/subscribe?ref=${encodeURIComponent(ref)}`} replace />;
