@@ -58,7 +58,7 @@ const EmailVerificationPendingPage: React.FC = () => {
         </p>
         <p className="text-black font-semibold mb-6">{email}</p>
         <p className="text-gray-500 text-sm mb-8">
-          {t('email_verification.instruction', 'メール内のリンクをクリックして、メールアドレスを確認してください。確認後、KYC本人確認に進めます。')}
+          {t('email_verification.instruction', 'メール内のリンクをクリックして、メールアドレスを確認してください。')}
         </p>
 
         {resent ? (

@@ -4,6 +4,7 @@ import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { useLanguage } from '../contexts/LanguageContext';
 import { resilientFetch } from '../contexts/AuthContext';
 import { Eye, EyeOff } from 'lucide-react';
+import { getRefCodeFromCookie } from '../utils/referral';
 
 const COUNTRIES = [
   { code: 'JP', name: 'Japan' },
@@ -128,6 +129,11 @@ const SubscribePage: React.FC = () => {
     setLoading(true);
     
     try {
+      // Get ref code from URL param or cookie
+      const refFromUrl = searchParams.get('ref');
+      const refFromCookie = getRefCodeFromCookie();
+      const refCode = refFromUrl || refFromCookie || null;
+
       const response = await resilientFetch('/api/stripe/register-only', {
         method: 'POST',
         headers: {
@@ -140,7 +146,8 @@ const SubscribePage: React.FC = () => {
           password: formData.password,
           preferred_lang: formData.preferred_lang,
           residence_country: formData.residence_country,
-          terms_accepted: formData.terms_accepted
+          terms_accepted: formData.terms_accepted,
+          ref: refCode
         })
       });
       
@@ -152,11 +159,16 @@ const SubscribePage: React.FC = () => {
       }
 
       if (data.status === 'email_verification_required') {
-        navigate('/email-verification-pending', { state: { email: data.email } });
+        navigate('/email-verification-pending', { state: { email: data.email, ref: refCode } });
       } else if (data.access_token) {
         localStorage.setItem('token', data.access_token);
         localStorage.setItem('user', JSON.stringify(data.user));
-        navigate('/kyc-verification');
+        // Founder free members skip KYC, go directly to home
+        if (data.user?.is_founder_free_member || data.user?.subscription_exempt) {
+          navigate('/');
+        } else {
+          navigate('/kyc-verification');
+        }
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : t('subscribe.error.unknown'));

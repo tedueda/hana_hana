@@ -14,8 +14,9 @@ from sqlalchemy.orm import Session
 from pydantic import BaseModel, EmailStr
 
 from app.database import get_db
-from app.models import User, Profile, MatchingProfile
+from app.models import User, Profile, MatchingProfile, Founder, Referral
 from app.auth import get_password_hash, get_current_active_user, create_access_token
+from sqlalchemy import text
 
 logger = logging.getLogger(__name__)
 
@@ -42,6 +43,7 @@ class CreateCheckoutSessionRequest(BaseModel):
     preferred_lang: str = "ja"
     residence_country: str = "JP"
     terms_accepted: bool = True
+    ref: Optional[str] = None
 
 
 class CreateIdentitySessionRequest(BaseModel):
@@ -115,6 +117,9 @@ def _send_verification_email(to_email: str, display_name: str, token: str) -> No
     _send_email(to_email, subject, body)
 
 
+FOUNDER_FREE_LIMIT = int(os.getenv("FOUNDER_FREE_LIMIT", "200"))
+
+
 @router.post("/register-only")
 async def register_only(
     request: CreateCheckoutSessionRequest,
@@ -122,7 +127,9 @@ async def register_only(
 ):
     """
     Register a new user and send email verification.
-    Flow: Register -> Email Verify -> KYC -> Payment.
+    Supports founder referral codes via `ref` field.
+    Flow: Register -> Email Verify -> KYC -> Payment (normal)
+    Flow: Register -> Email Verify -> Home (founder free, skip KYC)
     """
     existing_user = db.query(User).filter(User.email == request.email).first()
 
@@ -130,6 +137,26 @@ async def register_only(
         existing_phone = db.query(User).filter(User.phone_number == request.phone_number).first()
         if existing_phone and (not existing_user or existing_phone.id != existing_user.id):
             raise HTTPException(status_code=400, detail="この携帯番号は既に使用されています")
+
+    # Check if ref code is a valid active founder code
+    founder_free = False
+    founder_code_val = None
+    ref_code = request.ref if request.ref else None
+
+    if ref_code:
+        founder = db.query(Founder).filter(
+            Founder.founder_code == ref_code,
+            Founder.is_active == True,
+        ).first()
+        if founder:
+            db.execute(text("SELECT pg_advisory_xact_lock(202504)"))
+            total = db.query(User).filter(
+                User.is_founder_free_member == True,
+                User.deleted_at.is_(None),
+            ).count()
+            if total < FOUNDER_FREE_LIMIT:
+                founder_free = True
+                founder_code_val = founder.founder_code
 
     if existing_user:
         if existing_user.subscription_status == "active":
@@ -142,6 +169,20 @@ async def register_only(
         existing_user.residence_country = request.residence_country
         existing_user.terms_accepted_at = datetime.utcnow()
         existing_user.terms_version = "1.0"
+        if founder_free:
+            existing_user.membership_type = "founder_free"
+            existing_user.is_founder_free_member = True
+            existing_user.subscription_exempt = True
+            existing_user.referred_by_founder_code = founder_code_val
+            existing_user.ref_code_used = founder_code_val
+            # Create referral record for tracking
+            referral = Referral(
+                user_id=existing_user.id,
+                ref_code=founder_code_val,
+                founder_code=founder_code_val,
+                status="registered",
+            )
+            db.add(referral)
         db.commit()
         user = existing_user
     else:
@@ -150,18 +191,21 @@ async def register_only(
             password_hash=get_password_hash(request.password),
             display_name=request.display_name,
             phone_number=request.phone_number or None,
-            membership_type="premium",
+            membership_type="founder_free" if founder_free else "premium",
             is_active=True,
             preferred_lang=request.preferred_lang,
             residence_country=request.residence_country,
             terms_accepted_at=datetime.utcnow(),
             terms_version="1.0",
             kyc_status="UNVERIFIED",
-            email_verified=False
+            email_verified=False,
+            is_founder_free_member=founder_free,
+            subscription_exempt=founder_free,
+            referred_by_founder_code=founder_code_val,
+            ref_code_used=founder_code_val,
         )
         db.add(user)
-        db.commit()
-        db.refresh(user)
+        db.flush()
 
         profile = Profile(
             user_id=user.id,
@@ -176,9 +220,23 @@ async def register_only(
             prefecture="未設定"
         )
         db.add(matching_profile)
-        db.commit()
 
-    get_or_create_stripe_customer(db, user)
+        # Create referral record if founder code was used
+        if founder_code_val:
+            referral = Referral(
+                user_id=user.id,
+                ref_code=founder_code_val,
+                founder_code=founder_code_val,
+                status="registered",
+            )
+            db.add(referral)
+
+        db.commit()
+        db.refresh(user)
+
+    # Only create Stripe customer for non-founder-free members
+    if not founder_free:
+        get_or_create_stripe_customer(db, user)
 
     token = secrets.token_urlsafe(32)
     token_hash = hashlib.sha256(token.encode("utf-8")).hexdigest()
@@ -245,7 +303,9 @@ async def verify_email(
         "user": {
             "id": user.id,
             "email": user.email,
-            "display_name": user.display_name
+            "display_name": user.display_name,
+            "is_founder_free_member": bool(user.is_founder_free_member),
+            "subscription_exempt": bool(user.subscription_exempt),
         }
     }
 
