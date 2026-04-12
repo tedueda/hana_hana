@@ -106,7 +106,7 @@ const HomeRedirect: React.FC = () => {
   }
 
   if (ref && !user) {
-    return <Navigate to={`/subscribe?ref=${encodeURIComponent(ref)}`} replace />;
+    return <Navigate to={`/register?ref=${encodeURIComponent(ref)}`} replace />;
   }
   return <Navigate to="/feed" replace />;
 };
@@ -151,8 +151,9 @@ function AppContent() {
           <Route path="/about/tokushoho" element={<TokushohoPage />} />
           <Route path="/privacy" element={<PrivacyPolicyPage />} />
           <Route path="/contact" element={<ContactPage />} />
-          {/* Subscription routes */}
+          {/* Subscription / Registration routes */}
           <Route path="/subscribe" element={<SubscribePage />} />
+          <Route path="/register" element={<SubscribePage />} />
           <Route path="/subscribe/success" element={<SubscribeSuccessPage />} />
           <Route path="/email-verification-pending" element={<EmailVerificationPendingPage />} />
           <Route path="/verify-email" element={<VerifyEmailPage />} />
