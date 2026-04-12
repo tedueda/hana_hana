@@ -276,6 +276,27 @@ alembic upgrade head
 
 ---
 
+## 未解決の課題
+
+### 創業メンバー紹介登録時のKYC認証エラー（2026-04-12）
+
+**優先度**: 高  
+**担当**: Devin
+
+**問題の概要:**
+- 創業メンバーコード（Ca01～Ca10）を使用して新規登録した際、メール認証後にKYC認証ページでエラーが発生
+- 創業メンバー無料会員はKYC認証をスキップすべきだが、現在エラーが発生している
+
+**詳細**: `FOUNDER_KYC_ISSUE.md` を参照
+
+**関連ブランチ**: `devin/260412-founder-kyc-issue`
+
+**関連コミット**:
+- `e33e0f7` - fix: Skip KYC verification for founder free members
+- `d8b7c8d` - Force backend redeployment to seed founder codes
+
+---
+
 ## 解決済みの課題
 
 ### 講座・レッスン機能のデプロイ問題（2026-01-27 解決）
