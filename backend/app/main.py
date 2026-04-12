@@ -69,6 +69,7 @@ def _seed_admin_user(db):
 
 def _seed_founders(db):
     """Seed 10 initial founder codes (Ca01-Ca10) if not already present."""
+    # Force redeployment to ensure founders are seeded - 2026-04-12
     try:
         existing = db.execute(text("SELECT COUNT(*) FROM founders")).scalar()
         if existing >= 10:
