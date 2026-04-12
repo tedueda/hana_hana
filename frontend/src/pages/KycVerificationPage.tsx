@@ -77,6 +77,11 @@ const KycVerificationPage: React.FC = () => {
           setLoading(false);
           return;
         }
+        // Founder free members don't need KYC - redirect to home
+        if (res.status === 400 && data.detail === 'KYC not required for founder free members') {
+          navigate('/');
+          return;
+        }
         throw new Error(data.detail || t('kyc.page.session_error'));
       }
 

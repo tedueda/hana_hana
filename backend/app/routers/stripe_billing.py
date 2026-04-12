@@ -483,6 +483,10 @@ async def create_identity_session(
     if not STRIPE_SECRET_KEY:
         raise HTTPException(status_code=500, detail="Stripe not configured")
     
+    # Founder free members are exempt from KYC
+    if current_user.subscription_exempt or current_user.is_founder_free_member:
+        raise HTTPException(status_code=400, detail="KYC not required for founder free members")
+    
     # Check if already verified
     if current_user.kyc_status == "VERIFIED":
         raise HTTPException(status_code=400, detail="Identity already verified")
