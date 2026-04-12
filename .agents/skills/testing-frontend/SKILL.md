@@ -1,60 +1,74 @@
 # Carat Community Frontend Testing
 
-## Dev Server Setup
+## Environment Setup
 
-```bash
-cd frontend
-npm install
-npm run dev -- --port 5175
-```
-
-The Vite dev server proxies `/api/*` requests to the production backend at `https://ddxdewgmen.ap-northeast-1.awsapprunner.com`. This means you can test real API responses without running the backend locally.
-
-## Key Test Patterns
-
-### Matching Feature (Anonymous User)
-- Navigate to `/about?tab=matching`
-- Anonymous users should fetch from `/api/matching/public-preview` (NOT `/api/matching/search`)
-- Endpoint selection is controlled by `isPaidUser` from `usePaidMember()` hook
-- Cards should render with blurred avatars (`blur-sm` CSS class)
-- Clicking a card should show a login modal with "会員限定" text, not navigate to profile
-
-### Matching Feature (Paid User)
-- Paid users fetch from `/api/matching/search` which excludes their own profile
-- Images should display without blur
-- Clicking a card navigates to `/matching/users/{userId}`
-
-### Business Page
-- `/business` is publicly accessible (no auth redirect)
-- "新規出品" (new listing) button only appears for paid members
-- Filter tabs: すべて / フリマ / 作品販売 / 講座レッスン
-
-### Verifying Network Requests
-The browser DevTools Network tab may not reliably capture requests made before it opens. Instead, use a fetch interceptor in the browser console:
-
-```javascript
-const origFetch = window.fetch;
-window.__capturedRequests = [];
-window.fetch = function(...args) {
-  window.__capturedRequests.push(args[0]?.toString?.() || args[0]);
-  return origFetch.apply(this, args);
-};
-```
-
-Then trigger the request (e.g., switch tabs) and check `window.__capturedRequests`.
-
-### Referral System
-- `?ref=CODE` parameter saves to `carat_ref` cookie (30 days)
-- Cookie is read during registration to link referral
-
-### Founder Banner
-- Fetches from `/api/founder/status` — if backend is unavailable, banner hides gracefully
-
-## Notes
-- No local backend is needed for most frontend testing (Vite proxy handles it)
-- Login/paid-user testing requires real credentials or mocking `usePaidMember()` hook
-- ECR Push (Docker build) can only be tested via CI, not locally
-- The dev server port may vary; check for port conflicts if 5173/5174/5175 are in use
+1. Install frontend dependencies: `cd frontend && npm install`
+2. Start dev server: `npx vite --host 0.0.0.0 --port 5174` (port may increment if in use)
+3. The Vite dev server proxies `/api` requests to the production backend at `https://ddxdewgmen.ap-northeast-1.awsapprunner.com`
+4. No backend setup needed locally for frontend-only testing
 
 ## Devin Secrets Needed
-No secrets are required for anonymous user testing. Paid user testing would require valid login credentials (not currently available as saved secrets).
+
+No secrets required for frontend testing. The dev server proxies to production backend.
+
+## Testing Patterns
+
+### Playwright CDP Mocking (Recommended for API-dependent flows)
+
+When testing frontend logic that depends on API responses (e.g., verify-email redirect behavior), use Playwright via CDP to intercept network requests. This avoids creating real users in production.
+
+```python
+from playwright.async_api import async_playwright
+import json
+
+async with async_playwright() as p:
+    browser = await p.chromium.connect_over_cdp("http://localhost:29229")
+    context = browser.contexts[0]
+    page = await context.new_page()
+    
+    # Set up route interception BEFORE navigating
+    async def mock_api(route):
+        await route.fulfill(
+            status=200,
+            content_type='application/json',
+            body=json.dumps({"status": "verified", ...})
+        )
+    
+    await page.route('**/api/endpoint**', mock_api)
+    await page.goto('http://localhost:5174/page')
+```
+
+**Important**: Browser console `fetch` overrides do NOT persist across page navigations. Always use Playwright route interception for mocking API responses on pages that call APIs on mount.
+
+### Browser Console (For non-navigation testing)
+
+Use browser console for:
+- Checking URL params: `new URL(window.location.href).searchParams.get('ref')`
+- Inspecting localStorage state
+- Verifying DOM content
+
+Do NOT use for:
+- Mocking fetch responses on pages that auto-call APIs on mount (mock is lost on navigation)
+
+## Architecture Notes
+
+### Referral URL Handling
+
+The referral flow uses two components:
+- `HomeRedirect` (in `App.tsx`): Route-level component on `/` that checks `?ref=` query param. If ref exists and user not logged in, redirects to `/subscribe?ref=...`. Otherwise redirects to `/feed`. This runs synchronously during render.
+- `ReferralTracker` (invisible component): Captures ref code from URL and saves to cookie. Does NOT handle redirects (that responsibility moved to `HomeRedirect` to avoid React Router race conditions).
+
+**Key lesson**: Never use `useEffect` for redirects that compete with React Router's `<Navigate>`. Route-level components that run during render are the correct pattern.
+
+### Cannot Test Full Registration Flow
+
+The dev server proxies to production backend. Submitting registration forms will create real users in the production database and send real verification emails. Test frontend logic (redirects, form behavior, API payload construction) without actually submitting forms.
+
+## Key Pages & Flows
+
+- `/?ref=CODE` → Redirected to `/subscribe?ref=CODE` by `HomeRedirect` (non-logged-in users)
+- `/subscribe?ref=CODE` - Registration form, extracts ref from URL or cookie
+- `/verify-email?token=TOKEN` - Email verification, checks `is_founder_free_member` flag for conditional redirect
+- `/email-verification-pending` - Waiting page after registration
+- `/kyc-verification` - KYC page (normal paid users go here after email verification)
+- `/feed` - Home page (founder_free users skip KYC and go here directly)
