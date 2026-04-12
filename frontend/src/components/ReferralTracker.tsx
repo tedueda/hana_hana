@@ -3,29 +3,24 @@
  * Invisible component that runs on app mount to:
  * 1. Check URL for ?ref=XXXX parameter
  * 2. Save referral code to cookie (30 days)
- * 3. Redirect to /subscribe?ref=XXXX if not logged in
- * 4. Apply referral code to user account after login
+ * 3. Apply referral code to user account after login
+ * Note: Redirect from /?ref=XXXX to /subscribe?ref=XXXX is handled by HomeRedirect in App.tsx
  */
 import { useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import { useAuth, resilientFetch } from '../contexts/AuthContext';
 import { initReferralTracking, getRefCodeFromCookie, extractRefCodeFromURL } from '../utils/referral';
 
 const ReferralTracker: React.FC = () => {
   const { user, token } = useAuth();
-  const navigate = useNavigate();
   const location = useLocation();
 
-  // On mount: capture ref code from URL → cookie, redirect to register if not logged in
+  // On mount: capture ref code from URL → cookie
+  // Note: redirect from /?ref=... to /subscribe?ref=... is handled by HomeRedirect in App.tsx
   useEffect(() => {
-    const refCode = extractRefCodeFromURL();
+    extractRefCodeFromURL();
     initReferralTracking();
-
-    // If ref code is in URL and user is not logged in, redirect to register page
-    if (refCode && !user && location.pathname === '/') {
-      navigate(`/subscribe?ref=${encodeURIComponent(refCode)}`, { replace: true });
-    }
-  }, [user, navigate, location.pathname]);
+  }, [location.pathname]);
 
   // After login: apply saved ref code to account (one-time)
   useEffect(() => {
