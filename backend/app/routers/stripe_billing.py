@@ -175,6 +175,14 @@ async def register_only(
             existing_user.subscription_exempt = True
             existing_user.referred_by_founder_code = founder_code_val
             existing_user.ref_code_used = founder_code_val
+            # Create referral record for tracking
+            referral = Referral(
+                user_id=existing_user.id,
+                ref_code=founder_code_val,
+                founder_code=founder_code_val,
+                status="registered",
+            )
+            db.add(referral)
         db.commit()
         user = existing_user
     else:
