@@ -1,2 +1,5 @@
 /api/*  https://ddxdewgmen.ap-northeast-1.awsapprunner.com/api/:splat  200
+/sitemap.xml  /sitemap.xml  200
+/sitemap-blog.xml  https://ddxdewgmen.ap-northeast-1.awsapprunner.com/sitemap-blog.xml  200
+/robots.txt  /robots.txt  200
 /*    /index.html   200
