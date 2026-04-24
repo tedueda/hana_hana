@@ -508,6 +508,7 @@ def generate_blog(
 
 
 # ──────────────── Blog CRUD ────────────────
+# Version: 2026-04-25 - Added blog edit endpoints
 
 class BlogSaveRequest(BaseModel):
     title: str
