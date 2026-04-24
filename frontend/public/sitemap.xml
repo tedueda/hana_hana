@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:xhtml="http://www.w3.org/1999/xhtml">
+  
+  <!-- ホームページ -->
+  <url>
+    <loc>https://carat-community.com/</loc>
+    <lastmod>2026-04-25</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>1.0</priority>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://carat-community.com/" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://carat-community.com/en" />
+  </url>
+  
+  <!-- フィード -->
+  <url>
+    <loc>https://carat-community.com/feed</loc>
+    <lastmod>2026-04-25</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  
+  <!-- ブログ一覧 -->
+  <url>
+    <loc>https://carat-community.com/blog</loc>
+    <lastmod>2026-04-25</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.9</priority>
+  </url>
+  
+  <!-- マッチング -->
+  <url>
+    <loc>https://carat-community.com/matching</loc>
+    <lastmod>2026-04-25</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  
+  <!-- サロン -->
+  <url>
+    <loc>https://carat-community.com/salon</loc>
+    <lastmod>2026-04-25</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  
+  <!-- フリーマーケット -->
+  <url>
+    <loc>https://carat-community.com/flea-market</loc>
+    <lastmod>2026-04-25</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.7</priority>
+  </url>
+  
+  <!-- ジュエリー -->
+  <url>
+    <loc>https://carat-community.com/jewelry</loc>
+    <lastmod>2026-04-25</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  
+  <!-- ライブウェディング -->
+  <url>
+    <loc>https://carat-community.com/live-wedding</loc>
+    <lastmod>2026-04-25</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  
+  <!-- アート販売 -->
+  <url>
+    <loc>https://carat-community.com/art-sales</loc>
+    <lastmod>2026-04-25</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  
+  <!-- コース -->
+  <url>
+    <loc>https://carat-community.com/courses</loc>
+    <lastmod>2026-04-25</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  
+  <!-- 寄付 -->
+  <url>
+    <loc>https://carat-community.com/donation</loc>
+    <lastmod>2026-04-25</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  
+  <!-- お問い合わせ -->
+  <url>
+    <loc>https://carat-community.com/contact</loc>
+    <lastmod>2026-04-25</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>
+  
+  <!-- 利用規約 -->
+  <url>
+    <loc>https://carat-community.com/terms</loc>
+    <lastmod>2026-04-25</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.4</priority>
+  </url>
+  
+  <!-- プライバシーポリシー -->
+  <url>
+    <loc>https://carat-community.com/privacy</loc>
+    <lastmod>2026-04-25</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.4</priority>
+  </url>
+
+</urlset>

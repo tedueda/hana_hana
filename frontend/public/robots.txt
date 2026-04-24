@@ -1,5 +1,17 @@
 User-agent: *
 Allow: /
+Disallow: /admin
+Disallow: /api/
+Disallow: /matching-media/
+Disallow: /media/
+
+# Crawl-delay for specific bots
+User-agent: Googlebot
+Crawl-delay: 0
+
+User-agent: Bingbot
+Crawl-delay: 1
 
 # Sitemaps
-Sitemap: https://carat-rainbow-community.netlify.app/sitemap.xml
+Sitemap: https://carat-community.com/sitemap.xml
+Sitemap: https://carat-community.com/sitemap-blog.xml

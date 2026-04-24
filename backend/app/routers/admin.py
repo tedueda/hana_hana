@@ -716,6 +716,31 @@ LANG_NAMES = {
 }
 
 
+@router.get("/sitemap-blog.xml")
+def blog_sitemap(db: Session = Depends(get_db)):
+    """Generate XML sitemap for published blog posts"""
+    from fastapi.responses import Response
+    posts = db.query(BlogPost).filter(BlogPost.status == "published").order_by(BlogPost.published_at.desc()).all()
+    
+    xml_lines = [
+        '<?xml version="1.0" encoding="UTF-8"?>',
+        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
+    ]
+    
+    for post in posts:
+        lastmod = post.published_at.strftime("%Y-%m-%d") if post.published_at else datetime.now().strftime("%Y-%m-%d")
+        xml_lines.append(f'  <url>')
+        xml_lines.append(f'    <loc>https://carat-community.com/blog/{post.slug}</loc>')
+        xml_lines.append(f'    <lastmod>{lastmod}</lastmod>')
+        xml_lines.append(f'    <changefreq>weekly</changefreq>')
+        xml_lines.append(f'    <priority>0.8</priority>')
+        xml_lines.append(f'  </url>')
+    
+    xml_lines.append('</urlset>')
+    
+    return Response(content='\n'.join(xml_lines), media_type="application/xml")
+
+
 def _translate_blog(db: Session, post: BlogPost, lang: str) -> Optional["BlogPostTranslation"]:
     if lang == "ja" or lang not in LANG_NAMES:
         return None

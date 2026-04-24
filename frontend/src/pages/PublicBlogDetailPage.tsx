@@ -47,7 +47,7 @@ const PublicBlogDetailPage: React.FC = () => {
   }, [slug, i18n.language]);
 
   const updateSEO = (data: BlogDetail) => {
-    document.title = `${data.title} | Carat Community`;
+    document.title = `${data.title} | カラット（Carat）- LGBTQ+コミュニティ`;
 
     const setMeta = (name: string, content: string, property?: boolean) => {
       const attr = property ? 'property' : 'name';
@@ -60,19 +60,46 @@ const PublicBlogDetailPage: React.FC = () => {
       el.content = content;
     };
 
-    if (data.excerpt) {
-      setMeta('description', data.excerpt);
-      setMeta('og:description', data.excerpt, true);
-    }
+    const description = data.excerpt || data.body.substring(0, 160) + '...';
+    setMeta('description', description);
+    setMeta('og:description', description, true);
+    setMeta('twitter:description', description, true);
+    
     if (data.seo_keywords?.length) {
-      setMeta('keywords', data.seo_keywords.join(', '));
+      const keywords = [...data.seo_keywords, 'LGBTQ+', 'LGBTコミュニティ', 'カラット'].join(', ');
+      setMeta('keywords', keywords);
     }
-    setMeta('og:title', data.title, true);
+    
+    setMeta('og:title', `${data.title} | カラット（Carat）`, true);
     setMeta('og:type', 'article', true);
     setMeta('og:url', window.location.href, true);
+    setMeta('og:site_name', 'カラット（Carat）', true);
+    setMeta('og:locale', 'ja_JP', true);
+    
+    setMeta('twitter:card', 'summary_large_image', true);
+    setMeta('twitter:title', `${data.title} | カラット（Carat）`, true);
+    setMeta('twitter:site', '@carat_lgbtq', true);
+    
     if (data.image_url) {
       const imgUrl = data.image_url.startsWith('http') ? data.image_url : `${BACKEND_URL}${data.image_url}`;
       setMeta('og:image', imgUrl, true);
+      setMeta('og:image:width', '1200', true);
+      setMeta('og:image:height', '630', true);
+      setMeta('twitter:image', imgUrl, true);
+    }
+    
+    if (data.published_at) {
+      setMeta('article:published_time', data.published_at, true);
+    }
+    setMeta('article:author', 'カラット（Carat）', true);
+    setMeta('article:section', 'LGBTQ+', true);
+    if (data.seo_keywords?.length) {
+      data.seo_keywords.forEach(kw => {
+        const tagMeta = document.createElement('meta');
+        tagMeta.setAttribute('property', 'article:tag');
+        tagMeta.content = kw;
+        document.head.appendChild(tagMeta);
+      });
     }
 
     let canonical = document.querySelector('link[rel="canonical"]') as HTMLLinkElement | null;
@@ -83,16 +110,46 @@ const PublicBlogDetailPage: React.FC = () => {
     }
     canonical.href = window.location.href;
 
+    const imageUrl = data.image_url ? (data.image_url.startsWith('http') ? data.image_url : `${BACKEND_URL}${data.image_url}`) : '';
     const jsonLd = {
       '@context': 'https://schema.org',
-      '@type': 'Article',
+      '@type': 'BlogPosting',
       headline: data.title,
-      description: data.excerpt || '',
-      image: data.image_url ? (data.image_url.startsWith('http') ? data.image_url : `${BACKEND_URL}${data.image_url}`) : '',
+      description: description,
+      image: imageUrl ? {
+        '@type': 'ImageObject',
+        url: imageUrl,
+        width: 1200,
+        height: 630
+      } : undefined,
       datePublished: data.published_at || data.created_at || '',
-      author: { '@type': 'Organization', name: 'Carat Community' },
-      publisher: { '@type': 'Organization', name: 'Carat Community' },
-      mainEntityOfPage: { '@type': 'WebPage', '@id': window.location.href },
+      dateModified: data.published_at || data.created_at || '',
+      author: {
+        '@type': 'Organization',
+        name: 'カラット（Carat）',
+        url: 'https://carat-community.com/'
+      },
+      publisher: {
+        '@type': 'Organization',
+        name: 'カラット（Carat）',
+        url: 'https://carat-community.com/',
+        logo: {
+          '@type': 'ImageObject',
+          url: 'https://carat-community.com/logo.png'
+        }
+      },
+      mainEntityOfPage: {
+        '@type': 'WebPage',
+        '@id': window.location.href
+      },
+      keywords: data.seo_keywords?.join(', ') || '',
+      articleSection: 'LGBTQ+コミュニティ',
+      inLanguage: 'ja',
+      about: {
+        '@type': 'Thing',
+        name: 'LGBTQ+',
+        description: '性的マイノリティとジェンダーマイノリティのコミュニティ'
+      }
     };
     let script = document.getElementById('blog-jsonld') as HTMLScriptElement | null;
     if (!script) {
