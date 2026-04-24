@@ -298,7 +298,6 @@ const BlogGeneratorTab: React.FC<{ token: string }> = ({ token }) => {
   const [blogListLoading, setBlogListLoading] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<BlogItem | null>(null);
   const [editingBlogId, setEditingBlogId] = useState<string | null>(null);
-  const [loadingBlogDetail, setLoadingBlogDetail] = useState(false);
   const navigate = useNavigate();
 
   const fetchBlogList = useCallback(async () => {
@@ -445,7 +444,6 @@ const BlogGeneratorTab: React.FC<{ token: string }> = ({ token }) => {
   };
 
   const handleEditBlog = async (blogId: string) => {
-    setLoadingBlogDetail(true);
     setError('');
     try {
       const res = await fetch(`${BACKEND_URL}/api/admin/blog/${blogId}`, {
@@ -463,8 +461,6 @@ const BlogGeneratorTab: React.FC<{ token: string }> = ({ token }) => {
       setStep('editing');
     } catch (err: any) {
       setError(err.message);
-    } finally {
-      setLoadingBlogDetail(false);
     }
   };
 
