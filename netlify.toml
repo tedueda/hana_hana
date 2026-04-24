@@ -12,6 +12,12 @@
 
 # サイトマップ（バックエンドから取得）
 [[redirects]]
+  from = "/sitemap.xml"
+  to = "https://ddxdewgmen.ap-northeast-1.awsapprunner.com/sitemap.xml"
+  status = 200
+  force = true
+
+[[redirects]]
   from = "/sitemap-blog.xml"
   to = "https://ddxdewgmen.ap-northeast-1.awsapprunner.com/sitemap-blog.xml"
   status = 200

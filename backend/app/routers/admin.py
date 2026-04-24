@@ -716,6 +716,70 @@ LANG_NAMES = {
 }
 
 
+@router.get("/sitemap.xml")
+def main_sitemap():
+    """Generate main XML sitemap"""
+    from fastapi.responses import Response
+    
+    xml_lines = [
+        '<?xml version="1.0" encoding="UTF-8"?>',
+        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"',
+        '        xmlns:xhtml="http://www.w3.org/1999/xhtml">',
+        '',
+        '  <!-- ホームページ -->',
+        '  <url>',
+        '    <loc>https://carat-community.com/</loc>',
+        f'    <lastmod>{datetime.now().strftime("%Y-%m-%d")}</lastmod>',
+        '    <changefreq>daily</changefreq>',
+        '    <priority>1.0</priority>',
+        '  </url>',
+        '',
+        '  <!-- フィード -->',
+        '  <url>',
+        '    <loc>https://carat-community.com/feed</loc>',
+        f'    <lastmod>{datetime.now().strftime("%Y-%m-%d")}</lastmod>',
+        '    <changefreq>hourly</changefreq>',
+        '    <priority>0.9</priority>',
+        '  </url>',
+        '',
+        '  <!-- ブログ一覧 -->',
+        '  <url>',
+        '    <loc>https://carat-community.com/blog</loc>',
+        f'    <lastmod>{datetime.now().strftime("%Y-%m-%d")}</lastmod>',
+        '    <changefreq>daily</changefreq>',
+        '    <priority>0.9</priority>',
+        '  </url>',
+        '',
+        '  <!-- マッチング -->',
+        '  <url>',
+        '    <loc>https://carat-community.com/matching</loc>',
+        f'    <lastmod>{datetime.now().strftime("%Y-%m-%d")}</lastmod>',
+        '    <changefreq>weekly</changefreq>',
+        '    <priority>0.8</priority>',
+        '  </url>',
+        '',
+        '  <!-- サロン -->',
+        '  <url>',
+        '    <loc>https://carat-community.com/salon</loc>',
+        f'    <lastmod>{datetime.now().strftime("%Y-%m-%d")}</lastmod>',
+        '    <changefreq>weekly</changefreq>',
+        '    <priority>0.8</priority>',
+        '  </url>',
+        '',
+        '  <!-- フリーマーケット -->',
+        '  <url>',
+        '    <loc>https://carat-community.com/flea-market</loc>',
+        f'    <lastmod>{datetime.now().strftime("%Y-%m-%d")}</lastmod>',
+        '    <changefreq>daily</changefreq>',
+        '    <priority>0.7</priority>',
+        '  </url>',
+        '',
+        '</urlset>',
+    ]
+    
+    return Response(content='\n'.join(xml_lines), media_type="application/xml")
+
+
 @router.get("/sitemap-blog.xml")
 def blog_sitemap(db: Session = Depends(get_db)):
     """Generate XML sitemap for published blog posts"""
