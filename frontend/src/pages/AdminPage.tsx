@@ -297,6 +297,8 @@ const BlogGeneratorTab: React.FC<{ token: string }> = ({ token }) => {
   const [blogList, setBlogList] = useState<BlogItem[]>([]);
   const [blogListLoading, setBlogListLoading] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<BlogItem | null>(null);
+  const [editingBlogId, setEditingBlogId] = useState<string | null>(null);
+  const [loadingBlogDetail, setLoadingBlogDetail] = useState(false);
   const navigate = useNavigate();
 
   const fetchBlogList = useCallback(async () => {
@@ -439,6 +441,54 @@ const BlogGeneratorTab: React.FC<{ token: string }> = ({ token }) => {
     setEditExcerpt('');
     setEditKeywords('');
     setError('');
+    setEditingBlogId(null);
+  };
+
+  const handleEditBlog = async (blogId: string) => {
+    setLoadingBlogDetail(true);
+    setError('');
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/admin/blog/${blogId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error('Failed to fetch blog');
+      const data = await res.json();
+      setEditingBlogId(blogId);
+      setEditTitle(data.title);
+      setEditBody(data.body);
+      setEditExcerpt(data.excerpt || '');
+      setEditKeywords((data.seo_keywords || []).join(', '));
+      setImageUrl(data.image_url || '');
+      setImagePreview(data.image_url || '');
+      setStep('editing');
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoadingBlogDetail(false);
+    }
+  };
+
+  const handleUpdateBlog = async () => {
+    if (!editingBlogId) return;
+    setError('');
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/admin/blog/${editingBlogId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          title: editTitle,
+          body: editBody,
+          excerpt: editExcerpt,
+          image_url: imageUrl,
+          seo_keywords: editKeywords.split(',').map((k: string) => k.trim()).filter(Boolean),
+        }),
+      });
+      if (!res.ok) throw new Error('Update failed');
+      resetForm();
+      fetchBlogList();
+    } catch (err: any) {
+      setError(err.message);
+    }
   };
 
   if (step === 'done') {
@@ -459,12 +509,12 @@ const BlogGeneratorTab: React.FC<{ token: string }> = ({ token }) => {
     );
   }
 
-  if (step === 'editing' && generated) {
+  if (step === 'editing') {
     return (
       <div className="space-y-6">
         <Card>
           <CardContent className="p-6 space-y-4">
-            <h3 className="text-sm font-medium text-gray-500 mb-1">記事を編集</h3>
+            <h3 className="text-sm font-medium text-gray-500 mb-1">{editingBlogId ? '既存記事を編集' : '記事を編集'}</h3>
             <div>
               <label className="block text-sm font-medium mb-1">タイトル</label>
               <Input value={editTitle} onChange={e => setEditTitle(e.target.value)} />
@@ -478,15 +528,40 @@ const BlogGeneratorTab: React.FC<{ token: string }> = ({ token }) => {
               <Textarea rows={2} value={editExcerpt} onChange={e => setEditExcerpt(e.target.value)} />
             </div>
             <div>
+              <label className="block text-sm font-medium mb-1">画像URL</label>
+              <div className="space-y-2">
+                <Input value={imageUrl} onChange={e => setImageUrl(e.target.value)} placeholder="画像URLを入力" />
+                <div className="flex items-center gap-4">
+                  <label className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 border rounded-md hover:bg-gray-50 text-sm">
+                    <Upload className="h-4 w-4" />
+                    新しい画像をアップロード
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      className="hidden"
+                      onChange={e => e.target.files?.[0] && handleImageUpload(e.target.files[0])}
+                    />
+                  </label>
+                  {imageFile && <span className="text-sm text-gray-600">{imageFile.name}</span>}
+                </div>
+                {imagePreview && (
+                  <img src={imagePreview} alt="preview" className="mt-3 max-h-48 rounded-lg object-cover" />
+                )}
+              </div>
+            </div>
+            <div>
               <label className="block text-sm font-medium mb-1">本文</label>
               <Textarea rows={16} value={editBody} onChange={e => setEditBody(e.target.value)} />
               <p className="text-xs text-gray-400 mt-1">{editBody.length}文字</p>
             </div>
           </CardContent>
         </Card>
+        {error && <p className="text-red-600 text-sm">{error}</p>}
         <div className="flex gap-3">
-          <Button variant="outline" onClick={() => setStep('preview')}>キャンセル</Button>
-          <Button onClick={saveEdits}>編集を保存してプレビューへ</Button>
+          <Button variant="outline" onClick={() => editingBlogId ? resetForm() : setStep('preview')}>キャンセル</Button>
+          <Button onClick={editingBlogId ? handleUpdateBlog : saveEdits}>
+            {editingBlogId ? '更新する' : '編集を保存してプレビューへ'}
+          </Button>
         </div>
       </div>
     );
@@ -585,7 +660,7 @@ const BlogGeneratorTab: React.FC<{ token: string }> = ({ token }) => {
                     <TableHead>タイトル</TableHead>
                     <TableHead className="w-24">ステータス</TableHead>
                     <TableHead className="w-32">公開日</TableHead>
-                    <TableHead className="w-16"></TableHead>
+                    <TableHead className="w-24"></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -607,9 +682,14 @@ const BlogGeneratorTab: React.FC<{ token: string }> = ({ token }) => {
                         {b.published_at ? new Date(b.published_at).toLocaleDateString('ja-JP') : '-'}
                       </TableCell>
                       <TableCell>
-                        <Button variant="ghost" size="sm" onClick={() => setDeleteTarget(b)}>
-                          <Trash2 className="h-4 w-4 text-red-500" />
-                        </Button>
+                        <div className="flex gap-1">
+                          <Button variant="ghost" size="sm" onClick={() => handleEditBlog(b.id)}>
+                            <Pencil className="h-4 w-4 text-blue-500" />
+                          </Button>
+                          <Button variant="ghost" size="sm" onClick={() => setDeleteTarget(b)}>
+                            <Trash2 className="h-4 w-4 text-red-500" />
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}

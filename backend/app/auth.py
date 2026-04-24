@@ -91,13 +91,33 @@ async def get_current_premium_user(current_user: User = Depends(get_current_acti
         raise HTTPException(status_code=403, detail="Premium membership required")
     return current_user
 
-async def get_current_admin_user(current_user: User = Depends(get_current_active_user)):
-    is_admin = current_user.membership_type == "admin"
-    if hasattr(current_user, "role") and getattr(current_user, "role", None) == "admin":
+def get_current_admin_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        email: str = payload.get("sub")
+        if email is None:
+            raise credentials_exception
+    except JWTError:
+        raise credentials_exception
+    
+    user = get_user_by_email(db, email=email)
+    if user is None:
+        raise credentials_exception
+    
+    if not user.is_active:
+        raise HTTPException(status_code=400, detail="Inactive user")
+    
+    is_admin = user.membership_type == "admin"
+    if hasattr(user, "role") and getattr(user, "role", None) == "admin":
         is_admin = True
     if not is_admin:
         raise HTTPException(status_code=403, detail="Admin privileges required")
-    return current_user
+    return user
 
 
 def is_user_paid_member(user: User) -> bool:

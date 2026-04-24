@@ -620,6 +620,93 @@ def admin_blog_list(
     ]
 
 
+class BlogDetailResponse(BaseModel):
+    id: str
+    title: str
+    slug: str
+    body: str
+    excerpt: str
+    image_url: Optional[str] = None
+    seo_keywords: List[str] = []
+    status: str
+    published_at: Optional[datetime] = None
+    created_at: Optional[datetime] = None
+
+
+@router.get("/api/admin/blog/{blog_id}", response_model=BlogDetailResponse)
+def get_blog_detail(
+    blog_id: str,
+    current_user: User = Depends(get_current_admin_user),
+    db: Session = Depends(get_db),
+):
+    try:
+        uid = uuid.UUID(blog_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid blog ID")
+    post = db.query(BlogPost).filter(BlogPost.id == uid).first()
+    if not post:
+        raise HTTPException(status_code=404, detail="Blog not found")
+    return BlogDetailResponse(
+        id=str(post.id),
+        title=post.title,
+        slug=post.slug,
+        body=post.body,
+        excerpt=post.excerpt or "",
+        image_url=post.image_url,
+        seo_keywords=post.seo_keywords or [],
+        status=post.status,
+        published_at=post.published_at,
+        created_at=post.created_at,
+    )
+
+
+class BlogUpdateRequest(BaseModel):
+    title: Optional[str] = None
+    body: Optional[str] = None
+    excerpt: Optional[str] = None
+    image_url: Optional[str] = None
+    seo_keywords: Optional[List[str]] = None
+
+
+@router.put("/api/admin/blog/{blog_id}")
+def update_blog(
+    blog_id: str,
+    body: BlogUpdateRequest,
+    request: Request,
+    current_user: User = Depends(get_current_admin_user),
+    db: Session = Depends(get_db),
+):
+    try:
+        uid = uuid.UUID(blog_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid blog ID")
+    post = db.query(BlogPost).filter(BlogPost.id == uid).first()
+    if not post:
+        raise HTTPException(status_code=404, detail="Blog not found")
+    
+    updates = {}
+    if body.title is not None:
+        post.title = body.title
+        updates["title"] = body.title
+    if body.body is not None:
+        post.body = body.body
+        updates["body_length"] = len(body.body)
+    if body.excerpt is not None:
+        post.excerpt = body.excerpt
+        updates["excerpt"] = body.excerpt
+    if body.image_url is not None:
+        post.image_url = body.image_url
+        updates["image_url"] = body.image_url
+    if body.seo_keywords is not None:
+        post.seo_keywords = body.seo_keywords
+        updates["seo_keywords"] = body.seo_keywords
+    
+    db.commit()
+    db.refresh(post)
+    _write_audit(db, current_user.id, "BLOG_UPDATE", request, target_type="blog", target_id=str(post.id), metadata=updates)
+    return {"ok": True, "id": str(post.id), "slug": post.slug}
+
+
 # ──────────────── Public Blog ────────────────
 
 LANG_NAMES = {
