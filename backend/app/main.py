@@ -618,6 +618,84 @@ app.include_router(stripe_billing.router)
 app.include_router(ogp.router)
 app.include_router(contact.router)
 app.include_router(admin.router)
+
+# サイトマップをルートレベルで配信
+@app.get("/sitemap.xml")
+def root_sitemap():
+    """Root level sitemap endpoint"""
+    from fastapi.responses import Response
+    from datetime import datetime
+    
+    xml_lines = [
+        '<?xml version="1.0" encoding="UTF-8"?>',
+        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
+        '  <url>',
+        '    <loc>https://carat-community.com/</loc>',
+        f'    <lastmod>{datetime.now().strftime("%Y-%m-%d")}</lastmod>',
+        '    <changefreq>daily</changefreq>',
+        '    <priority>1.0</priority>',
+        '  </url>',
+        '  <url>',
+        '    <loc>https://carat-community.com/feed</loc>',
+        f'    <lastmod>{datetime.now().strftime("%Y-%m-%d")}</lastmod>',
+        '    <changefreq>hourly</changefreq>',
+        '    <priority>0.9</priority>',
+        '  </url>',
+        '  <url>',
+        '    <loc>https://carat-community.com/blog</loc>',
+        f'    <lastmod>{datetime.now().strftime("%Y-%m-%d")}</lastmod>',
+        '    <changefreq>daily</changefreq>',
+        '    <priority>0.9</priority>',
+        '  </url>',
+        '  <url>',
+        '    <loc>https://carat-community.com/matching</loc>',
+        f'    <lastmod>{datetime.now().strftime("%Y-%m-%d")}</lastmod>',
+        '    <changefreq>weekly</changefreq>',
+        '    <priority>0.8</priority>',
+        '  </url>',
+        '  <url>',
+        '    <loc>https://carat-community.com/salon</loc>',
+        f'    <lastmod>{datetime.now().strftime("%Y-%m-%d")}</lastmod>',
+        '    <changefreq>weekly</changefreq>',
+        '    <priority>0.8</priority>',
+        '  </url>',
+        '  <url>',
+        '    <loc>https://carat-community.com/flea-market</loc>',
+        f'    <lastmod>{datetime.now().strftime("%Y-%m-%d")}</lastmod>',
+        '    <changefreq>daily</changefreq>',
+        '    <priority>0.7</priority>',
+        '  </url>',
+        '</urlset>',
+    ]
+    
+    return Response(content='\n'.join(xml_lines), media_type="application/xml")
+
+@app.get("/sitemap-blog.xml")
+def root_blog_sitemap(db: Session = Depends(get_db)):
+    """Root level blog sitemap endpoint"""
+    from fastapi.responses import Response
+    from backend.app.models import BlogPost
+    from datetime import datetime
+    
+    posts = db.query(BlogPost).filter(BlogPost.status == "published").order_by(BlogPost.published_at.desc()).all()
+    
+    xml_lines = [
+        '<?xml version="1.0" encoding="UTF-8"?>',
+        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
+    ]
+    
+    for post in posts:
+        lastmod = post.published_at.strftime("%Y-%m-%d") if post.published_at else datetime.now().strftime("%Y-%m-%d")
+        xml_lines.append(f'  <url>')
+        xml_lines.append(f'    <loc>https://carat-community.com/blog/{post.slug}</loc>')
+        xml_lines.append(f'    <lastmod>{lastmod}</lastmod>')
+        xml_lines.append(f'    <changefreq>weekly</changefreq>')
+        xml_lines.append(f'    <priority>0.8</priority>')
+        xml_lines.append(f'  </url>')
+    
+    xml_lines.append('</urlset>')
+    
+    return Response(content='\n'.join(xml_lines), media_type="application/xml")
 app.include_router(founder.router)
 
 @app.on_event("startup")
