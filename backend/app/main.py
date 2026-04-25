@@ -2,6 +2,7 @@ from fastapi import FastAPI, Depends, HTTPException
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import RedirectResponse
 from sqlalchemy import text
+from sqlalchemy.orm import Session
 from .database import get_db
 from fastapi.middleware.cors import CORSMiddleware
 from slowapi import Limiter, _rate_limit_exceeded_handler
@@ -348,16 +349,30 @@ def run_migrations():
             _add_column_if_missing("users", "is_founder_free_member", "BOOLEAN DEFAULT FALSE")
             _add_column_if_missing("users", "referred_by_founder_code", "VARCHAR(20)")
             _add_column_if_missing("users", "ref_code_used", "VARCHAR(20)")
-            # Update membership_type constraint to include founder_free
+            # Update membership_type constraint to include founder_free.
+            # Query pg_constraint to find ALL check constraints on this column,
+            # regardless of their name (production may use auto-generated names).
             try:
-                db.execute(text("ALTER TABLE users DROP CONSTRAINT IF EXISTS check_membership_type"))
+                rows = db.execute(text(
+                    "SELECT con.conname FROM pg_constraint con "
+                    "JOIN pg_class rel ON rel.oid = con.conrelid "
+                    "WHERE rel.relname = 'users' "
+                    "AND con.contype = 'c' "
+                    "AND pg_get_constraintdef(con.oid) LIKE '%membership_type%'"
+                )).fetchall()
+                for row in rows:
+                    cname = row[0]
+                    db.execute(text(f'ALTER TABLE users DROP CONSTRAINT IF EXISTS "{cname}"'))
+                    print(f"✅ Dropped old membership_type constraint: {cname}")
                 db.execute(text(
                     "ALTER TABLE users ADD CONSTRAINT check_membership_type "
                     "CHECK (membership_type IN ('free', 'premium', 'admin', 'founder_free'))"
                 ))
                 db.commit()
-            except Exception:
+                print("✅ Updated membership_type constraint to include founder_free")
+            except Exception as e:
                 db.rollback()
+                print(f"⚠️ Failed updating membership_type constraint: {e}")
 
         # Founders table
         if not _table_exists("founders"):

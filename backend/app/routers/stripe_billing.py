@@ -204,7 +204,16 @@ async def register_only(
                 status="registered",
             )
             db.add(referral)
-        db.commit()
+        try:
+            db.commit()
+        except Exception as e:
+            db.rollback()
+            logger.error(f"Commit failed for existing user update: {e}")
+            # If membership_type constraint fails, retry with 'premium'
+            if founder_free and "membership_type" in str(e):
+                logger.info("Retrying with membership_type='premium' due to DB constraint")
+                existing_user.membership_type = "premium"
+                db.commit()
         user = existing_user
     else:
         user = User(
@@ -226,7 +235,19 @@ async def register_only(
             ref_code_used=founder_code_val,
         )
         db.add(user)
-        db.flush()
+        try:
+            db.flush()
+        except Exception as e:
+            db.rollback()
+            logger.error(f"Flush failed for new user: {e}")
+            # If membership_type constraint fails, retry with 'premium'
+            if founder_free and "membership_type" in str(e):
+                logger.info("Retrying with membership_type='premium' due to DB constraint")
+                user.membership_type = "premium"
+                db.add(user)
+                db.flush()
+            else:
+                raise
 
         profile = Profile(
             user_id=user.id,
