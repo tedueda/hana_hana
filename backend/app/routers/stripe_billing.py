@@ -355,7 +355,8 @@ async def verify_email(
             raise HTTPException(status_code=400, detail="トークンの有効期限が切れています。再送信してください。")
 
     user.email_verified = True
-    user.email_verification_token_hash = None
+    # Keep email_verification_token_hash so re-clicks can still find the user
+    # and reach the already_verified branch (which does NOT issue access_token).
     user.email_verification_expires = None
     db.commit()
 
