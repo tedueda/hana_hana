@@ -163,12 +163,9 @@ const SubscribePage: React.FC = () => {
       } else if (data.access_token) {
         localStorage.setItem('token', data.access_token);
         localStorage.setItem('user', JSON.stringify(data.user));
-        // Founder free members skip KYC, go directly to home
-        if (data.user?.is_founder_free_member || data.user?.subscription_exempt) {
-          navigate('/');
-        } else {
-          navigate('/kyc-verification');
-        }
+        // All members go to KYC after registration.
+        // Founder free members skip Stripe payment after KYC.
+        navigate('/kyc-verification');
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : t('subscribe.error.unknown'));

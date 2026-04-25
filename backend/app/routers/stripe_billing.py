@@ -87,8 +87,8 @@ def is_user_paid_member(user: User) -> bool:
 
 
 def is_user_kyc_verified(user: User) -> bool:
-    """Check if user has completed KYC (verified OR legacy paid OR founder free)."""
-    return user.is_legacy_paid or user.kyc_status == "VERIFIED" or user.subscription_exempt
+    """Check if user has completed KYC (verified OR legacy paid)."""
+    return user.is_legacy_paid or user.kyc_status == "VERIFIED"
 
 
 def can_user_perform_action(user: User) -> bool:
@@ -195,6 +195,7 @@ async def register_only(
         existing_user.residence_country = request.residence_country
         existing_user.terms_accepted_at = datetime.utcnow()
         existing_user.terms_version = "1.0"
+        existing_user.is_active = True
         if founder_free:
             existing_user.membership_type = "founder_free"
             existing_user.is_founder_free_member = True
@@ -224,6 +225,7 @@ async def register_only(
                 existing_user.residence_country = request.residence_country
                 existing_user.terms_accepted_at = datetime.utcnow()
                 existing_user.terms_version = "1.0"
+                existing_user.is_active = True
                 # Downgrade to premium: reset all founder fields
                 existing_user.membership_type = "premium"
                 existing_user.is_founder_free_member = False
@@ -610,10 +612,6 @@ async def create_identity_session(
     """Create a Stripe Identity verification session for KYC."""
     if not STRIPE_SECRET_KEY:
         raise HTTPException(status_code=500, detail="Stripe not configured")
-    
-    # Founder free members are exempt from KYC
-    if current_user.subscription_exempt or current_user.is_founder_free_member:
-        raise HTTPException(status_code=400, detail="KYC not required for founder free members")
     
     # Check if already verified
     if current_user.kyc_status == "VERIFIED":

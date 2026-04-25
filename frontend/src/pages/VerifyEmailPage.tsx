@@ -11,7 +11,6 @@ const VerifyEmailPage: React.FC = () => {
   const token = searchParams.get('token');
   const [status, setStatus] = useState<'verifying' | 'success' | 'already_verified' | 'error'>('verifying');
   const [errorMessage, setErrorMessage] = useState('');
-  const [founderFree, setFounderFree] = useState(false);
 
   useEffect(() => {
     if (!token) {
@@ -33,16 +32,11 @@ const VerifyEmailPage: React.FC = () => {
         if (response.ok && data.status === 'verified') {
           localStorage.setItem('token', data.access_token);
           localStorage.setItem('user', JSON.stringify(data.user));
-          // Founder free members skip KYC, go directly to home
-          const isFounderFree = data.user?.is_founder_free_member || data.user?.subscription_exempt;
-          setFounderFree(!!isFounderFree);
           setStatus('success');
+          // All members (including founder_free) go to KYC after email verification.
+          // Founder free members skip Stripe payment after KYC.
           setTimeout(() => {
-            if (isFounderFree) {
-              navigate('/');
-            } else {
-              navigate('/kyc-verification');
-            }
+            navigate('/kyc-verification');
           }, 2000);
         } else if (response.ok && data.status === 'already_verified') {
           setStatus('already_verified');
@@ -85,9 +79,7 @@ const VerifyEmailPage: React.FC = () => {
               {t('verify_email.success', 'メールアドレスが確認されました！')}
             </h1>
             <p className="text-gray-600">
-              {founderFree
-                ? t('verify_email.redirecting_home', 'ホームページへ移動します...')
-                : t('verify_email.redirecting_kyc', 'KYC本人確認ページへ移動します...')}
+              {t('verify_email.redirecting_kyc', 'KYC本人確認ページへ移動します...')}
             </p>
           </>
         )}

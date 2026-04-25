@@ -14,6 +14,15 @@ const KycVerificationPage: React.FC = () => {
   const [pollingKyc, setPollingKyc] = useState(false);
   const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  // Check if user is a founder_free member (skip Stripe payment after KYC)
+  const storedUser = localStorage.getItem('user');
+  const isFounderFree = (() => {
+    try {
+      const u = storedUser ? JSON.parse(storedUser) : null;
+      return !!(u?.is_founder_free_member || u?.subscription_exempt);
+    } catch { return false; }
+  })();
+
   const pollKycStatus = useCallback(async () => {
     const token = localStorage.getItem('token');
     if (!token) return;
@@ -77,11 +86,6 @@ const KycVerificationPage: React.FC = () => {
           setLoading(false);
           return;
         }
-        // Founder free members don't need KYC - redirect to home
-        if (res.status === 400 && data.detail === 'KYC not required for founder free members') {
-          navigate('/');
-          return;
-        }
         throw new Error(data.detail || t('kyc.page.session_error'));
       }
 
@@ -111,7 +115,14 @@ const KycVerificationPage: React.FC = () => {
     startVerification();
   }, [startVerification]);
 
-  const handleContinueToPayment = async () => {
+  const handleContinueAfterKyc = async () => {
+    // Founder free members skip payment and go directly to home
+    if (isFounderFree) {
+      navigate('/');
+      return;
+    }
+
+    // Normal members proceed to Stripe payment
     setLoading(true);
     const token = localStorage.getItem('token');
     if (!token) {
@@ -190,10 +201,12 @@ const KycVerificationPage: React.FC = () => {
                   </p>
                 </div>
                 <button
-                  onClick={handleContinueToPayment}
+                  onClick={handleContinueAfterKyc}
                   className="w-full py-4 bg-black hover:bg-gray-800 text-white font-bold rounded-lg transition-all duration-200"
                 >
-                  {t('kyc.page.continue_to_payment')}
+                  {isFounderFree
+                    ? t('kyc.page.continue_to_home', 'ホームへ進む')
+                    : t('kyc.page.continue_to_payment')}
                 </button>
               </>
             ) : (
