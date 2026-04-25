@@ -6,7 +6,9 @@ import { API_URL, DIRECT_API_URL } from '@/config';
  * 相対パス（API_URL 空）で 404 になり、絶対 URL では届くケースに備え、成功レスポンスが得られるまで複数ベースを試す。
  */
 export const resilientFetch = async (path: string, init?: RequestInit): Promise<Response> => {
-  const rawBases = [API_URL, DIRECT_API_URL];
+  // Try: API_URL → DIRECT_API_URL → same-origin (Netlify proxy) in order.
+  // '' (empty) = relative/same-origin fetch via Netlify proxy.
+  const rawBases = [API_URL, DIRECT_API_URL, ''];
   const bases: string[] = [];
   const seen = new Set<string>();
   for (const b of rawBases) {

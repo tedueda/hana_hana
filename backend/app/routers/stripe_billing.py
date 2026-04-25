@@ -144,19 +144,40 @@ async def register_only(
     ref_code = request.ref if request.ref else None
 
     if ref_code:
-        founder = db.query(Founder).filter(
-            Founder.founder_code == ref_code,
-            Founder.is_active == True,
-        ).first()
-        if founder:
-            db.execute(text("SELECT pg_advisory_xact_lock(202504)"))
-            total = db.query(User).filter(
-                User.is_founder_free_member == True,
-                User.deleted_at.is_(None),
-            ).count()
-            if total < FOUNDER_FREE_LIMIT:
-                founder_free = True
-                founder_code_val = founder.founder_code
+        try:
+            founder = db.query(Founder).filter(
+                Founder.founder_code == ref_code,
+                Founder.is_active == True,
+            ).first()
+            if founder:
+                # Use raw SQL to avoid ORM column-mapping issues on production DB.
+                # First try with deleted_at filter, fall back without it.
+                try:
+                    total_result = db.execute(
+                        text(
+                            "SELECT COUNT(*) FROM users "
+                            "WHERE is_founder_free_member = TRUE "
+                            "AND deleted_at IS NULL"
+                        )
+                    ).scalar()
+                except Exception:
+                    db.rollback()
+                    total_result = db.execute(
+                        text(
+                            "SELECT COUNT(*) FROM users "
+                            "WHERE is_founder_free_member = TRUE"
+                        )
+                    ).scalar()
+                total = total_result or 0
+                if total < FOUNDER_FREE_LIMIT:
+                    founder_free = True
+                    founder_code_val = founder.founder_code
+        except Exception as e:
+            logger.error(f"Founder ref check failed (ref={ref_code}): {e}")
+            db.rollback()
+            # Fall back to normal (paid) registration
+            founder_free = False
+            founder_code_val = None
 
     if existing_user:
         if existing_user.subscription_status == "active":
