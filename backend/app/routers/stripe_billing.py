@@ -339,18 +339,14 @@ async def verify_email(
     if not user:
         raise HTTPException(
             status_code=400,
-            detail="無効なトークンです。既にメール認証が完了している場合は、ログインページからログインしてください。"
+            detail="INVALID_TOKEN"
         )
 
+    # Token hash found but email already verified (re-click of verification link)
     if user.email_verified:
         return {
             "status": "already_verified",
-            "message": "このメールアドレスは既に確認済みです。",
-            "user": {
-                "id": user.id,
-                "email": user.email,
-                "display_name": user.display_name
-            }
+            "message": "このメールアドレスは既に確認済みです。ログインしてください。",
         }
 
     if user.email_verification_expires:
@@ -359,6 +355,8 @@ async def verify_email(
             raise HTTPException(status_code=400, detail="トークンの有効期限が切れています。再送信してください。")
 
     user.email_verified = True
+    # Keep email_verification_token_hash so re-clicks can still find the user
+    # and reach the already_verified branch (which does NOT issue access_token).
     user.email_verification_expires = None
     db.commit()
 

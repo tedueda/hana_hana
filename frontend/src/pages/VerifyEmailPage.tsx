@@ -39,10 +39,13 @@ const VerifyEmailPage: React.FC = () => {
             navigate('/kyc-verification');
           }, 2000);
         } else if (response.ok && data.status === 'already_verified') {
+          // User clicked the verification link again after already verifying.
+          // Show a friendly message with login link (no access_token issued for security).
           setStatus('already_verified');
-          setTimeout(() => {
-            navigate('/login');
-          }, 3000);
+        } else if (data.detail === 'INVALID_TOKEN') {
+          // Completely invalid or corrupted token — show error with re-register option.
+          setStatus('error');
+          setErrorMessage(t('verify_email.invalid_token', '無効なリンクです。新規登録をやり直してください。'));
         } else {
           setStatus('error');
           setErrorMessage(data.detail || t('verify_email.failed', 'メール確認に失敗しました。'));
@@ -92,9 +95,15 @@ const VerifyEmailPage: React.FC = () => {
             <h1 className="text-xl font-bold text-black mb-2">
               {t('verify_email.already_verified', 'このメールアドレスは既に確認済みです')}
             </h1>
-            <p className="text-gray-600">
-              {t('verify_email.redirect_login', 'ログインページへ移動します...')}
+            <p className="text-gray-600 mb-6">
+              {t('verify_email.already_verified_message', 'メール認証は完了しています。ログインしてください。')}
             </p>
+            <button
+              onClick={() => navigate('/login')}
+              className="px-6 py-3 bg-black text-white rounded-lg hover:bg-gray-800"
+            >
+              {t('verify_email.go_to_login', 'ログインページへ')}
+            </button>
           </>
         )}
 
