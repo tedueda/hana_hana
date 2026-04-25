@@ -187,23 +187,20 @@ async def register_only(
         if existing_user.subscription_status == "active":
             raise HTTPException(status_code=400, detail="User already has an active subscription")
 
-        def _apply_existing_user_fields(mtype: str, is_ff: bool) -> None:
-            existing_user.display_name = request.display_name
-            existing_user.password_hash = get_password_hash(request.password)
-            if request.phone_number is not None:
-                existing_user.phone_number = request.phone_number or None
-            existing_user.preferred_lang = request.preferred_lang
-            existing_user.residence_country = request.residence_country
-            existing_user.terms_accepted_at = datetime.utcnow()
-            existing_user.terms_version = "1.0"
-            existing_user.membership_type = mtype
-            existing_user.is_founder_free_member = is_ff
-            existing_user.subscription_exempt = is_ff
-            existing_user.referred_by_founder_code = founder_code_val if is_ff else None
-            existing_user.ref_code_used = founder_code_val if is_ff else None
-
-        _apply_existing_user_fields(membership_type_val, founder_free)
+        existing_user.display_name = request.display_name
+        existing_user.password_hash = get_password_hash(request.password)
+        if request.phone_number is not None:
+            existing_user.phone_number = request.phone_number or None
+        existing_user.preferred_lang = request.preferred_lang
+        existing_user.residence_country = request.residence_country
+        existing_user.terms_accepted_at = datetime.utcnow()
+        existing_user.terms_version = "1.0"
         if founder_free:
+            existing_user.membership_type = "founder_free"
+            existing_user.is_founder_free_member = True
+            existing_user.subscription_exempt = True
+            existing_user.referred_by_founder_code = founder_code_val
+            existing_user.ref_code_used = founder_code_val
             referral = Referral(
                 user_id=existing_user.id,
                 ref_code=founder_code_val,
@@ -218,10 +215,23 @@ async def register_only(
             logger.error(f"Commit failed for existing user update: {e}")
             if founder_free and "membership_type" in str(e):
                 logger.info("Retrying with membership_type='premium' due to DB constraint")
-                membership_type_val = "premium"
+                # Re-apply all fields after rollback (ORM state is expired)
+                existing_user.display_name = request.display_name
+                existing_user.password_hash = get_password_hash(request.password)
+                if request.phone_number is not None:
+                    existing_user.phone_number = request.phone_number or None
+                existing_user.preferred_lang = request.preferred_lang
+                existing_user.residence_country = request.residence_country
+                existing_user.terms_accepted_at = datetime.utcnow()
+                existing_user.terms_version = "1.0"
+                # Downgrade to premium: reset all founder fields
+                existing_user.membership_type = "premium"
+                existing_user.is_founder_free_member = False
+                existing_user.subscription_exempt = False
+                existing_user.referred_by_founder_code = None
+                existing_user.ref_code_used = None
                 founder_free = False
                 founder_code_val = None
-                _apply_existing_user_fields("premium", False)
                 db.commit()
             else:
                 raise
