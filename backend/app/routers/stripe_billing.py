@@ -367,6 +367,7 @@ async def verify_email(
             raise HTTPException(status_code=400, detail="トークンの有効期限が切れています。再送信してください。")
 
     user.email_verified = True
+    user.email_verification_token_hash = None
     user.email_verification_expires = None
     db.commit()
 
