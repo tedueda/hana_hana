@@ -339,8 +339,15 @@ async def verify_email(
     if not user:
         raise HTTPException(
             status_code=400,
-            detail="ALREADY_VERIFIED_OR_INVALID"
+            detail="INVALID_TOKEN"
         )
+
+    # Token hash found but email already verified (re-click of verification link)
+    if user.email_verified:
+        return {
+            "status": "already_verified",
+            "message": "このメールアドレスは既に確認済みです。ログインしてください。",
+        }
 
     if user.email_verification_expires:
         expires_naive = user.email_verification_expires.replace(tzinfo=None) if user.email_verification_expires.tzinfo else user.email_verification_expires

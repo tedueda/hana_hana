@@ -38,10 +38,14 @@ const VerifyEmailPage: React.FC = () => {
           setTimeout(() => {
             navigate('/kyc-verification');
           }, 2000);
-        } else if (data.detail === 'ALREADY_VERIFIED_OR_INVALID') {
-          // Token hash was cleared after first verification (single-use token).
-          // Show a friendly "already verified" message with login link.
+        } else if (response.ok && data.status === 'already_verified') {
+          // User clicked the verification link again after already verifying.
+          // Show a friendly message with login link (no access_token issued for security).
           setStatus('already_verified');
+        } else if (data.detail === 'INVALID_TOKEN') {
+          // Completely invalid or corrupted token — show error with re-register option.
+          setStatus('error');
+          setErrorMessage(t('verify_email.invalid_token', '無効なリンクです。新規登録をやり直してください。'));
         } else {
           setStatus('error');
           setErrorMessage(data.detail || t('verify_email.failed', 'メール確認に失敗しました。'));
