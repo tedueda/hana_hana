@@ -343,13 +343,21 @@ async def verify_email(
         )
 
     if user.email_verified:
+        # Return access_token so user can proceed to KYC even if they click the link again
+        access_token = create_access_token(
+            data={"sub": user.email},
+            expires_delta=timedelta(days=7)
+        )
         return {
             "status": "already_verified",
             "message": "このメールアドレスは既に確認済みです。",
+            "access_token": access_token,
             "user": {
                 "id": user.id,
                 "email": user.email,
-                "display_name": user.display_name
+                "display_name": user.display_name,
+                "is_founder_free_member": bool(user.is_founder_free_member),
+                "subscription_exempt": bool(user.subscription_exempt),
             }
         }
 
