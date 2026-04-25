@@ -179,24 +179,31 @@ async def register_only(
             founder_free = False
             founder_code_val = None
 
+    # Resolve membership_type: try 'founder_free' first, fall back to 'premium'
+    # if the DB CHECK constraint hasn't been updated yet.
+    membership_type_val = "founder_free" if founder_free else "premium"
+
     if existing_user:
         if existing_user.subscription_status == "active":
             raise HTTPException(status_code=400, detail="User already has an active subscription")
-        existing_user.display_name = request.display_name
-        existing_user.password_hash = get_password_hash(request.password)
-        if request.phone_number is not None:
-            existing_user.phone_number = request.phone_number or None
-        existing_user.preferred_lang = request.preferred_lang
-        existing_user.residence_country = request.residence_country
-        existing_user.terms_accepted_at = datetime.utcnow()
-        existing_user.terms_version = "1.0"
+
+        def _apply_existing_user_fields(mtype: str, is_ff: bool) -> None:
+            existing_user.display_name = request.display_name
+            existing_user.password_hash = get_password_hash(request.password)
+            if request.phone_number is not None:
+                existing_user.phone_number = request.phone_number or None
+            existing_user.preferred_lang = request.preferred_lang
+            existing_user.residence_country = request.residence_country
+            existing_user.terms_accepted_at = datetime.utcnow()
+            existing_user.terms_version = "1.0"
+            existing_user.membership_type = mtype
+            existing_user.is_founder_free_member = is_ff
+            existing_user.subscription_exempt = is_ff
+            existing_user.referred_by_founder_code = founder_code_val if is_ff else None
+            existing_user.ref_code_used = founder_code_val if is_ff else None
+
+        _apply_existing_user_fields(membership_type_val, founder_free)
         if founder_free:
-            existing_user.membership_type = "founder_free"
-            existing_user.is_founder_free_member = True
-            existing_user.subscription_exempt = True
-            existing_user.referred_by_founder_code = founder_code_val
-            existing_user.ref_code_used = founder_code_val
-            # Create referral record for tracking
             referral = Referral(
                 user_id=existing_user.id,
                 ref_code=founder_code_val,
@@ -209,41 +216,50 @@ async def register_only(
         except Exception as e:
             db.rollback()
             logger.error(f"Commit failed for existing user update: {e}")
-            # If membership_type constraint fails, retry with 'premium'
             if founder_free and "membership_type" in str(e):
                 logger.info("Retrying with membership_type='premium' due to DB constraint")
-                existing_user.membership_type = "premium"
+                membership_type_val = "premium"
+                founder_free = False
+                founder_code_val = None
+                _apply_existing_user_fields("premium", False)
                 db.commit()
+            else:
+                raise
         user = existing_user
     else:
-        user = User(
-            email=request.email,
-            password_hash=get_password_hash(request.password),
-            display_name=request.display_name,
-            phone_number=request.phone_number or None,
-            membership_type="founder_free" if founder_free else "premium",
-            is_active=True,
-            preferred_lang=request.preferred_lang,
-            residence_country=request.residence_country,
-            terms_accepted_at=datetime.utcnow(),
-            terms_version="1.0",
-            kyc_status="UNVERIFIED",
-            email_verified=False,
-            is_founder_free_member=founder_free,
-            subscription_exempt=founder_free,
-            referred_by_founder_code=founder_code_val,
-            ref_code_used=founder_code_val,
-        )
+        def _create_new_user(mtype: str, is_ff: bool, ff_code: str | None) -> User:
+            return User(
+                email=request.email,
+                password_hash=get_password_hash(request.password),
+                display_name=request.display_name,
+                phone_number=request.phone_number or None,
+                membership_type=mtype,
+                is_active=True,
+                preferred_lang=request.preferred_lang,
+                residence_country=request.residence_country,
+                terms_accepted_at=datetime.utcnow(),
+                terms_version="1.0",
+                kyc_status="UNVERIFIED",
+                email_verified=False,
+                is_founder_free_member=is_ff,
+                subscription_exempt=is_ff,
+                referred_by_founder_code=ff_code,
+                ref_code_used=ff_code,
+            )
+
+        user = _create_new_user(membership_type_val, founder_free, founder_code_val)
         db.add(user)
         try:
             db.flush()
         except Exception as e:
             db.rollback()
             logger.error(f"Flush failed for new user: {e}")
-            # If membership_type constraint fails, retry with 'premium'
             if founder_free and "membership_type" in str(e):
                 logger.info("Retrying with membership_type='premium' due to DB constraint")
-                user.membership_type = "premium"
+                membership_type_val = "premium"
+                founder_free = False
+                founder_code_val = None
+                user = _create_new_user("premium", False, None)
                 db.add(user)
                 db.flush()
             else:
