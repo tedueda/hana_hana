@@ -29,20 +29,19 @@ const VerifyEmailPage: React.FC = () => {
 
         const data = await response.json();
 
-        if (response.ok && (data.status === 'verified' || data.status === 'already_verified')) {
-          // Store token and user data for auto-login
-          if (data.access_token) {
-            localStorage.setItem('token', data.access_token);
-          }
-          if (data.user) {
-            localStorage.setItem('user', JSON.stringify(data.user));
-          }
-          setStatus(data.status === 'verified' ? 'success' : 'already_verified');
+        if (response.ok && data.status === 'verified') {
+          localStorage.setItem('token', data.access_token);
+          localStorage.setItem('user', JSON.stringify(data.user));
+          setStatus('success');
           // All members (including founder_free) go to KYC after email verification.
           // Founder free members skip Stripe payment after KYC.
           setTimeout(() => {
             navigate('/kyc-verification');
           }, 2000);
+        } else if (data.detail === 'ALREADY_VERIFIED_OR_INVALID') {
+          // Token hash was cleared after first verification (single-use token).
+          // Show a friendly "already verified" message with login link.
+          setStatus('already_verified');
         } else {
           setStatus('error');
           setErrorMessage(data.detail || t('verify_email.failed', 'メール確認に失敗しました。'));
@@ -92,9 +91,15 @@ const VerifyEmailPage: React.FC = () => {
             <h1 className="text-xl font-bold text-black mb-2">
               {t('verify_email.already_verified', 'このメールアドレスは既に確認済みです')}
             </h1>
-            <p className="text-gray-600">
-              {t('verify_email.redirecting_kyc', 'KYC本人確認ページへ移動します...')}
+            <p className="text-gray-600 mb-6">
+              {t('verify_email.already_verified_message', 'メール認証は完了しています。ログインしてください。')}
             </p>
+            <button
+              onClick={() => navigate('/login')}
+              className="px-6 py-3 bg-black text-white rounded-lg hover:bg-gray-800"
+            >
+              {t('verify_email.go_to_login', 'ログインページへ')}
+            </button>
           </>
         )}
 
