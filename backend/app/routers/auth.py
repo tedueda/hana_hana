@@ -440,15 +440,16 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = 
         )
     if not user.is_active:
         raise HTTPException(status_code=400, detail="Inactive user")
-    # Skip subscription checks for legacy paid users and founder_free members
-    _skip_checks = user.is_legacy_paid or getattr(user, 'subscription_exempt', False)
-    if not _skip_checks:
+    # Legacy paid users skip all remaining checks
+    if not user.is_legacy_paid:
         if not getattr(user, 'email_verified', False):
             raise HTTPException(status_code=403, detail="EMAIL_NOT_VERIFIED")
         if getattr(user, 'kyc_status', 'UNVERIFIED') != 'VERIFIED':
             raise HTTPException(status_code=403, detail="KYC_NOT_VERIFIED")
-        if getattr(user, 'subscription_status', None) != 'active':
-            raise HTTPException(status_code=403, detail="SUBSCRIPTION_NOT_ACTIVE")
+        # Founder free members (subscription_exempt) skip subscription check only
+        if not getattr(user, 'subscription_exempt', False):
+            if getattr(user, 'subscription_status', None) != 'active':
+                raise HTTPException(status_code=403, detail="SUBSCRIPTION_NOT_ACTIVE")
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
         data={"sub": user.email}, expires_delta=access_token_expires
@@ -466,14 +467,16 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
         )
     if not user.is_active:
         raise HTTPException(status_code=400, detail="Inactive user")
-    _skip_checks = user.is_legacy_paid or getattr(user, 'subscription_exempt', False)
-    if not _skip_checks:
+    # Legacy paid users skip all remaining checks
+    if not user.is_legacy_paid:
         if not getattr(user, 'email_verified', False):
             raise HTTPException(status_code=403, detail="EMAIL_NOT_VERIFIED")
         if getattr(user, 'kyc_status', 'UNVERIFIED') != 'VERIFIED':
             raise HTTPException(status_code=403, detail="KYC_NOT_VERIFIED")
-        if getattr(user, 'subscription_status', None) != 'active':
-            raise HTTPException(status_code=403, detail="SUBSCRIPTION_NOT_ACTIVE")
+        # Founder free members (subscription_exempt) skip subscription check only
+        if not getattr(user, 'subscription_exempt', False):
+            if getattr(user, 'subscription_status', None) != 'active':
+                raise HTTPException(status_code=403, detail="SUBSCRIPTION_NOT_ACTIVE")
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
         data={"sub": user.email}, expires_delta=access_token_expires
