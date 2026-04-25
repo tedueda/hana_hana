@@ -536,6 +536,28 @@ def run_migrations():
 
         _seed_admin_user(db)
 
+        # One-time migration: Ensure existing founder_free members have kyc_status='VERIFIED'
+        # PR #120 made KYC mandatory for founder_free login. Existing members who registered
+        # before this change may have kyc_status='UNVERIFIED', locking them out.
+        # Scoped to users created before 2026-04-25 (deploy date) to avoid auto-verifying
+        # newly registered members or overriding KYC rejections.
+        try:
+            result = db.execute(text(
+                "UPDATE users SET kyc_status = 'VERIFIED' "
+                "WHERE is_founder_free_member = TRUE "
+                "AND kyc_status = 'UNVERIFIED' "
+                "AND created_at < '2026-04-25T00:00:00Z'"
+            ))
+            affected = result.rowcount
+            db.commit()
+            if affected > 0:
+                print(f"✅ Updated kyc_status to VERIFIED for {affected} pre-existing founder_free member(s)")
+            else:
+                print("✅ No pre-existing founder_free members need kyc_status migration")
+        except Exception as e:
+            db.rollback()
+            print(f"⚠️ Failed updating founder_free kyc_status: {e}")
+
         # Migration 2: Add nationality column to matching_profiles table
         if _table_exists("matching_profiles"):
             result = db.execute(text("""
