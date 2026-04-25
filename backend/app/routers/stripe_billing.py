@@ -195,6 +195,7 @@ async def register_only(
         existing_user.residence_country = request.residence_country
         existing_user.terms_accepted_at = datetime.utcnow()
         existing_user.terms_version = "1.0"
+        existing_user.is_active = True
         if founder_free:
             existing_user.membership_type = "founder_free"
             existing_user.is_founder_free_member = True
@@ -224,6 +225,7 @@ async def register_only(
                 existing_user.residence_country = request.residence_country
                 existing_user.terms_accepted_at = datetime.utcnow()
                 existing_user.terms_version = "1.0"
+                existing_user.is_active = True
                 # Downgrade to premium: reset all founder fields
                 existing_user.membership_type = "premium"
                 existing_user.is_founder_free_member = False

@@ -438,6 +438,8 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = 
             detail="Incorrect email or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
+    if not user.is_active:
+        raise HTTPException(status_code=400, detail="Inactive user")
     # Skip subscription checks for legacy paid users and founder_free members
     _skip_checks = user.is_legacy_paid or getattr(user, 'subscription_exempt', False)
     if not _skip_checks:
@@ -462,6 +464,8 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
             detail="Incorrect email or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
+    if not user.is_active:
+        raise HTTPException(status_code=400, detail="Inactive user")
     _skip_checks = user.is_legacy_paid or getattr(user, 'subscription_exempt', False)
     if not _skip_checks:
         if not getattr(user, 'email_verified', False):
