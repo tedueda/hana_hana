@@ -648,7 +648,7 @@ const FIXED_FILTER_OPTIONS = {
                 <div className="flex items-center justify-center py-12">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
                 </div>
-              ) : salonRooms.length > 0 ? (
+              ) : filteredSalonRooms.length > 0 ? (
                 <>
                   {salonViewMode === 'card' ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

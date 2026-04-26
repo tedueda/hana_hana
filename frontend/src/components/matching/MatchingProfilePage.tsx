@@ -1289,7 +1289,7 @@ const MatchingProfilePage: React.FC = () => {
                       className="w-full h-full object-cover"
                     />
                   </div>
-                  {profile.identity && profile.identity !== '非表示' && (
+                  {profile.identity && profile.identity !== '非表示' && profile.identity !== '非公開' && (
                     <div className="absolute top-4 left-4 bg-black text-white px-3 py-1 rounded-full text-sm font-bold">
                       {t(`matching.identities.${IDENTITY_KEYS[profile.identity]}`) || profile.identity}
                     </div>
