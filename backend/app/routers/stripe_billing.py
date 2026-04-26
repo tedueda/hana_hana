@@ -342,11 +342,24 @@ async def verify_email(
             detail="INVALID_TOKEN"
         )
 
-    # Token hash found but email already verified (re-click of verification link)
+    # Token hash found but email already verified (re-click of verification link).
+    # Still issue access_token so user can continue to KYC if they haven't completed it.
     if user.email_verified:
+        access_token = create_access_token(
+            data={"sub": user.email},
+            expires_delta=timedelta(days=7)
+        )
         return {
             "status": "already_verified",
-            "message": "このメールアドレスは既に確認済みです。ログインしてください。",
+            "message": "このメールアドレスは既に確認済みです。",
+            "access_token": access_token,
+            "user": {
+                "id": user.id,
+                "email": user.email,
+                "display_name": user.display_name,
+                "is_founder_free_member": bool(user.is_founder_free_member),
+                "subscription_exempt": bool(user.subscription_exempt),
+            }
         }
 
     if user.email_verification_expires:
@@ -356,7 +369,7 @@ async def verify_email(
 
     user.email_verified = True
     # Keep email_verification_token_hash so re-clicks can still find the user
-    # and reach the already_verified branch (which does NOT issue access_token).
+    # and reach the already_verified branch (which also issues access_token now).
     user.email_verification_expires = None
     db.commit()
 
