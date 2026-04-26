@@ -1,0 +1,2 @@
+/api/*  https://ddxdewgmen.ap-northeast-1.awsapprunner.com/api/:splat  200
+/*    /index.html   200
