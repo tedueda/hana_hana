@@ -581,6 +581,25 @@ def run_migrations():
             db.rollback()
             print(f"⚠️ Failed converting test users to founder_free: {e}")
 
+        # Fix: Ensure converted founder_free test users have email_verified = TRUE
+        # (The original conversion migration missed this field, causing login failures)
+        try:
+            result = db.execute(text(
+                "UPDATE users "
+                "SET email_verified = TRUE "
+                "WHERE email IN (:email1, :email2) "
+                "AND (email_verified IS NULL OR email_verified = FALSE)"
+            ), {"email1": "nichigetsu18@gmail.com", "email2": "ted@carat-community.com"})
+            affected = result.rowcount
+            db.commit()
+            if affected > 0:
+                print(f"✅ Fixed email_verified for {affected} founder_free test user(s)")
+            else:
+                print("✅ Founder_free test users already have email_verified = TRUE")
+        except Exception as e:
+            db.rollback()
+            print(f"⚠️ Failed fixing email_verified for test users: {e}")
+
         # One-time cleanup: Delete 9 Ca05 test referral records (all test registrations)
         try:
             result = db.execute(text(
