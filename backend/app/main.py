@@ -638,6 +638,52 @@ def run_migrations():
                 print("✅ Successfully added nationality column to matching_profiles table")
             else:
                 print("✅ nationality column already exists")
+
+        # Migration: Add community_category and position columns to matching_profiles
+        if _table_exists("matching_profiles"):
+            _add_column_if_missing("matching_profiles", "community_category", "VARCHAR(50)")
+            _add_column_if_missing("matching_profiles", "position", "VARCHAR(50)")
+
+        # Data migration: Map old identity values to new community_category
+        if _table_exists("matching_profiles") and _column_exists("matching_profiles", "community_category"):
+            try:
+                # Only migrate rows where community_category is NULL (not yet migrated)
+                migrations = [
+                    ("ゲイ", "ゲイ"),
+                    ("レズ", "レズビアン"),
+                    ("レズビアン", "レズビアン"),
+                    ("トランスジェンダー", "トランスジェンダー"),
+                    ("バイセクシャル", "バイセクシュアル"),
+                    ("バイセクシュアル", "バイセクシュアル"),
+                    ("クィア", "クィア"),
+                    ("男性", "その他"),
+                    ("女性", "その他"),
+                    ("その他", "その他"),
+                    ("非表示", "非公開"),
+                    ("非公開", "非公開"),
+                    ("gay", "ゲイ"),
+                    ("lesbian", "レズビアン"),
+                    ("bisexual", "バイセクシュアル"),
+                    ("transgender", "トランスジェンダー"),
+                    ("questioning", "クィア"),
+                    ("other", "その他"),
+                ]
+                total_migrated = 0
+                for old_val, new_val in migrations:
+                    result = db.execute(text(
+                        "UPDATE matching_profiles SET community_category = :new_val "
+                        "WHERE identity = :old_val AND community_category IS NULL"
+                    ), {"old_val": old_val, "new_val": new_val})
+                    total_migrated += result.rowcount
+                db.commit()
+                if total_migrated > 0:
+                    print(f"✅ Migrated {total_migrated} identity → community_category values")
+                else:
+                    print("✅ No identity values need migration to community_category")
+            except Exception as e:
+                db.rollback()
+                print(f"⚠️ Failed migrating identity to community_category: {e}")
+
     except Exception as e:
         print(f"⚠️ Migration error (may be safe to ignore if column exists): {e}")
     finally:

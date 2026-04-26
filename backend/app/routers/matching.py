@@ -58,7 +58,9 @@ def _serialize_matching_profile_rows(db: Session, rows: List[Tuple[MatchingProfi
             "age_band": prof.age_band,
             "occupation": prof.occupation or "",
             "meet_pref": prof.meet_pref or "",
-            "identity": prof.identity,
+            "identity": getattr(prof, 'community_category', None) or prof.identity,
+            "community_category": getattr(prof, 'community_category', None) or prof.identity or "",
+            "position": getattr(prof, 'position', None) or "",
             "romance_targets": prof.romance_targets or [],
             "avatar_url": main_images.get(prof.user_id) or getattr(prof, "avatar_url", None) or "",
             "bio": prof.bio or "",
@@ -141,13 +143,19 @@ def update_my_profile(payload: dict, current_user: User = Depends(require_premiu
     VALID_AGE_BANDS = ['10s_late', '20s_early', '20s_late', '30s_early', '30s_late', '40s_early', '40s_late', '50s_early', '50s_late', '60s_early', '60s_late', '70plus',
                        '10代', '20代前半', '20代後半', '30代前半', '30代後半', '40代前半', '40代後半', '50代前半', '50代後半', '60代以上']
     VALID_IDENTITIES = ['gay', 'lesbian', 'bisexual', 'transgender', 'questioning', 'other',
-                        'ゲイ', 'レズ', 'トランスジェンダー', 'バイセクシャル', 'クィア', '男性', '女性', '非表示']
+                        'ゲイ', 'レズ', 'レズビアン', 'トランスジェンダー', 'バイセクシャル', 'バイセクシュアル', 'クィア', '男性', '女性', '非表示',
+                        'ストレート・アライ', 'その他', '非公開']
+    VALID_POSITIONS = ['タチ', 'ウケ（ネコ）', 'リバーシブル', '非公開']
     VALID_MEETING_STYLES = ['msg_first', 'voice_after', 'video_after', 'cafe_meal', 'via_hobby', 'meet_if_conditions', 'meet_first', 'online_only']
     
     if "age_band" in payload and payload["age_band"] and payload["age_band"] not in ['', '非表示'] and payload["age_band"] not in VALID_AGE_BANDS:
         raise HTTPException(status_code=422, detail=f"Invalid age_band. Must be one of: {VALID_AGE_BANDS}")
     if "identity" in payload and payload["identity"] and payload["identity"] not in ['', '非表示'] and payload["identity"] not in VALID_IDENTITIES:
         raise HTTPException(status_code=422, detail=f"Invalid identity. Must be one of: {VALID_IDENTITIES}")
+    if "community_category" in payload and payload["community_category"] and payload["community_category"] not in ['', '非公開'] and payload["community_category"] not in VALID_IDENTITIES:
+        raise HTTPException(status_code=422, detail=f"Invalid community_category. Must be one of: {VALID_IDENTITIES}")
+    if "position" in payload and payload["position"] and payload["position"] not in ['', '非公開'] and payload["position"] not in VALID_POSITIONS:
+        raise HTTPException(status_code=422, detail=f"Invalid position. Must be one of: {VALID_POSITIONS}")
     if "meeting_style" in payload and payload["meeting_style"] and payload["meeting_style"] not in ['', '非表示'] and payload["meeting_style"] not in VALID_MEETING_STYLES:
         raise HTTPException(status_code=422, detail=f"Invalid meeting_style. Must be one of: {VALID_MEETING_STYLES}")
     
@@ -172,9 +180,12 @@ def update_my_profile(payload: dict, current_user: User = Depends(require_premiu
             setattr(prof, field, payload.get(field))
     
     # 新しいカラム（マイグレーション後のみ）
-    for field in ["meeting_style", "avatar_url", "romance_targets"]:
+    for field in ["meeting_style", "avatar_url", "romance_targets", "community_category", "position"]:
         if field in payload and hasattr(prof, field):
             setattr(prof, field, payload.get(field))
+    # community_category が設定された場合、後方互換性のため identity にも同じ値をセット
+    if "community_category" in payload and hasattr(prof, 'community_category'):
+        prof.identity = payload["community_category"]
     # hobbies
     if "hobbies" in payload and isinstance(payload["hobbies"], list):
         # 現在の関連を全削除→再作成

@@ -1,6 +1,6 @@
 import React from 'react';
 
-export type IdentityFilter = 'all' | 'lesbian' | 'gay' | 'other';
+export type IdentityFilter = 'all' | 'recommended' | 'gay' | 'lesbian' | 'bisexual' | 'transgender' | 'queer' | 'ally_other';
 
 export interface MatchingSearchFilters {
   nationality: string;
@@ -15,7 +15,7 @@ export const DEFAULT_MATCHING_FILTERS: MatchingSearchFilters = {
   ageBand: '',
   occupation: '',
   meetPref: '',
-  identity: 'all',
+  identity: 'recommended',
 };
 
 export interface MatchingFilterOptions {
@@ -36,6 +36,19 @@ const selectClass =
 // Chevron via inline SVG data URI for consistent look across browsers
 const chevronBg =
   "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%236b7280'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E\")";
+
+const CATEGORY_TABS: { key: IdentityFilter; label: string }[] = [
+  { key: 'recommended', label: 'おすすめ' },
+  { key: 'all', label: 'すべて' },
+  { key: 'gay', label: 'ゲイ' },
+  { key: 'lesbian', label: 'レズビアン' },
+  { key: 'bisexual', label: 'バイ' },
+  { key: 'transgender', label: 'トランス' },
+  { key: 'queer', label: 'クィア' },
+  { key: 'ally_other', label: 'アライ・その他' },
+];
+
+export { CATEGORY_TABS };
 
 const Field: React.FC<{
   label: string;
@@ -69,48 +82,55 @@ const MatchingFilter: React.FC<MatchingFilterProps> = ({ value, onChange, option
   };
 
   return (
-    <div className="rounded-xl border border-gray-200 bg-white px-4 py-4 shadow-sm sm:px-5">
-      <h3 className="mb-4 text-sm font-semibold text-gray-900">条件検索</h3>
-      <div className="flex flex-col gap-4 lg:flex-row lg:flex-wrap lg:items-end lg:gap-x-4 lg:gap-y-4">
-        <Field
-          label="国籍"
-          value={value.nationality}
-          onChange={(nationality) => patch({ nationality })}
-          options={options.nationalities}
-        />
-        <Field
-          label="年代"
-          value={value.ageBand}
-          onChange={(ageBand) => patch({ ageBand })}
-          options={options.ageBands}
-        />
-        <Field
-          label="職種"
-          value={value.occupation}
-          onChange={(occupation) => patch({ occupation })}
-          options={options.occupations}
-        />
-        <Field
-          label="マッチングの目的"
-          value={value.meetPref}
-          onChange={(meetPref) => patch({ meetPref })}
-          options={options.meetPrefs}
-        />
-        <div className="flex min-w-0 flex-1 flex-col gap-1">
-          <span className="text-xs font-medium text-gray-500">性自認</span>
-          <div className="relative">
-            <select
-              className={selectClass}
-              style={{ backgroundImage: `${chevronBg}` }}
-              value={value.identity}
-              onChange={(e) => patch({ identity: e.target.value as IdentityFilter })}
+    <div className="space-y-4">
+      {/* カテゴリータブ */}
+      <div className="rounded-xl border border-gray-200 bg-white px-4 py-3 shadow-sm sm:px-5">
+        <h3 className="mb-3 text-sm font-semibold text-gray-900">コミュニティ別に見る</h3>
+        <div className="flex flex-wrap gap-2">
+          {CATEGORY_TABS.map((tab) => (
+            <button
+              key={tab.key}
+              onClick={() => patch({ identity: tab.key })}
+              className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                value.identity === tab.key
+                  ? 'bg-black text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
             >
-              <option value="all">すべて</option>
-              <option value="lesbian">レズ</option>
-              <option value="gay">ゲイ</option>
-              <option value="other">その他</option>
-            </select>
-          </div>
+              {tab.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* 条件検索 */}
+      <div className="rounded-xl border border-gray-200 bg-white px-4 py-4 shadow-sm sm:px-5">
+        <h3 className="mb-4 text-sm font-semibold text-gray-900">カテゴリーを切り替える</h3>
+        <div className="flex flex-col gap-4 lg:flex-row lg:flex-wrap lg:items-end lg:gap-x-4 lg:gap-y-4">
+          <Field
+            label="国籍"
+            value={value.nationality}
+            onChange={(nationality) => patch({ nationality })}
+            options={options.nationalities}
+          />
+          <Field
+            label="年代"
+            value={value.ageBand}
+            onChange={(ageBand) => patch({ ageBand })}
+            options={options.ageBands}
+          />
+          <Field
+            label="職種"
+            value={value.occupation}
+            onChange={(occupation) => patch({ occupation })}
+            options={options.occupations}
+          />
+          <Field
+            label="マッチングの目的"
+            value={value.meetPref}
+            onChange={(meetPref) => patch({ meetPref })}
+            options={options.meetPrefs}
+          />
         </div>
       </div>
     </div>

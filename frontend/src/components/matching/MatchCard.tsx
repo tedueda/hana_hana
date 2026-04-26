@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { IdentityBadge } from "@/components/ui/IdentityBadge";
+import { IdentityBadge, PositionBadge } from "@/components/ui/IdentityBadge";
 import { API_URL } from "@/config";
 import { createApiClient } from "@/lib/apiClient";
 import { navigateToComposeOrChat } from "@/lib/chatNavigation";
@@ -12,6 +12,8 @@ type Item = {
   user_id: number;
   display_name?: string;
   identity?: string | null;
+  community_category?: string | null;
+  position?: string | null;
   nationality?: string | null;
   prefecture?: string | null;
   age_band?: string | null;
@@ -223,10 +225,11 @@ export function MatchCard({ item }: { item: Item }) {
           </div>
         )}
         
-        {/* 性自認バッジ（右上） */}
-        {item.identity && (
-          <div className="absolute right-2 top-2">
-            <IdentityBadge value={item.identity} />
+        {/* カテゴリー・ポジションバッジ（右上） */}
+        {(item.community_category || item.identity) && (
+          <div className="absolute right-2 top-2 flex flex-col gap-1">
+            <IdentityBadge value={item.community_category || item.identity} />
+            <PositionBadge value={item.position} />
           </div>
         )}
         

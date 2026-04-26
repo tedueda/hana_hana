@@ -25,6 +25,8 @@ type Profile = {
   meet_pref?: string;
   bio?: string;
   identity?: string;
+  community_category?: string;
+  position?: string;
   avatar_url?: string;
   romance_targets?: string[];
   hobbies?: string[];
@@ -83,11 +85,12 @@ const MatchingProfilePage: React.FC = () => {
     'メンバー募集': 'member', 'その他': 'other'
   };
   const IDENTITY_KEYS: Record<string, string> = {
-    'ゲイ': 'gay', 'レズ': 'lesbian', 'トランスジェンダー': 'transgender',
-    'バイセクシャル': 'bisexual', 'クィア': 'queer', '男性': 'male', '女性': 'female', '非表示': 'hidden'
+    'ゲイ': 'gay', 'レズビアン': 'lesbian', 'バイセクシュアル': 'bisexual',
+    'トランスジェンダー': 'transgender', 'クィア': 'queer',
+    'ストレート・アライ': 'ally', 'その他': 'other', '非公開': 'hidden'
   };
-  const ROMANCE_TARGET_KEYS: Record<string, string> = {
-    '男性': 'male', '女性': 'female', 'その他': 'other'
+  const POSITION_KEYS: Record<string, string> = {
+    'タチ': 'tachi', 'ウケ（ネコ）': 'uke', 'リバーシブル': 'reversible', '非公開': 'hidden'
   };
   const HOBBY_KEYS: Record<string, string> = {
     '音楽': 'music', '映画': 'movies', 'ドラマ': 'drama', 'アニメ': 'anime', '漫画': 'manga',
@@ -170,8 +173,8 @@ const MatchingProfilePage: React.FC = () => {
   const BLOOD_TYPES = ['A型','B型','O型','AB型','不明'];
   const ZODIACS = ['牡羊座','牡牛座','双子座','蟹座','獅子座','乙女座','天秤座','蠍座','射手座','山羊座','水瓶座','魚座'];
   const MEET_PREFS = ['パートナー探し','友人探し','相談相手探し','メンバー募集','その他'];
-  const IDENTITIES = ['ゲイ','レズ','トランスジェンダー','バイセクシャル','クィア','男性','女性','非表示'];
-  const ROMANCE_TARGETS = ['男性','女性','その他'];
+  const IDENTITIES = ['ゲイ','レズビアン','バイセクシュアル','トランスジェンダー','クィア','ストレート・アライ','その他','非公開'];
+  const POSITIONS = ['タチ','ウケ（ネコ）','リバーシブル','非公開'];
   const HOBBY_CATALOG = [
     '音楽','映画','ドラマ','アニメ','漫画','読書','カフェ','料理','グルメ','お酒',
     '旅行','国内旅行','海外旅行','写真','カメラ','カラオケ','ゲーム','ボードゲーム','スポーツ観戦','筋トレ',
@@ -340,9 +343,10 @@ const MatchingProfilePage: React.FC = () => {
         zodiac: profile.zodiac || '',
         meet_pref: profile.meet_pref,
         bio: profile.bio,
-        identity: profile.identity,
+        identity: profile.community_category || profile.identity,
+        community_category: profile.community_category || profile.identity,
+        position: profile.position || '',
         avatar_url: images[currentSlide] ? images[currentSlide].url : (images.length > 0 ? images[0].url : null),
-        romance_targets: profile.romance_targets || [],
         hobbies: profile.hobbies || [],
       };
       if (newPassword) {
@@ -370,7 +374,9 @@ const MatchingProfilePage: React.FC = () => {
       await fetchProfile();
       setNewPassword('');
       
-      alert('✅ 保存しました\n\nプロフィール情報が正常に保存されました。');
+      // プロフィール保存後、マッチングページへリダイレクト
+      alert('プロフィールを保存しました。あなたにおすすめの会員を表示します。');
+      navigate('/about?tab=matching');
     } catch (e: any) {
       console.error('Profile save error:', e);
       const errorMessage = e?.message || '保存に失敗しました';
@@ -561,7 +567,13 @@ const MatchingProfilePage: React.FC = () => {
 
   return (
     <div>
-      <h2 className="text-lg font-semibold mb-3">プロフィール編集（マッチング）</h2>
+      <h2 className="text-lg font-semibold mb-3">プロフィール編集</h2>
+      {/* ガイダンステキスト */}
+      <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-800">
+        <p>あなたに合ったマッチング・サロンを表示するために、プロフィールを設定してください。</p>
+        <p>入力内容はあとからいつでも変更できます。</p>
+        <p>公開したくない項目は「非公開」を選択できます。</p>
+      </div>
       <div className="p-0 sm:p-4">
         <div className="mx-auto w-full sm:max-w-3xl bg-white border rounded-lg">
           {/* 画像スライダー */}
@@ -592,10 +604,10 @@ const MatchingProfilePage: React.FC = () => {
                       />
                     </button>
                     
-                    {/* 性別バッジ（左上） */}
-                    {profile?.identity && profile.identity !== '非表示' && (
+                    {/* カテゴリーバッジ（左上） */}
+                    {(profile?.community_category || profile?.identity) && (profile?.community_category || profile?.identity) !== '非公開' && (profile?.community_category || profile?.identity) !== '非表示' && (
                       <div className="absolute top-2 left-2 bg-black text-white text-xs px-2 py-1 rounded font-semibold shadow-lg z-10">
-                        {profile.identity}
+                        {profile.community_category || profile.identity}
                       </div>
                     )}
                     
@@ -1150,44 +1162,38 @@ const MatchingProfilePage: React.FC = () => {
                       </select>
                     </div>
                     <div>
-                      <label htmlFor="identity" className="block text-sm mb-1">{t('matching.profile.basic.identity')}</label>
+                      <label htmlFor="community_category" className="block text-sm mb-1">コミュニティカテゴリー</label>
                       <select
-                        id="identity"
-                        aria-label={t('matching.profile.basic.identity')}
-                        value={profile.identity}
-                        onChange={(e) => setProfile({ ...profile, identity: e.target.value })}
+                        id="community_category"
+                        aria-label="コミュニティカテゴリー"
+                        value={profile.community_category || profile.identity || ''}
+                        onChange={(e) => setProfile({ ...profile, community_category: e.target.value, identity: e.target.value })}
                         className="w-full border rounded px-3 py-2 text-sm"
                       >
-                        <option value="">{t('matching.profile.selectPlaceholder')}</option>
+                        <option value="">選択してください</option>
                         {IDENTITIES.map((idv) => (
-                          <option key={idv} value={idv}>{t(`matching.identities.${IDENTITY_KEYS[idv]}`)}</option>
+                          <option key={idv} value={idv}>{idv}</option>
                         ))}
                       </select>
-                      <div className="text-xs text-gray-500 mt-1">{t('matching.profile.basic.identityTip')}</div>
+                      <div className="text-xs text-gray-500 mt-1">あなたにおすすめのマッチング・サロンを表示するために使用されます</div>
                     </div>
                     <div>
-                      <div className="block text-sm mb-1">{t('matching.profile.basic.romanceTarget')}</div>
-                      <div className="space-y-2" role="group" aria-label={t('matching.profile.basic.romanceTarget')}>
-                        {ROMANCE_TARGETS.map((target) => {
-                          const checked = (profile.romance_targets || []).includes(target);
-                          return (
-                            <label key={target} className="flex items-center gap-2 cursor-pointer">
-                              <input
-                                type="checkbox"
-                                checked={checked}
-                                onChange={(e) => {
-                                  const set = new Set(profile.romance_targets || []);
-                                  if (e.target.checked) set.add(target); else set.delete(target);
-                                  setProfile({ ...profile, romance_targets: Array.from(set) });
-                                }}
-                                className="w-4 h-4 text-black border-gray-300 rounded focus:ring-black"
-                              />
-                              <span className="text-sm">{t(`matching.romanceTargets.${ROMANCE_TARGET_KEYS[target]}`)}</span>
-                            </label>
-                          );
-                        })}
+                      <div className="block text-sm mb-1">ポジション</div>
+                      <div className="space-y-2" role="group" aria-label="ポジション">
+                        {POSITIONS.map((pos) => (
+                          <label key={pos} className="flex items-center gap-2 cursor-pointer">
+                            <input
+                              type="radio"
+                              name="position"
+                              checked={(profile.position || '') === pos}
+                              onChange={() => setProfile({ ...profile, position: pos })}
+                              className="w-4 h-4 text-black border-gray-300 focus:ring-black"
+                            />
+                            <span className="text-sm">{pos}</span>
+                          </label>
+                        ))}
                       </div>
-                      <div className="text-xs text-gray-500 mt-1">{t('matching.profile.basic.romanceTargetTip')}</div>
+                      <div className="text-xs text-gray-500 mt-1">公開したくない場合は「非公開」を選択できます</div>
                     </div>
                   </div>
                 </section>

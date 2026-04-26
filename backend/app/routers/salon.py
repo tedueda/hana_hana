@@ -15,7 +15,8 @@ router = APIRouter(prefix="/api/salon", tags=["salon"])
 
 VALID_IDENTITIES = [
     'gay', 'lesbian', 'bisexual', 'transgender', 'questioning', 'other',
-    'ゲイ', 'レズビアン', 'バイセクシュアル', 'トランスジェンダー', 'クエスチョニング', 'その他',
+    'ゲイ', 'レズ', 'レズビアン', 'バイセクシュアル', 'バイセクシャル', 'トランスジェンダー', 'クエスチョニング', 'クィア',
+    'ストレート・アライ', 'その他', '非公開', '男性', '女性', '非表示',
     'ALL'
 ]
 
@@ -28,8 +29,13 @@ def require_premium(current_user: User = Depends(get_current_active_user)) -> Us
 
 def get_user_identity(user_id: int, db: Session) -> Optional[str]:
     matching_profile = db.query(MatchingProfile).filter(MatchingProfile.user_id == user_id).first()
-    if matching_profile and matching_profile.identity:
-        return matching_profile.identity
+    if matching_profile:
+        # Prefer community_category over legacy identity field
+        cat = getattr(matching_profile, 'community_category', None)
+        if cat:
+            return cat
+        if matching_profile.identity:
+            return matching_profile.identity
     return None
 
 

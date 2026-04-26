@@ -444,6 +444,8 @@ class MatchingProfile(Base):
     meeting_style = Column(String(50))
     bio = Column(Text)
     identity = Column(String(50))
+    community_category = Column(String(50))
+    position = Column(String(50))
     romance_targets = Column(JSON, default=list)
     avatar_url = Column(String(500))
     created_at = Column(DateTime(timezone=True), server_default=func.now())

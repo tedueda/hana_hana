@@ -34,7 +34,7 @@ const SubscribeSuccessPage: React.FC = () => {
           localStorage.setItem('token', data.access_token);
           localStorage.setItem('user', JSON.stringify(data.user));
           localStorage.removeItem('anonymous');
-          window.location.href = '/feed';
+          window.location.href = '/matching/profile';
           return;
         } else if (data.status === 'kyc_required') {
           setError(t('subscribe.success.kyc_required', 'KYC本人確認が未完了のため、ログインできません。本人確認を完了してください。'));
@@ -54,7 +54,7 @@ const SubscribeSuccessPage: React.FC = () => {
   }, [searchParams, t]);
 
   const handleContinue = () => {
-    navigate('/feed');
+    navigate('/matching/profile');
   };
 
   const handleLogin = () => {
