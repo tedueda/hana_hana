@@ -1359,7 +1359,7 @@ const MatchingProfilePage: React.FC = () => {
                     <div className="flex flex-wrap gap-2">
                       {profile.romance_targets.map((target, idx) => (
                         <span key={idx} className="bg-gray-100 text-gray-800 px-3 py-1 rounded-full text-sm border border-gray-200">
-                          {t(`matching.romanceTargets.${ROMANCE_TARGET_KEYS[target]}`) || target}
+                          {target}
                         </span>
                       ))}
                     </div>

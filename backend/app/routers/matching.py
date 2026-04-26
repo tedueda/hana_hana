@@ -186,7 +186,7 @@ def update_my_profile(payload: dict, current_user: User = Depends(require_premiu
         if field in payload and hasattr(prof, field):
             setattr(prof, field, payload.get(field))
     # community_category が設定された場合、後方互換性のため identity にも同じ値をセット
-    if "community_category" in payload and hasattr(prof, 'community_category'):
+    if "community_category" in payload and payload.get("community_category") and hasattr(prof, 'community_category'):
         prof.identity = payload["community_category"]
     # hobbies
     if "hobbies" in payload and isinstance(payload["hobbies"], list):
