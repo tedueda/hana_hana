@@ -558,6 +558,27 @@ def run_migrations():
             db.rollback()
             print(f"⚠️ Failed updating founder_free kyc_status: {e}")
 
+        # One-time migration: Convert 2 test paid members to founder_free (invited via ref=Ca05)
+        # These users were registered for billing testing and should be treated as invited guests.
+        try:
+            result = db.execute(text(
+                "UPDATE users "
+                "SET membership_type = 'founder_free', "
+                "    is_founder_free_member = TRUE, "
+                "    referred_by_founder_code = 'Ca05' "
+                "WHERE email IN (:email1, :email2) "
+                "AND membership_type != 'founder_free'"
+            ), {"email1": "nichigetsu18@gmail.com", "email2": "ted@carat-community.com"})
+            affected = result.rowcount
+            db.commit()
+            if affected > 0:
+                print(f"✅ Converted {affected} test user(s) to founder_free (ref=Ca05)")
+            else:
+                print("✅ Test users already converted to founder_free or not found")
+        except Exception as e:
+            db.rollback()
+            print(f"⚠️ Failed converting test users to founder_free: {e}")
+
         # Migration 2: Add nationality column to matching_profiles table
         if _table_exists("matching_profiles"):
             result = db.execute(text("""
