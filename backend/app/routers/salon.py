@@ -39,6 +39,25 @@ def get_user_identity(user_id: int, db: Session) -> Optional[str]:
     return None
 
 
+_IDENTITY_EQUIVALENCES: List[set] = [
+    {'gay', 'ゲイ'},
+    {'lesbian', 'レズビアン', 'レズ'},
+    {'bisexual', 'バイセクシュアル', 'バイセクシャル'},
+    {'transgender', 'トランスジェンダー'},
+    {'questioning', 'クィア', 'クエスチョニング', 'queer'},
+    {'other', 'その他', 'ストレート・アライ'},
+]
+
+
+def _normalize_identity(value: str) -> set:
+    """Return the equivalence set containing *value* (case-insensitive)."""
+    low = value.strip().lower()
+    for group in _IDENTITY_EQUIVALENCES:
+        if low in {v.lower() for v in group}:
+            return group
+    return {value}
+
+
 def check_identity_match(user_identity: Optional[str], target_identities: List[str], is_logged_in: bool = True) -> bool:
     # 未ログインユーザーには全てのルームを表示（閲覧のみ）
     if not is_logged_in:
@@ -49,7 +68,15 @@ def check_identity_match(user_identity: Optional[str], target_identities: List[s
         return True
     if not user_identity:
         return False
-    return user_identity in target_identities
+    # Exact match first
+    if user_identity in target_identities:
+        return True
+    # Equivalence-based match (e.g. 'ゲイ' matches 'gay')
+    user_group = _normalize_identity(user_identity)
+    for tid in target_identities:
+        if _normalize_identity(tid) & user_group:
+            return True
+    return False
 
 
 @router.get("/rooms", response_model=List[SalonRoomSchema])
