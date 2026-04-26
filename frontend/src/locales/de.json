@@ -429,7 +429,7 @@
     "registrationRequired": "Registrierung erforderlich",
     "postRequiresMembership": "Sie müssen sich registrieren, um Beiträge zu erstellen.",
     "paidMemberCanPost": "Werden Sie zahlender Mitglied, um zu posten.",
-    "registerMonthly": "Registrieren (¥1.000/Monat)",
+    "registerMonthly": "Registrieren (¥770/Monat)",
     "premiumOnly": "Nur Premium-Mitglieder",
     "postRequiresPremium": "Sie müssen Premium-Mitglied sein, um Beiträge zu erstellen.",
     "premiumBenefits": "Premium-Vorteile",
@@ -437,7 +437,7 @@
     "benefitMatching": "Mitglieder-Matching-Funktion",
     "benefitSalon": "Mitglieder-Salon (Chatrooms)",
     "benefitDonation": "Spendensammlung und Verkäufe",
-    "monthlyPrice": "¥1.000/Monat - Jederzeit kündbar",
+    "monthlyPrice": "¥770/Monat - Jederzeit kündbar",
     "registerPremium": "Premium-Mitglied werden"
   },
   "matching": {
