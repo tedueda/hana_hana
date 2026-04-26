@@ -5,6 +5,7 @@ import { useLanguage } from '../contexts/LanguageContext';
 import { resilientFetch } from '../contexts/AuthContext';
 import { Eye, EyeOff } from 'lucide-react';
 import { getRefCodeFromCookie } from '../utils/referral';
+import { BACKEND_URL } from '../config';
 
 const COUNTRIES = [
   { code: 'JP', name: 'Japan' },
@@ -67,6 +68,16 @@ const LANGUAGES = [
   { code: 'de', name: 'Deutsch' }
 ];
 
+interface RefValidation {
+  valid: boolean;
+  reason?: string;
+  founder_code?: string;
+  founder_display_name?: string;
+  remaining?: number;
+  total?: number;
+  limit?: number;
+}
+
 const SubscribePage: React.FC = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -74,6 +85,21 @@ const SubscribePage: React.FC = () => {
   const { currentLanguage } = useLanguage();
   
   const canceled = searchParams.get('canceled') === 'true';
+  const refFromUrl = searchParams.get('ref');
+  const refFromCookie = getRefCodeFromCookie();
+  const refCode = refFromUrl || refFromCookie || null;
+
+  const [refValidation, setRefValidation] = useState<RefValidation | null>(null);
+
+  React.useEffect(() => {
+    if (!refCode) return;
+    fetch(`${BACKEND_URL}/api/referrals/validate?ref=${encodeURIComponent(refCode)}`)
+      .then((res) => res.json())
+      .then((data: RefValidation) => setRefValidation(data))
+      .catch(() => setRefValidation(null));
+  }, [refCode]);
+
+  const isFounderFree = !!(refCode && refValidation?.valid);
   
   const [formData, setFormData] = useState({
     email: '',
@@ -183,16 +209,20 @@ const SubscribePage: React.FC = () => {
               <img src="/images/logo02.png" alt="Carat Logo" className="h-16 w-auto" />
             </div>
             <h1 className="text-3xl font-bold text-black mb-2">
-              {t('subscribe.title')}
+              {isFounderFree ? t('subscribe.title_founder', '招待会員になる') : t('subscribe.title')}
             </h1>
             <p className="text-gray-500">
-              {t('subscribe.subtitle')}
+              {isFounderFree
+                ? t('subscribe.subtitle_founder', { defaultValue: '{{name}}さんからの紹介で無料登録できます', name: refValidation?.founder_display_name || '' })
+                : t('subscribe.subtitle')}
             </p>
-            <div className="mt-4 p-4 bg-gray-100 rounded-lg border border-gray-200">
-              <p className="text-2xl font-bold text-black">
-                ¥1,000<span className="text-sm font-normal text-gray-500">/{t('subscribe.per_month')}</span>
-              </p>
-            </div>
+            {!isFounderFree && (
+              <div className="mt-4 p-4 bg-gray-100 rounded-lg border border-gray-200">
+                <p className="text-2xl font-bold text-black">
+                  ¥1,000<span className="text-sm font-normal text-gray-500">/{t('subscribe.per_month')}</span>
+                </p>
+              </div>
+            )}
           </div>
           
           {canceled && (
