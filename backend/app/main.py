@@ -566,7 +566,8 @@ def run_migrations():
                 "SET membership_type = 'founder_free', "
                 "    is_founder_free_member = TRUE, "
                 "    subscription_exempt = TRUE, "
-                "    referred_by_founder_code = 'Ca05' "
+                "    referred_by_founder_code = 'Ca05', "
+                "    kyc_status = 'VERIFIED' "
                 "WHERE email IN (:email1, :email2) "
                 "AND membership_type != 'founder_free'"
             ), {"email1": "nichigetsu18@gmail.com", "email2": "ted@carat-community.com"})
