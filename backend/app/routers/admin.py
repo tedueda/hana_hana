@@ -125,13 +125,18 @@ def admin_me(current_user: User = Depends(get_current_admin_user)):
 
 # ──────────────── Users ────────────────
 
-def _is_profile_complete(mp) -> bool:
-    """Check if a matching profile has all required fields filled."""
+def _is_profile_complete(mp, user_display_name: str = "") -> bool:
+    """Check if a matching profile has all required fields filled.
+    
+    Required: display_name (from User), community_category, prefecture, age_band, meeting_style.
+    Note: display_name is on User model, not MatchingProfile.
+    """
     if mp is None:
         return False
     cat = getattr(mp, 'community_category', None) or getattr(mp, 'identity', None)
+    name = user_display_name or getattr(mp, 'nickname', None)
     return bool(
-        getattr(mp, 'display_name', None)
+        name
         and cat
         and getattr(mp, 'prefecture', None)
         and getattr(mp, 'age_band', None)
@@ -192,7 +197,7 @@ def list_users(
                 is_active=u.is_active,
                 community_category=getattr(profiles.get(u.id), 'community_category', None) or getattr(profiles.get(u.id), 'identity', None),
                 position=getattr(profiles.get(u.id), 'position', None),
-                profile_complete=_is_profile_complete(profiles.get(u.id)),
+                profile_complete=_is_profile_complete(profiles.get(u.id), u.display_name or ""),
             )
             for u in items
         ],
