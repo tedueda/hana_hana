@@ -495,13 +495,13 @@
     "communitySubtitle": "게시물과 매칭으로 당신의 이야기를 시작하세요.",
     "freeUserNote": "* 무료 회원은 사이트 전체 내용을 볼 수 있습니다. 게시물 작성이나 프리미엄 콘텐츠 열람에는 회원 등록이 필요합니다.",
     "createPost": "게시물 작성",
-    "registerButton": "회원 등록 (월 1,000엔)"
+    "registerButton": "회원 등록 (월 770엔)"
   },
   "membership": {
     "registrationRequired": "회원 가입이 필요합니다",
     "postRequiresMembership": "게시물을 작성하려면 회원 가입이 필요합니다.",
     "paidMemberCanPost": "유료 회원이 되면 게시할 수 있습니다.",
-    "registerMonthly": "회원 가입 (월 ¥1,000)",
+    "registerMonthly": "회원 가입 (월 ¥770)",
     "premiumOnly": "프리미엄 회원 전용",
     "postRequiresPremium": "게시물을 작성하려면 프리미엄 회원이어야 합니다.",
     "premiumBenefits": "프리미엄 혜택",
@@ -509,7 +509,7 @@
     "benefitMatching": "회원 매칭 기능",
     "benefitSalon": "회원 살롱 (채팅방)",
     "benefitDonation": "모금 및 상품 판매",
-    "monthlyPrice": "월 ¥1,000 - 언제든지 취소 가능",
+    "monthlyPrice": "월 ¥770 - 언제든지 취소 가능",
     "registerPremium": "프리미엄 회원 가입"
   },
   "matching": {

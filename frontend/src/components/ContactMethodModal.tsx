@@ -86,7 +86,7 @@ const ContactMethodModal: React.FC<ContactMethodModalProps> = ({
             <div className="text-4xl mb-4">💎</div>
             <h3 className="text-lg font-semibold mb-2">有料会員限定機能です</h3>
             <p className="text-gray-600 mb-6 text-sm">
-              出品者への問い合わせには有料会員登録（月額1,000円・税込）が必要です。
+              出品者への問い合わせには有料会員登録（月額770円・税込）が必要です。
             </p>
             <div className="flex gap-2">
               <Link

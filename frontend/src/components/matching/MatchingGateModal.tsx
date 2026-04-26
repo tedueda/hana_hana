@@ -15,7 +15,7 @@ const MatchingGateModal: React.FC<MatchingGateModalProps> = ({ open, onClose, on
       <div className="relative w-full max-w-md mx-4 bg-white rounded-2xl shadow-2xl p-6">
         <h2 className="text-lg font-bold text-gray-900 mb-2">マッチング機能は会員限定です</h2>
         <p className="text-sm text-gray-700 mb-4">
-          有料会員（月額1000円）でマッチングとチャットが無制限・追加料金なしでご利用できます。
+          有料会員（月額770円）でマッチングとチャットが無制限・追加料金なしでご利用できます。
           <br />
           <span className="text-xs text-gray-500">※登録後は即時ご利用いただけます。解約はいつでも可能です。</span>
         </p>

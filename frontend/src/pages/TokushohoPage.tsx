@@ -52,7 +52,7 @@ const TokushohoPage: React.FC = () => {
                 </tr>
                 <tr className="border-b border-gray-200">
                   <th className="py-4 px-4 md:px-6 text-left font-semibold text-gray-900 bg-gray-50 w-1/3 align-top whitespace-nowrap">販売価格（役務の対価）</th>
-                  <td className="py-4 px-4 md:px-6 text-gray-700">会員料金：月額1,000円（税込）</td>
+                  <td className="py-4 px-4 md:px-6 text-gray-700">会員料金：月額770円（税込）</td>
                 </tr>
                 <tr className="border-b border-gray-200">
                   <th className="py-4 px-4 md:px-6 text-left font-semibold text-gray-900 bg-gray-50 w-1/3 align-top whitespace-nowrap">商品代金以外の必要料金</th>

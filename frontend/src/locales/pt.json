@@ -429,7 +429,7 @@
     "registrationRequired": "Registro necessário",
     "postRequiresMembership": "Você precisa se registrar para criar publicações.",
     "paidMemberCanPost": "Torne-se um membro pago para publicar.",
-    "registerMonthly": "Registrar (¥1.000/mês)",
+    "registerMonthly": "Registrar (¥770/mês)",
     "premiumOnly": "Apenas membros premium",
     "postRequiresPremium": "Você precisa ser membro premium para criar publicações.",
     "premiumBenefits": "Benefícios premium",
@@ -437,7 +437,7 @@
     "benefitMatching": "Recurso de correspondência",
     "benefitSalon": "Salão de membros (salas de chat)",
     "benefitDonation": "Arrecadação de fundos e vendas",
-    "monthlyPrice": "¥1.000/mês - Cancele a qualquer momento",
+    "monthlyPrice": "¥770/mês - Cancele a qualquer momento",
     "registerPremium": "Tornar-se membro premium"
   },
   "matching": {
@@ -924,7 +924,7 @@
     "communitySubtitle": "Comece sua história com publicações e matching.",
     "freeUserNote": "* Membros gratuitos podem ver todo o conteúdo do site. É necessário registro para publicar ou acessar conteúdo premium.",
     "createPost": "Criar Publicação",
-    "registerButton": "Registrar (¥1,000/mês)"
+    "registerButton": "Registrar (¥770/mês)"
   },
   "jewelry": {
     "title": "Apenas Membros - Venda Especial de Joias",

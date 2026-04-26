@@ -63,7 +63,7 @@ const PremiumUpgradeModal: React.FC<PremiumUpgradeModalProps> = ({
           </ul>
         </div>
         <p className="text-xs text-gray-500 mb-4 text-center">
-          月額1,000円 ・ いつでも解約可能
+          月額770円 ・ いつでも解約可能
         </p>
         <div className="flex flex-col gap-2">
           <Button 

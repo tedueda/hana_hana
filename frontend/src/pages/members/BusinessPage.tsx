@@ -141,7 +141,7 @@ const BusinessPage: React.FC = () => {
               <div className="text-4xl mb-4">💼</div>
               <h3 className="text-lg font-semibold mb-2">出品は有料会員限定です</h3>
               <p className="text-gray-600 mb-6 text-sm">
-                ビジネス機能での出品には有料会員登録（月額1,000円・税込）が必要です。
+                ビジネス機能での出品には有料会員登録（月額770円・税込）が必要です。
               </p>
               <div className="flex gap-2">
                 <Link

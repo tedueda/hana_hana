@@ -278,7 +278,7 @@ const CreatePost: React.FC = () => {
                 onClick={() => navigate('/register')}
                 className="bg-black hover:bg-gray-800"
               >
-                会員登録（月額1,000円）
+                会員登録（月額770円）
               </Button>
               <Button 
                 onClick={() => navigate('/login')}
@@ -334,7 +334,7 @@ const CreatePost: React.FC = () => {
               </ul>
             </div>
             <p className="text-xs text-gray-500 mb-4">
-              月額1,000円 ・ いつでも解約可能
+              月額770円 ・ いつでも解約可能
             </p>
             <div className="flex flex-col gap-3">
               <Button 

@@ -123,7 +123,7 @@ const TermsPage: React.FC = () => {
             第8条（有料サービス・課金）
           </h2>
           <ol className="list-decimal list-outside pl-5 space-y-3 text-sm md:text-base leading-relaxed text-gray-700">
-            <li>会員は、当社所定の本人確認（eKYC）手続の完了後、当社が指定する決済サービス（<strong>Stripe</strong>）を通じて、<strong>月額1,000円（税込）</strong>の会費を支払うことで、有料サービスを利用できます。</li>
+            <li>会員は、当社所定の本人確認（eKYC）手続の完了後、当社が指定する決済サービス（<strong>Stripe</strong>）を通じて、<strong>月額770円（税込）</strong>の会費を支払うことで、有料サービスを利用できます。</li>
             <li>会費はサブスクリプション方式とし、解約手続が完了するまで、所定の更新日に自動更新されます。</li>
             <li>会員が更新日までに解約手続を完了しない場合、翌課金期間の会費が課金されます。</li>
             <li>課金期間の途中で解約した場合でも、当社は当該課金期間分の会費の返金を行いません。ただし、二重課金、システム障害等当社の責に帰すべき事由がある場合はこの限りではありません。</li>
