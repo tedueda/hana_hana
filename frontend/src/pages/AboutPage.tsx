@@ -55,6 +55,7 @@ const SALON_CATEGORY_TABS: { key: SalonCategoryFilter; label: string }[] = [
 
 function matchesSalonCategory(room: SalonRoom, category: SalonCategoryFilter, userCategory?: string | null): boolean {
   const ids = (room.target_identities || []).map(s => s.toLowerCase());
+  if (ids.length === 0) return true; // Rooms without target_identities are open to all
   const hasAll = ids.includes('all');
 
   if (category === 'recommended') {
@@ -748,7 +749,7 @@ const FIXED_FILTER_OPTIONS = {
                   {salonTotalPages > 1 && (
                     <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
                       <span className="text-sm text-gray-600">
-                        {safeSalonPage} / {salonTotalPages} ページ（全 {salonRooms.length} 件）
+                        {safeSalonPage} / {salonTotalPages} ページ（全 {filteredSalonRooms.length} 件）
                       </span>
                       <div className="flex gap-2">
                         <button
