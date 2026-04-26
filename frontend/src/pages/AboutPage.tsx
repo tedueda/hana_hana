@@ -357,8 +357,8 @@ const FIXED_FILTER_OPTIONS = {
       if (f.ageBand && (item.age_band || '') !== f.ageBand) return false;
       if (f.occupation && (item.occupation || '') !== f.occupation) return false;
       if (f.meetPref && (item.meet_pref || '') !== f.meetPref) return false;
-      // Get user's community category for "おすすめ" tab filtering
-      const userCategory = (user as any)?.community_category || (user as any)?.identity || '';
+      // Use userCommunityCategory (fetched from /api/matching/profiles/me) for "おすすめ" tab filtering
+      const userCategory = userCommunityCategory || '';
       return matchesIdentityFilter(item, f.identity, userCategory);
     });
   }, [
@@ -368,7 +368,7 @@ const FIXED_FILTER_OPTIONS = {
     matchingFilters.occupation,
     matchingFilters.meetPref,
     matchingFilters.identity,
-    user,
+    userCommunityCategory,
   ]);
 
   const matchingTotalPages = Math.max(1, Math.ceil(filteredMatchingItems.length / MATCHING_PAGE_SIZE));

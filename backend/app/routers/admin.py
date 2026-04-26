@@ -140,7 +140,7 @@ def _is_profile_complete(mp, user_display_name: str = "") -> bool:
         and cat
         and getattr(mp, 'prefecture', None)
         and getattr(mp, 'age_band', None)
-        and getattr(mp, 'meeting_style', None)
+        and (getattr(mp, 'meeting_style', None) or getattr(mp, 'meet_pref', None))
     )
 
 class UserListItem(BaseModel):
