@@ -485,13 +485,13 @@
     "communitySubtitle": "Start your story with posts and matching.",
     "freeUserNote": "* Free members can view all site content. Registration is required to post or access premium content.",
     "createPost": "Create Post",
-    "registerButton": "Register (¥1,000/month)"
+    "registerButton": "Register (¥770/month)"
   },
   "membership": {
     "registrationRequired": "Registration required",
     "postRequiresMembership": "You need to register to create posts.",
     "paidMemberCanPost": "Become a paid member to post.",
-    "registerMonthly": "Register (¥1,000/month)",
+    "registerMonthly": "Register (¥770/month)",
     "premiumOnly": "Premium members only",
     "postRequiresPremium": "You need to be a premium member to create posts.",
     "premiumBenefits": "Premium benefits",
@@ -499,7 +499,7 @@
     "benefitMatching": "Member matching feature",
     "benefitSalon": "Member salon (chat rooms)",
     "benefitDonation": "Fundraising & product sales",
-    "monthlyPrice": "¥1,000/month - Cancel anytime",
+    "monthlyPrice": "¥770/month - Cancel anytime",
     "registerPremium": "Become a premium member"
   },
   "matching": {

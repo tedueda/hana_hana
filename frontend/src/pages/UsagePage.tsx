@@ -99,7 +99,7 @@ const UsagePage: React.FC = () => {
             </li>
             <li className="flex items-start gap-2">
               <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-gray-400 shrink-0" />
-              <span><strong>投稿・コメント・チャット・サロン参加は会員（月額1,000円・税込）限定</strong>です。</span>
+              <span><strong>投稿・コメント・チャット・サロン参加は会員（月額770円・税込）限定</strong>です。</span>
             </li>
             <li className="flex items-start gap-2">
               <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-gray-400 shrink-0" />
@@ -149,7 +149,7 @@ const UsagePage: React.FC = () => {
             </div>
 
             <div className="mt-5 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-              <h3 className="text-lg font-semibold text-gray-900">会員（月額1,000円・税込）でできること</h3>
+              <h3 className="text-lg font-semibold text-gray-900">会員（月額770円・税込）でできること</h3>
               <ul className="mt-4 space-y-2 text-gray-700 text-sm md:text-base">
                 <li className="flex items-start gap-2">
                   <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-gray-400 shrink-0" />
@@ -179,7 +179,7 @@ const UsagePage: React.FC = () => {
           <ol className="mt-6 space-y-4 text-gray-700 text-sm md:text-base leading-relaxed list-decimal list-inside">
             <li>「新規会員登録」から必要事項を入力してください。</li>
             <li>登録時に <strong>eKYC（オンライン本人確認）</strong> を行います。顔認証ができる本人確認書類（運転免許証・マイナンバーカード・パスポート等）を案内に沿って読み取ってください。通常は<strong>数分程度</strong>で完了します。</li>
-            <li>会員機能をご利用の場合は、<strong>月額1,000円（税込）</strong>のサブスクリプションをクレジットカードで決済してください。</li>
+            <li>会員機能をご利用の場合は、<strong>月額770円（税込）</strong>のサブスクリプションをクレジットカードで決済してください。</li>
             <li>決済が完了すると、会員向け機能が利用可能になります。</li>
             <li>公開できる範囲でプロフィールを入力してください。</li>
             <li><strong>センシティブな個人情報（住所・勤務先・本名等）の公開は推奨しません。</strong></li>

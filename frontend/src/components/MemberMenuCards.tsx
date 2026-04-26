@@ -131,7 +131,7 @@ const MemberMenuCards: React.FC = () => {
               <>
                 <p className="text-sm text-gray-700 mb-6 text-center leading-relaxed">
                   この機能をご利用いただくには、<br />
-                  有料会員登録（月額1,000円・税込）が必要です。
+                  有料会員登録（月額770円・税込）が必要です。
                 </p>
                 <div className="flex flex-col gap-2">
                   <Button
@@ -156,7 +156,7 @@ const MemberMenuCards: React.FC = () => {
               <>
                 <p className="text-sm text-gray-700 mb-6 text-center leading-relaxed">
                   ご利用にはログインのうえ、<br />
-                  会員登録（月額1,000円・税込）が必要です。
+                  会員登録（月額770円・税込）が必要です。
                 </p>
                 <div className="flex flex-col gap-2">
                   <Button

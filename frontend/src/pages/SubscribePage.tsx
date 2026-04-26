@@ -219,7 +219,7 @@ const SubscribePage: React.FC = () => {
             {!isFounderFree && (
               <div className="mt-4 p-4 bg-gray-100 rounded-lg border border-gray-200">
                 <p className="text-2xl font-bold text-black">
-                  ¥1,000<span className="text-sm font-normal text-gray-500">/{t('subscribe.per_month')}</span>
+                  ¥770<span className="text-sm font-normal text-gray-500">/{t('subscribe.per_month')}</span>
                 </p>
               </div>
             )}

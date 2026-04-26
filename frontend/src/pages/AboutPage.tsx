@@ -755,7 +755,7 @@ const FIXED_FILTER_OPTIONS = {
                   の3つの機能で構成された会員制LGBTQ+コミュニティです。
                 </p>
                 <p className="mt-4 text-gray-700">
-                  月会費1000円（税込）でご利用いただけます。
+                  月会費770円（税込）でご利用いただけます。
                 </p>
                 <p className="mt-4 text-gray-700">ビジネス機能は手数料不要です。</p>
                 <p className="mt-1 text-gray-700">会員同士で直接やり取りしてください。</p>
@@ -879,7 +879,7 @@ const FIXED_FILTER_OPTIONS = {
               </div>
               <h3 className="text-lg font-semibold mb-2">この機能は有料会員専用です</h3>
               <p className="text-gray-600 mb-6 text-sm">
-                プロフィール詳細の閲覧には有料会員登録（月額1,000円・税込）が必要です。
+                プロフィール詳細の閲覧には有料会員登録（月額770円・税込）が必要です。
               </p>
               <div className="flex gap-2">
                 <Link
