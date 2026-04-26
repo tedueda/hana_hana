@@ -581,6 +581,31 @@ def run_migrations():
             db.rollback()
             print(f"⚠️ Failed converting test users to founder_free: {e}")
 
+        # One-time cleanup: Delete 9 Ca05 test referral records (all test registrations)
+        try:
+            result = db.execute(text(
+                "DELETE FROM referrals "
+                "WHERE founder_code = 'Ca05' "
+                "AND user_id IN ("
+                "  SELECT id FROM users WHERE email IN ("
+                "    :e1, :e2, :e3"
+                "  )"
+                ")"
+            ), {
+                "e1": "tedueda@icloud.com",
+                "e2": "tedueda@ezweb.ne.jp",
+                "e3": "studioq0804@gmail.com"
+            })
+            affected = result.rowcount
+            db.commit()
+            if affected > 0:
+                print(f"✅ Deleted {affected} Ca05 test referral record(s)")
+            else:
+                print("✅ Ca05 test referral records already cleaned up or not found")
+        except Exception as e:
+            db.rollback()
+            print(f"⚠️ Failed cleaning up Ca05 test referrals: {e}")
+
         # Migration 2: Add nationality column to matching_profiles table
         if _table_exists("matching_profiles"):
             result = db.execute(text("""

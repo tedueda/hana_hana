@@ -1108,7 +1108,7 @@ const ReferralListTab: React.FC<{ token: string }> = ({ token }) => {
                           ? 'bg-blue-100 text-blue-700'
                           : 'bg-gray-100 text-gray-700'
                     }`}>
-                      {r.membership_type === 'founder_free' ? '創業無料' : r.membership_type === 'premium' ? '有料' : r.membership_type}
+                      {r.membership_type === 'founder_free' ? '招待無料' : r.membership_type === 'premium' ? '有料' : r.membership_type}
                     </span>
                   </TableCell>
                   <TableCell>
