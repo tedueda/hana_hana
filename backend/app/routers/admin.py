@@ -19,7 +19,7 @@ from slowapi.util import get_remote_address
 
 from app.database import get_db
 from app.auth import get_current_admin_user, verify_password, create_access_token, get_password_hash
-from app.models import User, BlogPost, BlogPostTranslation, AuditLog, Founder, Referral
+from app.models import User, BlogPost, BlogPostTranslation, AuditLog, Founder, Referral, MatchingProfile
 
 logger = logging.getLogger(__name__)
 
@@ -125,6 +125,24 @@ def admin_me(current_user: User = Depends(get_current_admin_user)):
 
 # ──────────────── Users ────────────────
 
+def _is_profile_complete(mp, user_display_name: str = "") -> bool:
+    """Check if a matching profile has all required fields filled.
+    
+    Required: display_name (from User), community_category, prefecture, age_band, meeting_style.
+    Note: display_name is on User model, not MatchingProfile.
+    """
+    if mp is None:
+        return False
+    cat = getattr(mp, 'community_category', None) or getattr(mp, 'identity', None)
+    name = user_display_name or getattr(mp, 'nickname', None)
+    return bool(
+        name
+        and cat
+        and getattr(mp, 'prefecture', None)
+        and getattr(mp, 'age_band', None)
+        and (getattr(mp, 'meeting_style', None) or getattr(mp, 'meet_pref', None))
+    )
+
 class UserListItem(BaseModel):
     id: int
     email: str
@@ -133,6 +151,9 @@ class UserListItem(BaseModel):
     payment_status: Optional[str] = None
     subscription_status: Optional[str] = None
     is_active: bool = True
+    community_category: Optional[str] = None
+    position: Optional[str] = None
+    profile_complete: bool = False
 
 class UserListResponse(BaseModel):
     items: List[UserListItem]
@@ -158,6 +179,12 @@ def list_users(
         q = q.filter(User.subscription_status == status_filter)
     total = q.count()
     items = q.order_by(User.created_at.desc()).offset((page - 1) * page_size).limit(page_size).all()
+    # Batch-fetch matching profiles for these users
+    user_ids = [u.id for u in items]
+    profiles = {}
+    if user_ids:
+        for mp in db.query(MatchingProfile).filter(MatchingProfile.user_id.in_(user_ids)).all():
+            profiles[mp.user_id] = mp
     return UserListResponse(
         items=[
             UserListItem(
@@ -168,6 +195,9 @@ def list_users(
                 payment_status=getattr(u, "payment_status", None),
                 subscription_status=u.subscription_status,
                 is_active=u.is_active,
+                community_category=getattr(profiles.get(u.id), 'community_category', None) or getattr(profiles.get(u.id), 'identity', None),
+                position=getattr(profiles.get(u.id), 'position', None),
+                profile_complete=_is_profile_complete(profiles.get(u.id), u.display_name or ""),
             )
             for u in items
         ],

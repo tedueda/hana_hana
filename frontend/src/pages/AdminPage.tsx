@@ -117,6 +117,9 @@ interface UserItem {
   payment_status: string | null;
   subscription_status: string | null;
   is_active: boolean;
+  community_category: string | null;
+  position: string | null;
+  profile_complete: boolean;
 }
 
 const UserManagementTab: React.FC<{ token: string }> = ({ token }) => {
@@ -197,6 +200,9 @@ const UserManagementTab: React.FC<{ token: string }> = ({ token }) => {
             <TableRow>
               <TableHead>表示名</TableHead>
               <TableHead>メール</TableHead>
+              <TableHead>カテゴリー</TableHead>
+              <TableHead>ポジション</TableHead>
+              <TableHead>プロフィール</TableHead>
               <TableHead>登録日</TableHead>
               <TableHead>決済状態</TableHead>
               <TableHead className="w-16"></TableHead>
@@ -204,14 +210,21 @@ const UserManagementTab: React.FC<{ token: string }> = ({ token }) => {
           </TableHeader>
           <TableBody>
             {loading ? (
-              <TableRow><TableCell colSpan={5} className="text-center py-8 text-gray-500">読み込み中...</TableCell></TableRow>
+              <TableRow><TableCell colSpan={8} className="text-center py-8 text-gray-500">読み込み中...</TableCell></TableRow>
             ) : users.length === 0 ? (
-              <TableRow><TableCell colSpan={5} className="text-center py-8 text-gray-500">ユーザーが見つかりません</TableCell></TableRow>
+              <TableRow><TableCell colSpan={8} className="text-center py-8 text-gray-500">ユーザーが見つかりません</TableCell></TableRow>
             ) : (
               users.map(u => (
                 <TableRow key={u.id}>
                   <TableCell className="font-medium">{u.display_name}</TableCell>
                   <TableCell className="text-sm text-gray-600">{u.email}</TableCell>
+                  <TableCell className="text-sm text-gray-600">{u.community_category || '-'}</TableCell>
+                  <TableCell className="text-sm text-gray-600">{u.position || '-'}</TableCell>
+                  <TableCell>
+                    <span className={`text-xs px-2 py-1 rounded-full ${u.profile_complete ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}`}>
+                      {u.profile_complete ? '完成' : '未完成'}
+                    </span>
+                  </TableCell>
                   <TableCell className="text-sm text-gray-600">
                     {u.created_at ? new Date(u.created_at).toLocaleDateString('ja-JP') : '-'}
                   </TableCell>

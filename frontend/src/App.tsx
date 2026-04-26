@@ -1,7 +1,7 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { API_URL } from '@/config';
-import { BrowserRouter as Router, Routes, Route, Navigate, useParams, useLocation, useSearchParams } from 'react-router-dom';
-import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { BrowserRouter as Router, Routes, Route, Navigate, useParams, useLocation, useSearchParams, useNavigate } from 'react-router-dom';
+import { AuthProvider, useAuth, resilientFetch } from './contexts/AuthContext';
 import { LanguageProvider } from './contexts/LanguageContext';
 import Header from './components/Header';
 import Footer from './components/Footer';
@@ -119,6 +119,49 @@ function ScrollToTop() {
   return null;
 }
 
+/**
+ * ProfileCompletionGuard: checks if logged-in user has a complete matching profile.
+ * Required fields: display_name, community_category, prefecture, age_band, meeting_style
+ * If incomplete, redirects to /matching/profile once per session.
+ */
+function ProfileCompletionGuard() {
+  const { user, token } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const checkedRef = useRef(false);
+  const [, setReady] = useState(false);
+
+  useEffect(() => {
+    if (!user || !token || checkedRef.current) return;
+    // Skip check on auth/registration/profile pages
+    const skip = ['/login', '/register', '/subscribe', '/kyc', '/verify', '/admin', '/matching/profile', '/email-verification'];
+    if (skip.some(p => location.pathname.startsWith(p))) return;
+
+    checkedRef.current = true;
+
+    const checkProfile = async () => {
+      try {
+        const res = await resilientFetch('/api/matching/profiles/me', {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (res.ok) {
+          const profile = await res.json();
+          const isComplete = !!(profile.display_name && profile.community_category && profile.prefecture && profile.age_band && profile.meeting_style);
+          if (!isComplete) {
+            navigate('/matching/profile', { replace: true });
+            return;
+          }
+        }
+      } catch { /* ignore - profile may not exist yet */ }
+      setReady(true);
+    };
+
+    checkProfile();
+  }, [user, token, location.pathname, navigate]);
+
+  return null;
+}
+
 function AppContent() {
   const location = useLocation();
   const isHome = location.pathname === '/' || location.pathname === '/feed';
@@ -126,6 +169,7 @@ function AppContent() {
     <div className="min-h-screen bg-white">
       <Header />
       <ScrollToTop />
+      <ProfileCompletionGuard />
       <GlobalAudioPlayer />
       <ReferralTracker />
       <main className={`bg-white ${isHome ? '' : 'pt-40 md:pt-32'}`}>

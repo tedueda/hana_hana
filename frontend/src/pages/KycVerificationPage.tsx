@@ -116,9 +116,9 @@ const KycVerificationPage: React.FC = () => {
   }, [startVerification]);
 
   const handleContinueAfterKyc = async () => {
-    // Founder free members skip payment and go directly to home
+    // Founder free members skip payment and go directly to profile edit
     if (isFounderFree) {
-      navigate('/');
+      navigate('/matching/profile');
       return;
     }
 

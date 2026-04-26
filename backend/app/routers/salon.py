@@ -15,7 +15,8 @@ router = APIRouter(prefix="/api/salon", tags=["salon"])
 
 VALID_IDENTITIES = [
     'gay', 'lesbian', 'bisexual', 'transgender', 'questioning', 'other',
-    'ゲイ', 'レズビアン', 'バイセクシュアル', 'トランスジェンダー', 'クエスチョニング', 'その他',
+    'ゲイ', 'レズ', 'レズビアン', 'バイセクシュアル', 'バイセクシャル', 'トランスジェンダー', 'クエスチョニング', 'クィア',
+    'ストレート・アライ', 'その他', '非公開', '男性', '女性', '非表示',
     'ALL'
 ]
 
@@ -28,9 +29,33 @@ def require_premium(current_user: User = Depends(get_current_active_user)) -> Us
 
 def get_user_identity(user_id: int, db: Session) -> Optional[str]:
     matching_profile = db.query(MatchingProfile).filter(MatchingProfile.user_id == user_id).first()
-    if matching_profile and matching_profile.identity:
-        return matching_profile.identity
+    if matching_profile:
+        # Prefer community_category over legacy identity field
+        cat = getattr(matching_profile, 'community_category', None)
+        if cat:
+            return cat
+        if matching_profile.identity:
+            return matching_profile.identity
     return None
+
+
+_IDENTITY_EQUIVALENCES: List[set] = [
+    {'gay', 'ゲイ'},
+    {'lesbian', 'レズビアン', 'レズ'},
+    {'bisexual', 'バイセクシュアル', 'バイセクシャル'},
+    {'transgender', 'トランスジェンダー'},
+    {'questioning', 'クィア', 'クエスチョニング', 'queer'},
+    {'other', 'その他', 'ストレート・アライ'},
+]
+
+
+def _normalize_identity(value: str) -> set:
+    """Return the equivalence set containing *value* (case-insensitive)."""
+    low = value.strip().lower()
+    for group in _IDENTITY_EQUIVALENCES:
+        if low in {v.lower() for v in group}:
+            return group
+    return {value}
 
 
 def check_identity_match(user_identity: Optional[str], target_identities: List[str], is_logged_in: bool = True) -> bool:
@@ -43,7 +68,15 @@ def check_identity_match(user_identity: Optional[str], target_identities: List[s
         return True
     if not user_identity:
         return False
-    return user_identity in target_identities
+    # Exact match first
+    if user_identity in target_identities:
+        return True
+    # Equivalence-based match (e.g. 'ゲイ' matches 'gay')
+    user_group = _normalize_identity(user_identity)
+    for tid in target_identities:
+        if _normalize_identity(tid) & user_group:
+            return True
+    return False
 
 
 @router.get("/rooms", response_model=List[SalonRoomSchema])

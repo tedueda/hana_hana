@@ -96,18 +96,18 @@ const MatchingSearchPage: React.FC = () => {
       } else if (segment === 'lesbian') {
         fetchedItems = fetchedItems.filter(it => {
           if (it.romance_targets && it.romance_targets.length > 0) {
-            return it.romance_targets.includes('レズ');
+            return it.romance_targets.includes('レズ') || it.romance_targets.includes('レズビアン');
           }
-          // フォールバック: identityで判定
-          return it.identity === 'レズ';
+          // フォールバック: identityで判定（レズ or レズビアン、マイグレーション後）
+          return it.identity === 'レズ' || it.identity === 'レズビアン';
         });
       } else if (segment === 'other') {
         fetchedItems = fetchedItems.filter(it => {
           if (it.romance_targets && it.romance_targets.length > 0) {
-            return !it.romance_targets.includes('ゲイ') && !it.romance_targets.includes('レズ');
+            return !it.romance_targets.includes('ゲイ') && !it.romance_targets.includes('レズ') && !it.romance_targets.includes('レズビアン');
           }
           // フォールバック: identityで判定
-          return it.identity !== 'ゲイ' && it.identity !== 'レズ';
+          return it.identity !== 'ゲイ' && it.identity !== 'レズ' && it.identity !== 'レズビアン';
         });
       }
       

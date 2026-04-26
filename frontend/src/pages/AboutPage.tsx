@@ -40,23 +40,74 @@ const ROOM_TYPE_LABELS: Record<string, string> = {
 const MATCHING_PAGE_SIZE = 20;
 const SALON_PAGE_SIZE = 20;
 
-function matchesIdentityFilter(item: MatchingCardItem, identity: IdentityFilter): boolean {
+type SalonCategoryFilter = 'recommended' | 'all_exchange' | 'gay' | 'lesbian' | 'bisexual' | 'transgender' | 'queer' | 'ally_other';
+
+const SALON_CATEGORY_TABS: { key: SalonCategoryFilter; label: string }[] = [
+  { key: 'recommended', label: 'おすすめ' },
+  { key: 'all_exchange', label: '全体交流' },
+  { key: 'gay', label: 'ゲイ' },
+  { key: 'lesbian', label: 'レズビアン' },
+  { key: 'bisexual', label: 'バイ' },
+  { key: 'transgender', label: 'トランス' },
+  { key: 'queer', label: 'クィア' },
+  { key: 'ally_other', label: 'アライ・その他' },
+];
+
+function matchesSalonCategory(room: SalonRoom, category: SalonCategoryFilter, userCategory?: string | null): boolean {
+  const ids = (room.target_identities || []).map(s => s.toLowerCase());
+  if (ids.length === 0) return true; // Rooms without target_identities are open to all
+  const hasAll = ids.includes('all');
+
+  if (category === 'recommended') {
+    if (!userCategory || userCategory === '非公開' || userCategory === '非表示') return true;
+    const cat = userCategory.trim().toLowerCase();
+    return hasAll || ids.some(id =>
+      id === cat ||
+      (cat === 'ゲイ' || cat === 'gay' ? (id === 'ゲイ' || id === 'gay') :
+       cat === 'レズビアン' || cat === 'レズ' || cat === 'lesbian' ? (id === 'レズビアン' || id === 'レズ' || id === 'lesbian') :
+       cat === 'バイセクシュアル' || cat === 'バイセクシャル' || cat === 'bisexual' ? (id === 'バイセクシュアル' || id === 'バイセクシャル' || id === 'bisexual') :
+       cat === 'トランスジェンダー' || cat === 'transgender' ? (id === 'トランスジェンダー' || id === 'transgender') :
+       cat === 'クィア' || cat === 'queer' ? (id === 'クィア' || id === 'queer') :
+       cat === 'ストレート・アライ' ? (id === 'ストレート・アライ' || id === 'その他' || id === 'other') :
+       false)
+    );
+  }
+  if (category === 'all_exchange') return hasAll;
+  if (category === 'gay') return ids.some(id => id === 'ゲイ' || id === 'gay');
+  if (category === 'lesbian') return ids.some(id => id === 'レズビアン' || id === 'レズ' || id === 'lesbian');
+  if (category === 'bisexual') return ids.some(id => id === 'バイセクシュアル' || id === 'バイセクシャル' || id === 'bisexual');
+  if (category === 'transgender') return ids.some(id => id === 'トランスジェンダー' || id === 'transgender');
+  if (category === 'queer') return ids.some(id => id === 'クィア' || id === 'queer');
+  if (category === 'ally_other') return ids.some(id => id === 'ストレート・アライ' || id === 'その他' || id === 'other' || id === '男性' || id === '女性');
+  return true;
+}
+
+function matchesIdentityFilter(item: MatchingCardItem, identity: IdentityFilter, userCategory?: string): boolean {
   if (identity === 'all') return true;
-  const id = (item.identity || '').trim();
+  const id = ((item as any).community_category || item.identity || '').trim();
   const idLower = id.toLowerCase();
-  if (identity === 'lesbian') {
-    return id === 'レズ' || id === 'レズビアン' || idLower === 'lesbian';
+
+  // 「おすすめ」タブ: ユーザー自身のカテゴリーに合致するものを表示
+  if (identity === 'recommended') {
+    if (!userCategory || userCategory === '非公開' || userCategory === '非表示') return true;
+    const cat = userCategory.trim();
+    // Match user's category
+    if (cat === 'ゲイ' || cat.toLowerCase() === 'gay') return id === 'ゲイ' || idLower === 'gay';
+    if (cat === 'レズビアン' || cat === 'レズ' || cat.toLowerCase() === 'lesbian') return id === 'レズビアン' || id === 'レズ' || idLower === 'lesbian';
+    if (cat === 'バイセクシュアル' || cat === 'バイセクシャル' || cat.toLowerCase() === 'bisexual') return id === 'バイセクシュアル' || id === 'バイセクシャル' || idLower === 'bisexual';
+    if (cat === 'トランスジェンダー' || cat.toLowerCase() === 'transgender') return id === 'トランスジェンダー' || idLower === 'transgender';
+    if (cat === 'クィア' || cat.toLowerCase() === 'queer') return id === 'クィア' || idLower === 'queer';
+    if (cat === 'ストレート・アライ') return id === 'ストレート・アライ' || id === 'その他' || idLower === 'other' || idLower === 'ally';
+    return true; // Default show all
   }
-  if (identity === 'gay') {
-    return id === 'ゲイ' || idLower === 'gay';
-  }
-  return (
-    id !== 'ゲイ' &&
-    idLower !== 'gay' &&
-    id !== 'レズ' &&
-    id !== 'レズビアン' &&
-    idLower !== 'lesbian'
-  );
+
+  if (identity === 'gay') return id === 'ゲイ' || idLower === 'gay';
+  if (identity === 'lesbian') return id === 'レズビアン' || id === 'レズ' || idLower === 'lesbian';
+  if (identity === 'bisexual') return id === 'バイセクシュアル' || id === 'バイセクシャル' || idLower === 'bisexual';
+  if (identity === 'transgender') return id === 'トランスジェンダー' || idLower === 'transgender';
+  if (identity === 'queer') return id === 'クィア' || idLower === 'queer';
+  if (identity === 'ally_other') return id === 'ストレート・アライ' || id === 'その他' || id === '男性' || id === '女性' || idLower === 'other' || idLower === 'ally' || idLower === 'male' || idLower === 'female';
+  return true;
 }
 
 const AboutPage: React.FC = () => {
@@ -90,6 +141,8 @@ const AboutPage: React.FC = () => {
   const [salonRoomType, setSalonRoomType] = useState<string | null>(null);
   const [salonViewMode, setSalonViewMode] = useState<'card' | 'list'>('card');
   const [salonPage, setSalonPage] = useState(1);
+  const [salonCategoryFilter, setSalonCategoryFilter] = useState<SalonCategoryFilter>('recommended');
+  const [userCommunityCategory, setUserCommunityCategory] = useState<string | null>(null);
 
   // Login modal state
   const [showLoginModal, setShowLoginModal] = useState(false);
@@ -305,7 +358,9 @@ const FIXED_FILTER_OPTIONS = {
       if (f.ageBand && (item.age_band || '') !== f.ageBand) return false;
       if (f.occupation && (item.occupation || '') !== f.occupation) return false;
       if (f.meetPref && (item.meet_pref || '') !== f.meetPref) return false;
-      return matchesIdentityFilter(item, f.identity);
+      // Use userCommunityCategory (fetched from /api/matching/profiles/me) for "おすすめ" tab filtering
+      const userCategory = userCommunityCategory || '';
+      return matchesIdentityFilter(item, f.identity, userCategory);
     });
   }, [
     matchingItems,
@@ -314,6 +369,7 @@ const FIXED_FILTER_OPTIONS = {
     matchingFilters.occupation,
     matchingFilters.meetPref,
     matchingFilters.identity,
+    userCommunityCategory,
   ]);
 
   const matchingTotalPages = Math.max(1, Math.ceil(filteredMatchingItems.length / MATCHING_PAGE_SIZE));
@@ -348,19 +404,41 @@ const FIXED_FILTER_OPTIONS = {
     }
   };
 
+  // Fetch user's community category for "おすすめ" tab
+  useEffect(() => {
+    if (!token) return;
+    const fetchUserCategory = async () => {
+      try {
+        const res = await resilientFetch('/api/matching/profiles/me', {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setUserCommunityCategory(data.community_category || data.identity || null);
+        }
+      } catch { /* ignore */ }
+    };
+    fetchUserCategory();
+  }, [token]);
+
   // Reset salon page when filter changes
   useEffect(() => {
     setSalonPage(1);
-  }, [salonRoomType]);
+  }, [salonRoomType, salonCategoryFilter]);
 
-  const salonTotalPages = Math.max(1, Math.ceil(salonRooms.length / SALON_PAGE_SIZE));
+  // Filter salon rooms by category
+  const filteredSalonRooms = useMemo(() => {
+    return salonRooms.filter(room => matchesSalonCategory(room, salonCategoryFilter, userCommunityCategory));
+  }, [salonRooms, salonCategoryFilter, userCommunityCategory]);
+
+  const salonTotalPages = Math.max(1, Math.ceil(filteredSalonRooms.length / SALON_PAGE_SIZE));
 
   useEffect(() => {
     setSalonPage((p) => Math.min(p, salonTotalPages));
   }, [salonTotalPages]);
 
   const safeSalonPage = Math.min(salonPage, salonTotalPages);
-  const paginatedSalonRooms = salonRooms.slice(
+  const paginatedSalonRooms = filteredSalonRooms.slice(
     (safeSalonPage - 1) * SALON_PAGE_SIZE,
     safeSalonPage * SALON_PAGE_SIZE,
   );
@@ -467,7 +545,7 @@ const FIXED_FILTER_OPTIONS = {
                       <>
                         <p className="text-lg font-medium text-gray-600">ユーザーが見つかりません</p>
                         <p className="mt-2 text-sm text-gray-500">
-                          条件検索の各項目を「すべて」に戻すか、別の性自認タブに相当する条件をお試しください。
+                          条件検索の各項目を「すべて」に戻すか、別のカテゴリータブをお試しください。
                         </p>
                         <button
                           type="button"
@@ -490,6 +568,26 @@ const FIXED_FILTER_OPTIONS = {
               <div className="mb-6">
                 <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">会員サロン</h2>
                 <p className="text-gray-600">安心して交流できる場所 - テーマ別のチャットルームで自由に交流できます</p>
+              </div>
+
+              {/* サロン カテゴリータブ */}
+              <div className="rounded-xl border border-gray-200 bg-white px-4 py-3 shadow-sm sm:px-5 mb-6">
+                <h3 className="mb-3 text-sm font-semibold text-gray-900">コミュニティ別に見る</h3>
+                <div className="flex flex-wrap gap-2">
+                  {SALON_CATEGORY_TABS.map((tab) => (
+                    <button
+                      key={tab.key}
+                      onClick={() => setSalonCategoryFilter(tab.key)}
+                      className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                        salonCategoryFilter === tab.key
+                          ? 'bg-black text-white'
+                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      }`}
+                    >
+                      {tab.label}
+                    </button>
+                  ))}
+                </div>
               </div>
 
               {/* Room type filter + view toggle */}
@@ -551,7 +649,7 @@ const FIXED_FILTER_OPTIONS = {
                 <div className="flex items-center justify-center py-12">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
                 </div>
-              ) : salonRooms.length > 0 ? (
+              ) : filteredSalonRooms.length > 0 ? (
                 <>
                   {salonViewMode === 'card' ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -651,7 +749,7 @@ const FIXED_FILTER_OPTIONS = {
                   {salonTotalPages > 1 && (
                     <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
                       <span className="text-sm text-gray-600">
-                        {safeSalonPage} / {salonTotalPages} ページ（全 {salonRooms.length} 件）
+                        {safeSalonPage} / {salonTotalPages} ページ（全 {filteredSalonRooms.length} 件）
                       </span>
                       <div className="flex gap-2">
                         <button
