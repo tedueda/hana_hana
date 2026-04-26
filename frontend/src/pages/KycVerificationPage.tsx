@@ -190,16 +190,20 @@ const KycVerificationPage: React.FC = () => {
                   {t('kyc.page.complete_title')}
                 </h1>
                 <p className="text-gray-600 mb-6">
-                  {t('kyc.page.complete_message')}
+                  {isFounderFree
+                    ? '本人確認が完了しました。ホームへ進んでください。'
+                    : t('kyc.page.complete_message')}
                 </p>
-                <div className="bg-gray-100 rounded-lg p-4 mb-6 border border-gray-200">
-                  <h3 className="text-black font-semibold mb-2">
-                    {t('kyc.page.next_step_title')}
-                  </h3>
-                  <p className="text-gray-600 text-sm">
-                    {t('kyc.page.next_step_message')}
-                  </p>
-                </div>
+                {!isFounderFree && (
+                  <div className="bg-gray-100 rounded-lg p-4 mb-6 border border-gray-200">
+                    <h3 className="text-black font-semibold mb-2">
+                      {t('kyc.page.next_step_title')}
+                    </h3>
+                    <p className="text-gray-600 text-sm">
+                      {t('kyc.page.next_step_message')}
+                    </p>
+                  </div>
+                )}
                 <button
                   onClick={handleContinueAfterKyc}
                   className="w-full py-4 bg-black hover:bg-gray-800 text-white font-bold rounded-lg transition-all duration-200"
