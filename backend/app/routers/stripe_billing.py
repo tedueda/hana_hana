@@ -342,11 +342,46 @@ async def verify_email(
             detail="INVALID_TOKEN"
         )
 
-    # Token hash found but email already verified (re-click of verification link)
+    # Token hash found but email already verified (re-click of verification link).
+    # Allow re-click within 1-hour window so user can continue to KYC.
     if user.email_verified:
+        # Check re-click window (email_verification_expires repurposed as re-click deadline)
+        if user.email_verification_expires:
+            expires_naive = user.email_verification_expires.replace(tzinfo=None) if user.email_verification_expires.tzinfo else user.email_verification_expires
+            if expires_naive < datetime.utcnow():
+                # Window expired — clear token hash to prevent further use
+                user.email_verification_token_hash = None
+                user.email_verification_expires = None
+                db.commit()
+                return {
+                    "status": "already_verified",
+                    "message": "このメールアドレスは既に確認済みです。ログインしてください。",
+                }
+        else:
+            # No expiry set (legacy data) — clear token hash, require login
+            user.email_verification_token_hash = None
+            db.commit()
+            return {
+                "status": "already_verified",
+                "message": "このメールアドレスは既に確認済みです。ログインしてください。",
+            }
+
+        # Within re-click window — issue token so user can continue to KYC
+        access_token = create_access_token(
+            data={"sub": user.email},
+            expires_delta=timedelta(days=7)
+        )
         return {
             "status": "already_verified",
-            "message": "このメールアドレスは既に確認済みです。ログインしてください。",
+            "message": "このメールアドレスは既に確認済みです。",
+            "access_token": access_token,
+            "user": {
+                "id": user.id,
+                "email": user.email,
+                "display_name": user.display_name,
+                "is_founder_free_member": bool(user.is_founder_free_member),
+                "subscription_exempt": bool(user.subscription_exempt),
+            }
         }
 
     if user.email_verification_expires:
@@ -355,9 +390,9 @@ async def verify_email(
             raise HTTPException(status_code=400, detail="トークンの有効期限が切れています。再送信してください。")
 
     user.email_verified = True
-    # Keep email_verification_token_hash so re-clicks can still find the user
-    # and reach the already_verified branch (which does NOT issue access_token).
-    user.email_verification_expires = None
+    # Keep email_verification_token_hash so re-clicks can still find the user.
+    # Set a 1-hour re-click window for KYC continuation.
+    user.email_verification_expires = datetime.utcnow() + timedelta(hours=1)
     db.commit()
 
     access_token = create_access_token(
