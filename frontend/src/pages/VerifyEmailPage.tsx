@@ -9,7 +9,7 @@ const VerifyEmailPage: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const token = searchParams.get('token');
-  const [status, setStatus] = useState<'verifying' | 'success' | 'already_verified' | 'error'>('verifying');
+  const [status, setStatus] = useState<'verifying' | 'success' | 'already_verified' | 'already_verified_expired' | 'error'>('verifying');
   const [errorMessage, setErrorMessage] = useState('');
 
   useEffect(() => {
@@ -38,15 +38,17 @@ const VerifyEmailPage: React.FC = () => {
           setTimeout(() => {
             navigate('/kyc-verification');
           }, 2000);
-        } else if (response.ok && data.status === 'already_verified') {
-          // User clicked the verification link again after already verifying.
-          // Still store token and redirect to KYC so user can complete the flow.
+        } else if (response.ok && data.status === 'already_verified' && data.access_token) {
+          // Re-click within time window — store token and redirect to KYC.
           localStorage.setItem('token', data.access_token);
           localStorage.setItem('user', JSON.stringify(data.user));
           setStatus('already_verified');
           setTimeout(() => {
             navigate('/kyc-verification');
           }, 2000);
+        } else if (response.ok && data.status === 'already_verified') {
+          // Re-click window expired — require login.
+          setStatus('already_verified_expired');
         } else if (data.detail === 'INVALID_TOKEN') {
           // Completely invalid or corrupted token — show error with re-register option.
           setStatus('error');
@@ -103,6 +105,26 @@ const VerifyEmailPage: React.FC = () => {
             <p className="text-gray-600">
               {t('verify_email.redirecting_kyc', 'KYC本人確認ページへ移動します...')}
             </p>
+          </>
+        )}
+
+        {status === 'already_verified_expired' && (
+          <>
+            <div className="flex justify-center mb-6">
+              <CheckCircle className="w-12 h-12 text-blue-500" />
+            </div>
+            <h1 className="text-xl font-bold text-black mb-2">
+              {t('verify_email.already_verified_title', 'メールアドレスは確認済みです')}
+            </h1>
+            <p className="text-gray-600 mb-6">
+              {t('verify_email.already_verified_login', 'メール認証は完了しています。ログインしてください。')}
+            </p>
+            <button
+              onClick={() => navigate('/login')}
+              className="px-6 py-3 bg-black text-white rounded-lg hover:bg-gray-800"
+            >
+              {t('verify_email.go_to_login', 'ログインページへ')}
+            </button>
           </>
         )}
 
