@@ -209,11 +209,11 @@ const SubscribePage: React.FC = () => {
               <img src="/images/logo02.png" alt="Carat Logo" className="h-16 w-auto" />
             </div>
             <h1 className="text-3xl font-bold text-black mb-2">
-              {isFounderFree ? '招待会員になる' : t('subscribe.title')}
+              {isFounderFree ? t('subscribe.title_founder', '招待会員になる') : t('subscribe.title')}
             </h1>
             <p className="text-gray-500">
               {isFounderFree
-                ? `${refValidation?.founder_display_name || ''}さんからの紹介で無料登録できます`
+                ? t('subscribe.subtitle_founder', { defaultValue: '{{name}}さんからの紹介で無料登録できます', name: refValidation?.founder_display_name || '' })
                 : t('subscribe.subtitle')}
             </p>
             {!isFounderFree && (
