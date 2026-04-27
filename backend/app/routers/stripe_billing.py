@@ -129,7 +129,7 @@ async def register_only(
     Register a new user and send email verification.
     Supports founder referral codes via `ref` field.
     Flow: Register -> Email Verify -> KYC -> Payment (normal)
-    Flow: Register -> Email Verify -> Home (founder free, skip KYC)
+    Flow: Register -> Email Verify -> KYC -> Profile (founder free, skip payment)
     """
     existing_user = db.query(User).filter(User.email == request.email).first()
 
@@ -196,6 +196,8 @@ async def register_only(
         existing_user.terms_accepted_at = datetime.utcnow()
         existing_user.terms_version = "1.0"
         existing_user.is_active = True
+        existing_user.email_verified = False
+        existing_user.kyc_status = "UNVERIFIED"
         if founder_free:
             existing_user.membership_type = "founder_free"
             existing_user.is_founder_free_member = True
@@ -226,6 +228,8 @@ async def register_only(
                 existing_user.terms_accepted_at = datetime.utcnow()
                 existing_user.terms_version = "1.0"
                 existing_user.is_active = True
+                existing_user.email_verified = False
+                existing_user.kyc_status = "UNVERIFIED"
                 # Downgrade to premium: reset all founder fields
                 existing_user.membership_type = "premium"
                 existing_user.is_founder_free_member = False
