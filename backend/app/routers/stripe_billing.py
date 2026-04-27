@@ -198,6 +198,8 @@ async def register_only(
         existing_user.is_active = True
         existing_user.email_verified = False
         existing_user.kyc_status = "UNVERIFIED"
+        existing_user.is_verified = False
+        existing_user.stripe_identity_verification_session_id = None
         if founder_free:
             existing_user.membership_type = "founder_free"
             existing_user.is_founder_free_member = True
@@ -230,6 +232,8 @@ async def register_only(
                 existing_user.is_active = True
                 existing_user.email_verified = False
                 existing_user.kyc_status = "UNVERIFIED"
+                existing_user.is_verified = False
+                existing_user.stripe_identity_verification_session_id = None
                 # Downgrade to premium: reset all founder fields
                 existing_user.membership_type = "premium"
                 existing_user.is_founder_free_member = False
