@@ -45,12 +45,12 @@ type SalonCategoryFilter = 'recommended' | 'all_exchange' | 'gay' | 'lesbian' | 
 const SALON_CATEGORY_TABS: { key: SalonCategoryFilter; label: string }[] = [
   { key: 'recommended', label: 'おすすめ' },
   { key: 'all_exchange', label: '全体交流' },
-  { key: 'gay', label: 'ゲイ' },
-  { key: 'lesbian', label: 'レズビアン' },
-  { key: 'bisexual', label: 'バイ' },
-  { key: 'transgender', label: 'トランス' },
-  { key: 'queer', label: 'クィア' },
-  { key: 'ally_other', label: 'アライ・その他' },
+  { key: 'gay', label: 'G' },
+  { key: 'lesbian', label: 'L' },
+  { key: 'bisexual', label: 'B' },
+  { key: 'transgender', label: 'T' },
+  { key: 'queer', label: 'Q' },
+  { key: 'ally_other', label: 'S' },
 ];
 
 function matchesSalonCategory(room: SalonRoom, category: SalonCategoryFilter, userCategory?: string | null): boolean {
@@ -474,6 +474,7 @@ const FIXED_FILTER_OPTIONS = {
                   value={matchingFilters}
                   onChange={setMatchingFilters}
                   options={matchingFilterOptions}
+                  userCategory={userCommunityCategory}
                 />
               </div>
 

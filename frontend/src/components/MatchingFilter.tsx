@@ -29,6 +29,7 @@ interface MatchingFilterProps {
   value: MatchingSearchFilters;
   onChange: (next: MatchingSearchFilters) => void;
   options: MatchingFilterOptions;
+  userCategory?: string | null;
 }
 
 const selectClass =
@@ -40,12 +41,12 @@ const chevronBg =
 const CATEGORY_TABS: { key: IdentityFilter; label: string }[] = [
   { key: 'recommended', label: 'おすすめ' },
   { key: 'all', label: 'すべて' },
-  { key: 'gay', label: 'ゲイ' },
-  { key: 'lesbian', label: 'レズビアン' },
-  { key: 'bisexual', label: 'バイ' },
-  { key: 'transgender', label: 'トランス' },
-  { key: 'queer', label: 'クィア' },
-  { key: 'ally_other', label: 'アライ・その他' },
+  { key: 'gay', label: 'G' },
+  { key: 'lesbian', label: 'L' },
+  { key: 'bisexual', label: 'B' },
+  { key: 'transgender', label: 'T' },
+  { key: 'queer', label: 'Q' },
+  { key: 'ally_other', label: 'S' },
 ];
 
 export { CATEGORY_TABS };
@@ -76,10 +77,32 @@ const Field: React.FC<{
   </div>
 );
 
-const MatchingFilter: React.FC<MatchingFilterProps> = ({ value, onChange, options }) => {
+// Map user's community_category value to IdentityFilter key
+const categoryToFilterKey = (category: string | null | undefined): IdentityFilter | null => {
+  if (!category) return null;
+  const map: Record<string, IdentityFilter> = {
+    'ゲイ': 'gay', 'gay': 'gay',
+    'レズビアン': 'lesbian', 'レズ': 'lesbian', 'lesbian': 'lesbian',
+    'バイセクシュアル': 'bisexual', 'bisexual': 'bisexual', 'バイ': 'bisexual',
+    'トランスジェンダー': 'transgender', 'transgender': 'transgender', 'トランス': 'transgender',
+    'クィア': 'queer', 'クエスチョニング': 'queer', 'questioning': 'queer', 'queer': 'queer',
+    'ストレート・アライ': 'ally_other', 'その他': 'ally_other', 'other': 'ally_other', 'ally_other': 'ally_other',
+  };
+  return map[category] || null;
+};
+
+export { categoryToFilterKey };
+
+const MatchingFilter: React.FC<MatchingFilterProps> = ({ value, onChange, options, userCategory }) => {
   const patch = (partial: Partial<MatchingSearchFilters>) => {
     onChange({ ...value, ...partial });
   };
+
+  // Filter tabs: show only おすすめ, すべて, and user's own category
+  const userFilterKey = categoryToFilterKey(userCategory);
+  const visibleTabs = userCategory
+    ? CATEGORY_TABS.filter(tab => tab.key === 'recommended' || tab.key === 'all' || tab.key === userFilterKey)
+    : CATEGORY_TABS;
 
   return (
     <div className="space-y-4">
@@ -87,7 +110,7 @@ const MatchingFilter: React.FC<MatchingFilterProps> = ({ value, onChange, option
       <div className="rounded-xl border border-gray-200 bg-white px-4 py-3 shadow-sm sm:px-5">
         <h3 className="mb-3 text-sm font-semibold text-gray-900">コミュニティ別に見る</h3>
         <div className="flex flex-wrap gap-2">
-          {CATEGORY_TABS.map((tab) => (
+          {visibleTabs.map((tab) => (
             <button
               key={tab.key}
               onClick={() => patch({ identity: tab.key })}
