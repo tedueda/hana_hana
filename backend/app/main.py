@@ -687,10 +687,13 @@ def run_migrations():
         # One-time cleanup: Delete "スタジオキュー" test referral data
         if _table_exists("referrals") and _table_exists("users"):
             try:
-                # Find user IDs for "スタジオキュー" test accounts
+                # Find user IDs for "スタジオキュー" test accounts by email + display_name
                 studio_q_users = db.execute(text(
-                    "SELECT id FROM users WHERE display_name = :name"
-                ), {"name": "スタジオキュー"}).fetchall()
+                    "SELECT id FROM users "
+                    "WHERE display_name = :name "
+                    "AND email IN (:e1, :e2) "
+                    "AND deleted_at IS NULL"
+                ), {"name": "スタジオキュー", "e1": "tedueda@icloud.com", "e2": "tedyeda@icloud.com"}).fetchall()
                 studio_q_ids = [row[0] for row in studio_q_users]
                 if studio_q_ids:
                     # Delete referral records for these users
