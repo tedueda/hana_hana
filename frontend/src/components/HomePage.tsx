@@ -370,14 +370,14 @@ const HomePage: React.FC = () => {
             >
               <div className="bg-white rounded-[14px] px-6 py-6 md:px-10 md:py-8 grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
                 <div className="text-left">
-                  <p className="text-xl md:text-2xl font-serif font-bold text-slate-900">LGBTQ+ コミュニティ</p>
+                  <p className="text-xl md:text-2xl font-serif font-bold text-slate-900">{t('cta.lgbtqCommunity')}</p>
                 </div>
                 <div className="flex flex-col gap-3">
                   <div className="w-full bg-black text-white px-6 py-3 text-base md:text-lg font-medium rounded-md text-center shadow-md">
-                    Caratとは
+                    {t('cta.aboutCarat')}
                   </div>
                   <div className="w-full text-gray-600 px-6 py-2 text-sm md:text-base text-center">
-                    会費 月額770円
+                    {t('cta.monthlyFee')}
                   </div>
                 </div>
               </div>

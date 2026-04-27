@@ -495,7 +495,10 @@
     "communitySubtitle": "게시물과 매칭으로 당신의 이야기를 시작하세요.",
     "freeUserNote": "* 무료 회원은 사이트 전체 내용을 볼 수 있습니다. 게시물 작성이나 프리미엄 콘텐츠 열람에는 회원 등록이 필요합니다.",
     "createPost": "게시물 작성",
-    "registerButton": "회원 등록 (월 770엔)"
+    "registerButton": "회원 등록 (월 770엔)",
+    "lgbtqCommunity": "LGBTQ+ 커뮤니티",
+    "aboutCarat": "Carat이란",
+    "monthlyFee": "월 770엔"
   },
   "membership": {
     "registrationRequired": "회원 가입이 필요합니다",
