@@ -1,11 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth, resilientFetch } from '@/contexts/AuthContext';
-import { useSearchParams } from 'react-router-dom';
-import { TopTabs } from './TopTabs';
+import { useNavigate } from 'react-router-dom';
 import { MatchCard } from './MatchCard';
 import { BACKEND_URL } from '@/config';
-import { SlidersHorizontal, X } from 'lucide-react';
+import { SlidersHorizontal, X, UserCog } from 'lucide-react';
 
 type MatchItem = {
   user_id: number;
@@ -23,13 +22,14 @@ type MatchItem = {
 const MatchingSearchPage: React.FC = () => {
   const { t } = useTranslation();
   const { token } = useAuth();
-  const [searchParams] = useSearchParams();
-  const segment = searchParams.get("segment") || "gay";
+  const navigate = useNavigate();
   
   const [loading, setLoading] = useState(false);
   const [items, setItems] = useState<MatchItem[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [allItems, setAllItems] = useState<MatchItem[]>([]);
+  const [categoryRequired, setCategoryRequired] = useState(false);
+  const [userCategory, setUserCategory] = useState<string | null>(null);
   
   const [selectedNationality, setSelectedNationality] = useState<string>("");
   const [selectedAgeBand, setSelectedAgeBand] = useState<string>("");
@@ -62,6 +62,20 @@ const MatchingSearchPage: React.FC = () => {
           throw new Error(text || `HTTP ${res.status}`);
         }
         const data = await res.json();
+
+        // Check for category_required flag from backend
+        if (data.category_required) {
+          setCategoryRequired(true);
+          setUserCategory(null);
+          setAllItems([]);
+          setItems([]);
+          setLoading(false);
+          return;
+        }
+        if (data.user_category) {
+          setUserCategory(data.user_category);
+        }
+
         const batch: MatchItem[] = Array.isArray(data) ? data : data.items || [];
         merged.push(...batch);
         const total = typeof data.count === 'number' ? data.count : merged.length;
@@ -69,6 +83,7 @@ const MatchingSearchPage: React.FC = () => {
         page += 1;
       }
 
+      setCategoryRequired(false);
       let fetchedItems = merged;
 
       // 画像URLを整形（相対パスは BACKEND_URL＝本番直 or 解決済み API 基準）
@@ -83,33 +98,8 @@ const MatchingSearchPage: React.FC = () => {
         return { ...it, avatar_url: avatar };
       });
       
-      // クライアント側で恋愛対象（romance_targets）またはidentityによるフィルタリング
-      // romance_targetsがない場合はidentityで代替（後方互換性）
-      if (segment === 'gay') {
-        fetchedItems = fetchedItems.filter(it => {
-          if (it.romance_targets && it.romance_targets.length > 0) {
-            return it.romance_targets.includes('ゲイ');
-          }
-          // フォールバック: identityで判定
-          return it.identity === 'ゲイ';
-        });
-      } else if (segment === 'lesbian') {
-        fetchedItems = fetchedItems.filter(it => {
-          if (it.romance_targets && it.romance_targets.length > 0) {
-            return it.romance_targets.includes('レズ') || it.romance_targets.includes('レズビアン');
-          }
-          // フォールバック: identityで判定（レズ or レズビアン、マイグレーション後）
-          return it.identity === 'レズ' || it.identity === 'レズビアン';
-        });
-      } else if (segment === 'other') {
-        fetchedItems = fetchedItems.filter(it => {
-          if (it.romance_targets && it.romance_targets.length > 0) {
-            return !it.romance_targets.includes('ゲイ') && !it.romance_targets.includes('レズ') && !it.romance_targets.includes('レズビアン');
-          }
-          // フォールバック: identityで判定
-          return it.identity !== 'ゲイ' && it.identity !== 'レズ' && it.identity !== 'レズビアン';
-        });
-      }
+      // Category filtering is now done server-side based on user's community_category
+      // No client-side segment filtering needed
       
       setAllItems(fetchedItems);
       setItems(fetchedItems);
@@ -123,7 +113,7 @@ const MatchingSearchPage: React.FC = () => {
   useEffect(() => {
     fetchSearch();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [token, segment]);
+  }, [token]);
 
   useEffect(() => {
     let filtered = [...allItems];
@@ -171,14 +161,70 @@ const MatchingSearchPage: React.FC = () => {
     setSelectedMeetPref("");
   };
 
+  // Category display name mapping
+  const getCategoryDisplayName = (category: string | null): string => {
+    if (!category) return '';
+    const map: Record<string, string> = {
+      'gay': t('matching.communityCategories.gay'),
+      'ゲイ': t('matching.communityCategories.gay'),
+      'lesbian': t('matching.communityCategories.lesbian'),
+      'レズビアン': t('matching.communityCategories.lesbian'),
+      'レズ': t('matching.communityCategories.lesbian'),
+      'bisexual': t('matching.communityCategories.bisexual'),
+      'バイセクシュアル': t('matching.communityCategories.bisexual'),
+      'transgender': t('matching.communityCategories.transgender'),
+      'トランスジェンダー': t('matching.communityCategories.transgender'),
+      'questioning': t('matching.communityCategories.queer'),
+      'クィア': t('matching.communityCategories.queer'),
+      'クエスチョニング': t('matching.communityCategories.queer'),
+      'other': t('matching.communityCategories.other'),
+      'ストレート・アライ': t('matching.communityCategories.straightAlly'),
+      'その他': t('matching.communityCategories.other'),
+    };
+    return map[category] || category;
+  };
+
+  // If user's category is not set, show profile edit prompt
+  if (!loading && categoryRequired) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-pink-50/30">
+        <div className="mx-auto max-w-6xl px-4 py-6">
+          <h1 className="mb-6 text-2xl font-bold text-gray-900">
+            {t('matching.searchList')}
+          </h1>
+          <div className="flex flex-col items-center justify-center min-h-[400px] rounded-2xl border-2 border-dashed border-gray-300 bg-white p-8">
+            <UserCog className="h-16 w-16 text-gray-400 mb-4" />
+            <h2 className="text-xl font-semibold text-gray-800 mb-2">
+              {t('matching.categoryRequired')}
+            </h2>
+            <p className="text-gray-600 text-center mb-6 max-w-md">
+              {t('matching.categoryRequiredMessage')}
+            </p>
+            <button
+              onClick={() => navigate('/matching/profile')}
+              className="px-6 py-3 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors font-medium"
+            >
+              {t('matching.goToProfileEdit')}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-pink-50/30">
       <div className="mx-auto max-w-6xl px-4 py-6">
-        <h1 className="mb-6 text-2xl font-bold text-gray-900">
+        <h1 className="mb-2 text-2xl font-bold text-gray-900">
           {t('matching.searchList')}
         </h1>
         
-        <TopTabs />
+        {/* Category heading */}
+        {userCategory && (
+          <p className="mb-6 text-sm text-gray-600">
+            {t('matching.categoryFilterDescription', { category: getCategoryDisplayName(userCategory) })}
+          </p>
+        )}
         
         {/* Mobile Filter Button */}
         <div className="md:hidden mb-4">
@@ -382,7 +428,7 @@ const MatchingSearchPage: React.FC = () => {
           <div className="flex min-h-[400px] items-center justify-center rounded-2xl border-2 border-dashed border-gray-300 bg-white">
             <div className="text-center">
               <p className="text-lg font-medium text-gray-600">{t('matching.noUsersFound')}</p>
-              <p className="mt-2 text-sm text-gray-500">{t('matching.tryOtherTab')}</p>
+              <p className="mt-2 text-sm text-gray-500">{t('matching.noUsersInCategory')}</p>
             </div>
           </div>
         )}

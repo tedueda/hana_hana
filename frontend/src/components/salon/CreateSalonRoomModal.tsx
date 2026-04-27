@@ -211,7 +211,7 @@ const CreateSalonRoomModal: React.FC<CreateSalonRoomModalProps> = ({
                     htmlFor={`identity-${identity.value}`}
                     className="text-sm cursor-pointer"
                   >
-                    {t(`salon.identities.${identity.value}`, { defaultValue: identity.label })}
+                    {identity.label}
                   </label>
                 </div>
               ))}

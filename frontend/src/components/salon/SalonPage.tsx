@@ -219,9 +219,14 @@ const SalonPage: React.FC = () => {
                         )}
                       </div>
                       <h3 className="font-semibold text-lg mb-2">{room.theme}</h3>
-                      <p className="text-sm text-gray-600 line-clamp-2 mb-3">
+                      <p className="text-sm text-gray-600 line-clamp-2 mb-2">
                         {room.description}
                       </p>
+                      <div className="mb-2">
+                        <span className="text-xs px-2 py-1 rounded bg-blue-50 text-blue-700">
+                          {t('salon.target')}: {room.target_identities?.includes('ALL') || !room.target_identities?.length ? t('salon.identities.ALL') : room.target_identities.slice(0, 3).join(', ') + (room.target_identities.length > 3 ? '...' : '')}
+                        </span>
+                      </div>
                       <div className="flex items-center gap-4 text-sm text-gray-500">
                         <span className="flex items-center gap-1">
                           <MessageCircle className="h-4 w-4" />

@@ -60,11 +60,14 @@ const SalonRoomCard: React.FC<SalonRoomCardProps> = ({ room, onClick }) => {
   };
 
   const getIdentityLabels = (identities: string[]) => {
+    if (!identities || identities.length === 0) {
+      return t('salon.identities.ALL');
+    }
     if (identities.includes('ALL')) {
       return t('salon.identities.ALL');
     }
+    // Display Japanese category names directly (backend now returns Japanese values)
     return identities
-      .map((id) => t(`salon.identities.${id}`, { defaultValue: id }))
       .slice(0, 3)
       .join(', ') + (identities.length > 3 ? '...' : '');
   };
