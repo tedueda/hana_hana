@@ -475,6 +475,7 @@ const FIXED_FILTER_OPTIONS = {
                   onChange={setMatchingFilters}
                   options={matchingFilterOptions}
                   userCategory={userCommunityCategory}
+                  onEditProfile={() => navigate('/matching/profile')}
                 />
               </div>
 

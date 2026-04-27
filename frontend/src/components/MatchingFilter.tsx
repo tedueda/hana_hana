@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 
 export type IdentityFilter = 'all' | 'recommended' | 'gay' | 'lesbian' | 'bisexual' | 'transgender' | 'queer' | 'ally_other';
 
@@ -30,6 +30,7 @@ interface MatchingFilterProps {
   onChange: (next: MatchingSearchFilters) => void;
   options: MatchingFilterOptions;
   userCategory?: string | null;
+  onEditProfile?: () => void;
 }
 
 const selectClass =
@@ -93,28 +94,40 @@ const categoryToFilterKey = (category: string | null | undefined): IdentityFilte
 
 export { categoryToFilterKey };
 
-const MatchingFilter: React.FC<MatchingFilterProps> = ({ value, onChange, options, userCategory }) => {
+const MatchingFilter: React.FC<MatchingFilterProps> = ({ value, onChange, options, userCategory, onEditProfile }) => {
   const patch = (partial: Partial<MatchingSearchFilters>) => {
     onChange({ ...value, ...partial });
   };
 
-  // Filter tabs: show only おすすめ, すべて, and user's own category
+  // Show only user's own category tab (no おすすめ/すべて)
   const userFilterKey = categoryToFilterKey(userCategory);
   const visibleTabs = (userCategory && userFilterKey)
-    ? CATEGORY_TABS.filter(tab => tab.key === 'recommended' || tab.key === 'all' || tab.key === userFilterKey)
+    ? CATEGORY_TABS.filter(tab => tab.key === userFilterKey)
     : CATEGORY_TABS;
 
   // Reset identity filter if the selected tab is no longer visible (e.g. after async userCategory load)
-  const visibleKeys = visibleTabs.map(t => t.key);
-  if (!visibleKeys.includes(value.identity)) {
-    onChange({ ...value, identity: 'recommended' });
-  }
+  useEffect(() => {
+    const visibleKeys = visibleTabs.map(t => t.key);
+    if (!visibleKeys.includes(value.identity)) {
+      onChange({ ...value, identity: userFilterKey || 'recommended' });
+    }
+  }, [userCategory, value.identity]);
 
   return (
     <div className="space-y-4">
       {/* カテゴリータブ */}
       <div className="rounded-xl border border-gray-200 bg-white px-4 py-3 shadow-sm sm:px-5">
-        <h3 className="mb-3 text-sm font-semibold text-gray-900">コミュニティ別に見る</h3>
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-sm font-semibold text-gray-900">コミュニティ別に見る</h3>
+          {onEditProfile && (
+            <button
+              onClick={onEditProfile}
+              className="px-3 py-1 rounded-lg text-xs font-medium text-white bg-black hover:bg-gray-800 transition-colors"
+            >
+              プロフィール編集
+            </button>
+          )}
+        </div>
         <div className="flex flex-wrap gap-2">
           {visibleTabs.map((tab) => (
             <button
