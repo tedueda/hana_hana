@@ -590,6 +590,7 @@
     "zodiac": "별자리",
     "notSet": "미설정",
     "identity": "정체성",
+    "romanceTargetsLabel": "연애 대상",
     "romanceTargets": {
       "male": "남성",
       "female": "여성",

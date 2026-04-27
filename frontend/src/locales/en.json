@@ -580,6 +580,7 @@
     "zodiac": "Zodiac",
     "notSet": "Not set",
     "identity": "Identity",
+    "romanceTargetsLabel": "Romance Targets",
     "romanceTargets": {
       "male": "Male",
       "female": "Female",

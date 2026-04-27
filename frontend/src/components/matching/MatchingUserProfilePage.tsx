@@ -270,7 +270,7 @@ const MatchingUserProfilePage: React.FC = () => {
 
           {profile.romance_targets && profile.romance_targets.length > 0 && (
             <div className="mb-6">
-              <h3 className="text-lg font-semibold text-black mb-3">{t('matching.romanceTargets')}</h3>
+              <h3 className="text-lg font-semibold text-black mb-3">{t('matching.romanceTargetsLabel')}</h3>
               <div className="flex flex-wrap gap-2">
                 {profile.romance_targets.map((target, idx) => (
                   <span key={idx} className="px-3 py-1 bg-gray-100 text-gray-800 rounded-full text-sm border border-gray-200">

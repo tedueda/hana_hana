@@ -515,6 +515,7 @@
     "zodiac": "Zodiaco",
     "notSet": "Non impostato",
     "identity": "Identità",
+    "romanceTargetsLabel": "Obiettivi romantici",
     "romanceTargets": {
       "male": "Uomo",
       "female": "Donna",
