@@ -360,33 +360,26 @@ const HomePage: React.FC = () => {
         {/* ヒーロー直下のCTAセクション */}
         <section className="relative -mt-12 z-20">
           <div className="max-w-3xl mx-auto px-4">
-            <div className="bg-white/95 border border-gray-200 shadow-xl rounded-2xl px-6 py-6 md:px-10 md:py-8 grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
-              <div className="text-left">
-                <p className="text-sm md:text-base text-slate-500 mb-1">{t('cta.communityTitle')}</p>
-                <p className="text-lg md:text-xl font-serif text-slate-900">{t('cta.communitySubtitle')}</p>
-              </div>
-              <div className="flex flex-col gap-3">
-                <Button
-                  onClick={() => navigate('/about')}
-                  className="w-full bg-white text-gray-700 border border-gray-300 hover:bg-gray-100 hover:text-black px-6 py-3 text-base md:text-lg font-medium shadow-md hover:shadow-lg transition-all"
-                >
-                  Caratとは
-                </Button>
-                {user && !isAnonymous ? (
-                  <Button 
-                    onClick={() => navigate('/create/board')}
-                    className="w-full bg-white text-gray-700 border border-gray-300 hover:bg-gray-100 hover:text-black px-6 py-3 text-base md:text-lg font-medium shadow-md hover:shadow-lg transition-all"
-                  >
-                    {t('cta.createPost')}
-                  </Button>
-                ) : (
-                  <Button 
-                    onClick={() => navigate('/subscribe')}
-                    className="w-full bg-white text-gray-700 border border-gray-300 hover:bg-gray-100 hover:text-black px-6 py-3 text-base md:text-lg font-medium shadow-md hover:shadow-lg transition-all"
-                  >
-                    {t('cta.registerButton')}
-                  </Button>
-                )}
+            <div
+              onClick={() => navigate('/about')}
+              className="cursor-pointer rounded-2xl p-[2px] transition-all hover:scale-[1.01]"
+              style={{
+                background: 'linear-gradient(135deg, #D4AF37, #C5A028, #E8C84A, #D4AF37)',
+                boxShadow: '0 10px 40px rgba(212, 175, 55, 0.3), 0 4px 16px rgba(0, 0, 0, 0.15)',
+              }}
+            >
+              <div className="bg-white rounded-[14px] px-6 py-6 md:px-10 md:py-8 grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
+                <div className="text-left">
+                  <p className="text-xl md:text-2xl font-serif font-bold text-slate-900">LGBTQ+ コミュニティ</p>
+                </div>
+                <div className="flex flex-col gap-3">
+                  <div className="w-full bg-black text-white px-6 py-3 text-base md:text-lg font-medium rounded-md text-center shadow-md">
+                    Caratとは
+                  </div>
+                  <div className="w-full text-gray-600 px-6 py-2 text-sm md:text-base text-center">
+                    会費 月額770円
+                  </div>
+                </div>
               </div>
             </div>
           </div>
