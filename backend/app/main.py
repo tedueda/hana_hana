@@ -684,6 +684,36 @@ def run_migrations():
                 db.rollback()
                 print(f"⚠️ Failed migrating identity to community_category: {e}")
 
+        # One-time cleanup: Delete "スタジオキュー" test referral data
+        if _table_exists("referrals") and _table_exists("users"):
+            try:
+                # Find user IDs for "スタジオキュー" test accounts
+                studio_q_users = db.execute(text(
+                    "SELECT id FROM users WHERE display_name = :name"
+                ), {"name": "スタジオキュー"}).fetchall()
+                studio_q_ids = [row[0] for row in studio_q_users]
+                if studio_q_ids:
+                    # Delete referral records for these users
+                    ref_result = db.execute(text(
+                        "DELETE FROM referrals WHERE user_id = ANY(:ids)"
+                    ), {"ids": studio_q_ids})
+                    ref_count = ref_result.rowcount
+                    # Soft-delete the test user accounts
+                    user_result = db.execute(text(
+                        "UPDATE users SET deleted_at = NOW() WHERE id = ANY(:ids) AND deleted_at IS NULL"
+                    ), {"ids": studio_q_ids})
+                    user_count = user_result.rowcount
+                    db.commit()
+                    if ref_count > 0 or user_count > 0:
+                        print(f"✅ Cleaned up スタジオキュー test data: {ref_count} referrals deleted, {user_count} users soft-deleted")
+                    else:
+                        print("✅ スタジオキュー test data already cleaned up")
+                else:
+                    print("✅ No スタジオキュー test data found")
+            except Exception as e:
+                db.rollback()
+                print(f"⚠️ Failed cleaning up スタジオキュー test data: {e}")
+
     except Exception as e:
         print(f"⚠️ Migration error (may be safe to ignore if column exists): {e}")
     finally:
