@@ -224,7 +224,7 @@ const SalonPage: React.FC = () => {
                       </p>
                       <div className="mb-2">
                         <span className="text-xs px-2 py-1 rounded bg-blue-50 text-blue-700">
-                          {t('salon.target')}: {room.target_identities?.includes('ALL') || !room.target_identities?.length ? t('salon.identities.ALL') : room.target_identities.slice(0, 3).join(', ') + (room.target_identities.length > 3 ? '...' : '')}
+                          {t('salon.target')}: {room.target_identities?.includes('ALL') || !room.target_identities?.length ? t('salon.identities.ALL') : room.target_identities.map((id) => t(`salon.identities.${id}`, { defaultValue: id })).slice(0, 3).join(', ') + (room.target_identities.length > 3 ? '...' : '')}
                         </span>
                       </div>
                       <div className="flex items-center gap-4 text-sm text-gray-500">
