@@ -191,7 +191,7 @@ const KycVerificationPage: React.FC = () => {
                 </h1>
                 <p className="text-gray-600 mb-6">
                   {isFounderFree
-                    ? t('kyc.page.complete_message_founder', '本人確認が完了しました。ホームへ進んでください。')
+                    ? t('kyc.page.complete_message_founder', '本人確認が完了しました。プロフィール編集へ進んでください。')
                     : t('kyc.page.complete_message')}
                 </p>
                 {!isFounderFree && (
@@ -209,7 +209,7 @@ const KycVerificationPage: React.FC = () => {
                   className="w-full py-4 bg-black hover:bg-gray-800 text-white font-bold rounded-lg transition-all duration-200"
                 >
                   {isFounderFree
-                    ? t('kyc.page.continue_to_home', 'ホームへ進む')
+                    ? <span className="whitespace-pre-line">{t('kyc.page.continue_to_profile', 'プロフィール編集\nへ進む')}</span>
                     : t('kyc.page.continue_to_payment')}
                 </button>
               </>

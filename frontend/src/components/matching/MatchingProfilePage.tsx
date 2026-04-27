@@ -610,12 +610,6 @@ const MatchingProfilePage: React.FC = () => {
                       </div>
                     )}
                     
-                    {/* ニックネーム（下部中央） */}
-                    {profile?.nickname && (
-                      <div className="absolute bottom-3 left-1/2 -translate-x-1/2 bg-black/80 text-white text-lg px-4 py-2 rounded-full font-bold shadow-xl z-10 border-2 border-white/20">
-                        {profile.nickname}
-                      </div>
-                    )}
                     
                     {/* メイン画像バッジ */}
                     {currentSlide === 0 && (
