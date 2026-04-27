@@ -584,6 +584,7 @@
     "zodiac": "星座",
     "notSet": "未設定",
     "identity": "アイデンティティ",
+    "romanceTargetsLabel": "恋愛対象",
     "romanceTargets": {
       "male": "男性",
       "female": "女性",
