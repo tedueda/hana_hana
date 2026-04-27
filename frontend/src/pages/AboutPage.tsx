@@ -822,6 +822,7 @@ const FIXED_FILTER_OPTIONS = {
                       key={`${item.category}-${item.id}`}
                       item={item}
                       type={item.category as 'flea-market' | 'art-sales' | 'courses'}
+                      onClick={() => navigate(`/business?tab=${item.category}`)}
                     />
                   ))}
                 </div>
