@@ -83,7 +83,7 @@ const categoryToFilterKey = (category: string | null | undefined): IdentityFilte
   const map: Record<string, IdentityFilter> = {
     'ゲイ': 'gay', 'gay': 'gay',
     'レズビアン': 'lesbian', 'レズ': 'lesbian', 'lesbian': 'lesbian',
-    'バイセクシュアル': 'bisexual', 'bisexual': 'bisexual', 'バイ': 'bisexual',
+    'バイセクシュアル': 'bisexual', 'バイセクシャル': 'bisexual', 'bisexual': 'bisexual', 'バイ': 'bisexual',
     'トランスジェンダー': 'transgender', 'transgender': 'transgender', 'トランス': 'transgender',
     'クィア': 'queer', 'クエスチョニング': 'queer', 'questioning': 'queer', 'queer': 'queer',
     'ストレート・アライ': 'ally_other', 'その他': 'ally_other', 'other': 'ally_other', 'ally_other': 'ally_other',
@@ -100,7 +100,7 @@ const MatchingFilter: React.FC<MatchingFilterProps> = ({ value, onChange, option
 
   // Filter tabs: show only おすすめ, すべて, and user's own category
   const userFilterKey = categoryToFilterKey(userCategory);
-  const visibleTabs = userCategory
+  const visibleTabs = (userCategory && userFilterKey)
     ? CATEGORY_TABS.filter(tab => tab.key === 'recommended' || tab.key === 'all' || tab.key === userFilterKey)
     : CATEGORY_TABS;
 
