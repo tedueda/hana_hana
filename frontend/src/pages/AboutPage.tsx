@@ -45,12 +45,12 @@ type SalonCategoryFilter = 'recommended' | 'all_exchange' | 'gay' | 'lesbian' | 
 const SALON_CATEGORY_TABS: { key: SalonCategoryFilter; label: string }[] = [
   { key: 'recommended', label: 'おすすめ' },
   { key: 'all_exchange', label: '全体交流' },
-  { key: 'gay', label: 'ゲイ' },
-  { key: 'lesbian', label: 'レズビアン' },
-  { key: 'bisexual', label: 'バイ' },
-  { key: 'transgender', label: 'トランス' },
-  { key: 'queer', label: 'クィア' },
-  { key: 'ally_other', label: 'アライ・その他' },
+  { key: 'gay', label: 'G' },
+  { key: 'lesbian', label: 'L' },
+  { key: 'bisexual', label: 'B' },
+  { key: 'transgender', label: 'T' },
+  { key: 'queer', label: 'Q' },
+  { key: 'ally_other', label: 'S' },
 ];
 
 function matchesSalonCategory(room: SalonRoom, category: SalonCategoryFilter, userCategory?: string | null): boolean {
@@ -94,18 +94,18 @@ function matchesIdentityFilter(item: MatchingCardItem, identity: IdentityFilter,
     // Match user's category
     if (cat === 'ゲイ' || cat.toLowerCase() === 'gay') return id === 'ゲイ' || idLower === 'gay';
     if (cat === 'レズビアン' || cat === 'レズ' || cat.toLowerCase() === 'lesbian') return id === 'レズビアン' || id === 'レズ' || idLower === 'lesbian';
-    if (cat === 'バイセクシュアル' || cat === 'バイセクシャル' || cat.toLowerCase() === 'bisexual') return id === 'バイセクシュアル' || id === 'バイセクシャル' || idLower === 'bisexual';
-    if (cat === 'トランスジェンダー' || cat.toLowerCase() === 'transgender') return id === 'トランスジェンダー' || idLower === 'transgender';
-    if (cat === 'クィア' || cat.toLowerCase() === 'queer') return id === 'クィア' || idLower === 'queer';
+    if (cat === 'バイセクシュアル' || cat === 'バイセクシャル' || cat === 'バイ' || cat.toLowerCase() === 'bisexual') return id === 'バイセクシュアル' || id === 'バイセクシャル' || id === 'バイ' || idLower === 'bisexual';
+    if (cat === 'トランスジェンダー' || cat === 'トランス' || cat.toLowerCase() === 'transgender') return id === 'トランスジェンダー' || id === 'トランス' || idLower === 'transgender';
+    if (cat === 'クィア' || cat === 'クエスチョニング' || cat.toLowerCase() === 'queer' || cat.toLowerCase() === 'questioning') return id === 'クィア' || id === 'クエスチョニング' || idLower === 'queer' || idLower === 'questioning';
     if (cat === 'ストレート・アライ') return id === 'ストレート・アライ' || id === 'その他' || idLower === 'other' || idLower === 'ally';
     return true; // Default show all
   }
 
   if (identity === 'gay') return id === 'ゲイ' || idLower === 'gay';
   if (identity === 'lesbian') return id === 'レズビアン' || id === 'レズ' || idLower === 'lesbian';
-  if (identity === 'bisexual') return id === 'バイセクシュアル' || id === 'バイセクシャル' || idLower === 'bisexual';
-  if (identity === 'transgender') return id === 'トランスジェンダー' || idLower === 'transgender';
-  if (identity === 'queer') return id === 'クィア' || idLower === 'queer';
+  if (identity === 'bisexual') return id === 'バイセクシュアル' || id === 'バイセクシャル' || id === 'バイ' || idLower === 'bisexual';
+  if (identity === 'transgender') return id === 'トランスジェンダー' || id === 'トランス' || idLower === 'transgender';
+  if (identity === 'queer') return id === 'クィア' || id === 'クエスチョニング' || idLower === 'queer' || idLower === 'questioning';
   if (identity === 'ally_other') return id === 'ストレート・アライ' || id === 'その他' || id === '男性' || id === '女性' || idLower === 'other' || idLower === 'ally' || idLower === 'male' || idLower === 'female';
   return true;
 }
@@ -474,6 +474,8 @@ const FIXED_FILTER_OPTIONS = {
                   value={matchingFilters}
                   onChange={setMatchingFilters}
                   options={matchingFilterOptions}
+                  userCategory={userCommunityCategory}
+                  onEditProfile={() => navigate('/matching/profile')}
                 />
               </div>
 
