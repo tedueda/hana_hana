@@ -86,7 +86,7 @@ const categoryToFilterKey = (category: string | null | undefined): IdentityFilte
     'バイセクシュアル': 'bisexual', 'バイセクシャル': 'bisexual', 'bisexual': 'bisexual', 'バイ': 'bisexual',
     'トランスジェンダー': 'transgender', 'transgender': 'transgender', 'トランス': 'transgender',
     'クィア': 'queer', 'クエスチョニング': 'queer', 'questioning': 'queer', 'queer': 'queer',
-    'ストレート・アライ': 'ally_other', 'その他': 'ally_other', 'other': 'ally_other', 'ally_other': 'ally_other',
+    'ストレート・アライ': 'ally_other', 'その他': 'ally_other', 'other': 'ally_other', 'ally_other': 'ally_other', '男性': 'ally_other', '女性': 'ally_other',
   };
   return map[category] || null;
 };
@@ -103,6 +103,12 @@ const MatchingFilter: React.FC<MatchingFilterProps> = ({ value, onChange, option
   const visibleTabs = (userCategory && userFilterKey)
     ? CATEGORY_TABS.filter(tab => tab.key === 'recommended' || tab.key === 'all' || tab.key === userFilterKey)
     : CATEGORY_TABS;
+
+  // Reset identity filter if the selected tab is no longer visible (e.g. after async userCategory load)
+  const visibleKeys = visibleTabs.map(t => t.key);
+  if (!visibleKeys.includes(value.identity)) {
+    onChange({ ...value, identity: 'recommended' });
+  }
 
   return (
     <div className="space-y-4">
