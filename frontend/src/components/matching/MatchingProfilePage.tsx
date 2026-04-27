@@ -1291,11 +1291,6 @@ const MatchingProfilePage: React.FC = () => {
                       {t(`matching.identities.${IDENTITY_KEYS[profile.identity]}`) || profile.identity}
                     </div>
                   )}
-                  {profile.display_name && (
-                    <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-black/70 text-white px-4 py-2 rounded-full text-sm">
-                      {profile.display_name}
-                    </div>
-                  )}
                   {images.length > 1 && (
                     <div className="absolute bottom-4 left-4 right-4 flex justify-center gap-2">
                       {images.map((_, idx) => (
