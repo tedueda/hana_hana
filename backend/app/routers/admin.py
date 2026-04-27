@@ -19,7 +19,7 @@ from slowapi.util import get_remote_address
 
 from app.database import get_db
 from app.auth import get_current_admin_user, verify_password, create_access_token, get_password_hash
-from app.models import User, BlogPost, BlogPostTranslation, AuditLog, Founder, Referral, MatchingProfile
+from app.models import User, BlogPost, BlogPostTranslation, AuditLog, Founder, Referral, MatchingProfile, SalonRoom
 
 logger = logging.getLogger(__name__)
 
@@ -1282,3 +1282,83 @@ def founder_quota(db: Session = Depends(get_db)):
         "cap_reached": total_founder_free >= FOUNDER_FREE_LIMIT,
         "accepting": total_founder_free < FOUNDER_FREE_LIMIT,
     }
+
+
+# ── Salon Management (Admin) ──────────────────────────────────
+
+VALID_COMMUNITY_CATEGORIES = [
+    'ゲイ', 'レズビアン', 'バイセクシュアル', 'トランスジェンダー',
+    'クィア', 'ストレート・アライ', 'その他', 'ALL',
+]
+
+
+class SalonRoomItem(BaseModel):
+    id: int
+    theme: str
+    room_type: str
+    target_identities: list
+    is_active: bool
+    creator_display_name: Optional[str] = None
+    created_at: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
+
+class SalonRoomListResponse(BaseModel):
+    items: List[SalonRoomItem]
+    total: int
+
+
+class SalonRoomUpdateCategories(BaseModel):
+    target_identities: List[str]
+
+
+@router.get("/api/auth/admin/salon-rooms")
+def admin_list_salon_rooms(
+    page: int = Query(1, ge=1),
+    size: int = Query(20, ge=1, le=100),
+    admin: User = Depends(get_current_admin_user),
+    db: Session = Depends(get_db),
+):
+    """Admin: list all salon rooms with their categories."""
+    q = db.query(SalonRoom).order_by(SalonRoom.created_at.desc())
+    total = q.count()
+    rooms = q.offset((page - 1) * size).limit(size).all()
+    items = []
+    for room in rooms:
+        creator = db.query(User).filter(User.id == room.creator_id).first()
+        items.append({
+            "id": room.id,
+            "theme": room.theme,
+            "room_type": room.room_type,
+            "target_identities": room.target_identities or [],
+            "is_active": room.is_active,
+            "creator_display_name": creator.display_name if creator else None,
+            "created_at": room.created_at.isoformat() if room.created_at else None,
+        })
+    return {"items": items, "total": total}
+
+
+@router.put("/api/auth/admin/salon-rooms/{room_id}/categories")
+def admin_update_salon_categories(
+    room_id: int,
+    body: SalonRoomUpdateCategories,
+    admin: User = Depends(get_current_admin_user),
+    db: Session = Depends(get_db),
+    request: Request = None,
+):
+    """Admin: update target_identities (allowed community categories) for a salon room."""
+    room = db.query(SalonRoom).filter(SalonRoom.id == room_id).first()
+    if not room:
+        raise HTTPException(status_code=404, detail="Salon room not found")
+    for cat in body.target_identities:
+        if cat not in VALID_COMMUNITY_CATEGORIES:
+            raise HTTPException(status_code=422, detail=f"Invalid category: {cat}")
+    room.target_identities = body.target_identities
+    db.commit()
+    db.refresh(room)
+    _write_audit(db, admin.id, "update_salon_categories", request,
+                 target_type="salon_room", target_id=str(room_id),
+                 metadata={"target_identities": body.target_identities})
+    return {"id": room.id, "target_identities": room.target_identities}

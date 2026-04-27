@@ -278,6 +278,27 @@ def get_profile_by_id(
     }
 
 
+_CATEGORY_EQUIVALENCES: List[set] = [
+    {'ゲイ', 'gay'},
+    {'レズビアン', 'レズ', 'lesbian'},
+    {'バイセクシュアル', 'バイセクシャル', 'bisexual'},
+    {'トランスジェンダー', 'transgender'},
+    {'クィア', 'クエスチョニング', 'questioning', 'queer'},
+    {'ストレート・アライ', 'other', 'その他'},
+]
+
+HIDDEN_CATEGORIES = {'非公開', '非表示', '', None}
+
+
+def _get_equivalent_categories(category: str) -> List[str]:
+    """Return all equivalent category names for filtering."""
+    low = category.strip().lower()
+    for group in _CATEGORY_EQUIVALENCES:
+        if low in {v.lower() for v in group}:
+            return list(group)
+    return [category]
+
+
 @router.get("/search")
 def search_profiles(
     prefecture: Optional[str] = Query(None),
@@ -296,6 +317,35 @@ def search_profiles(
     q = q.filter(MatchingProfile.display_flag == True)
     if current_user:
         q = q.filter(MatchingProfile.user_id != current_user.id)
+
+    # Community category filtering: non-admin users only see same category
+    is_admin = current_user.membership_type == "admin" if current_user else False
+    if not is_admin and current_user:
+        my_prof = db.query(MatchingProfile).filter(MatchingProfile.user_id == current_user.id).first()
+        my_category = getattr(my_prof, 'community_category', None) if my_prof else None
+        if not my_category or my_category in HIDDEN_CATEGORIES:
+            # User has no category set - return empty with flag
+            return {"items": [], "page": page, "size": size, "count": 0, "category_required": True, "user_category": None}
+        else:
+            # Filter to same community_category (using equivalences)
+            equiv = _get_equivalent_categories(my_category)
+            q = q.filter(
+                or_(
+                    MatchingProfile.community_category.in_(equiv),
+                    and_(
+                        MatchingProfile.community_category.is_(None),
+                        MatchingProfile.identity.in_(equiv),
+                    ),
+                )
+            )
+            # Exclude hidden/non-public categories
+            q = q.filter(
+                ~MatchingProfile.community_category.in_(['非公開', '非表示'])
+                | MatchingProfile.community_category.is_(None)
+            )
+    # Exclude inactive users
+    q = q.filter(User.is_active == True)
+
     if prefecture:
         q = q.filter(MatchingProfile.prefecture == prefecture)
     if age_band:
@@ -319,7 +369,14 @@ def search_profiles(
     total = q.count()
     rows = q.offset((page - 1) * size).limit(size).all()
     items = _serialize_matching_profile_rows(db, rows)
-    return {"items": items, "page": page, "size": size, "count": total}
+
+    # Include user's category in response
+    user_category = None
+    if current_user:
+        my_prof = db.query(MatchingProfile).filter(MatchingProfile.user_id == current_user.id).first()
+        user_category = getattr(my_prof, 'community_category', None) or (my_prof.identity if my_prof else None)
+
+    return {"items": items, "page": page, "size": size, "count": total, "category_required": False, "user_category": user_category}
 
 
 @router.get("/public-preview")

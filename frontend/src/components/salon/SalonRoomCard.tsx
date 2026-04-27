@@ -60,6 +60,9 @@ const SalonRoomCard: React.FC<SalonRoomCardProps> = ({ room, onClick }) => {
   };
 
   const getIdentityLabels = (identities: string[]) => {
+    if (!identities || identities.length === 0) {
+      return t('salon.identities.ALL');
+    }
     if (identities.includes('ALL')) {
       return t('salon.identities.ALL');
     }

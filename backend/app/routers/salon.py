@@ -615,13 +615,14 @@ def send_message(
 def get_valid_identities(current_user: User = Depends(require_premium)):
     return {
         "identities": [
-            {"value": "gay", "label": "ゲイ"},
-            {"value": "lesbian", "label": "レズビアン"},
-            {"value": "bisexual", "label": "バイセクシュアル"},
-            {"value": "transgender", "label": "トランスジェンダー"},
-            {"value": "questioning", "label": "クエスチョニング"},
-            {"value": "other", "label": "その他"},
-            {"value": "ALL", "label": "すべて"},
+            {"value": "ゲイ", "label": "ゲイ"},
+            {"value": "レズビアン", "label": "レズビアン"},
+            {"value": "バイセクシュアル", "label": "バイセクシュアル"},
+            {"value": "トランスジェンダー", "label": "トランスジェンダー"},
+            {"value": "クィア", "label": "クィア"},
+            {"value": "ストレート・アライ", "label": "ストレート・アライ"},
+            {"value": "その他", "label": "その他"},
+            {"value": "ALL", "label": "全カテゴリー"},
         ]
     }
 

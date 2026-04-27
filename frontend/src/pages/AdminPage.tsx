@@ -42,6 +42,7 @@ const AdminPage: React.FC = () => {
           <TabsTrigger value="users">ユーザー管理</TabsTrigger>
           <TabsTrigger value="founders">創業メンバー管理</TabsTrigger>
           <TabsTrigger value="referrals">紹介登録一覧</TabsTrigger>
+          <TabsTrigger value="salon">サロン管理</TabsTrigger>
           <TabsTrigger value="blog">ブログ作成</TabsTrigger>
         </TabsList>
         <TabsContent value="users">
@@ -52,6 +53,9 @@ const AdminPage: React.FC = () => {
         </TabsContent>
         <TabsContent value="referrals">
           <ReferralListTab token={adminToken} />
+        </TabsContent>
+        <TabsContent value="salon">
+          <SalonManagementTab token={adminToken} />
         </TabsContent>
         <TabsContent value="blog">
           <BlogGeneratorTab token={adminToken} />
@@ -1161,6 +1165,187 @@ const ReferralListTab: React.FC<{ token: string }> = ({ token }) => {
             <ChevronRight className="h-4 w-4" />
           </Button>
         </div>
+      )}
+    </div>
+  );
+};
+
+// ── Salon Management Tab ──────────────────────────────────
+
+const COMMUNITY_CATEGORIES = [
+  { value: 'ゲイ', label: 'ゲイ' },
+  { value: 'レズビアン', label: 'レズビアン' },
+  { value: 'バイセクシュアル', label: 'バイセクシュアル' },
+  { value: 'トランスジェンダー', label: 'トランスジェンダー' },
+  { value: 'クィア', label: 'クィア' },
+  { value: 'ストレート・アライ', label: 'ストレート・アライ' },
+  { value: 'その他', label: 'その他' },
+  { value: 'ALL', label: '全カテゴリー' },
+];
+
+interface SalonRoomAdmin {
+  id: number;
+  theme: string;
+  room_type: string;
+  target_identities: string[];
+  is_active: boolean;
+  creator_display_name: string | null;
+  created_at: string | null;
+}
+
+const SalonManagementTab: React.FC<{ token: string }> = ({ token }) => {
+  const [rooms, setRooms] = useState<SalonRoomAdmin[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [editingRoomId, setEditingRoomId] = useState<number | null>(null);
+  const [editCategories, setEditCategories] = useState<string[]>([]);
+  const [saving, setSaving] = useState(false);
+
+  const fetchRooms = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/auth/admin/salon-rooms?size=100`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setRooms(data.items || []);
+      }
+    } catch (err) {
+      console.error('Failed to fetch salon rooms:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, [token]);
+
+  useEffect(() => { fetchRooms(); }, [fetchRooms]);
+
+  const startEdit = (room: SalonRoomAdmin) => {
+    setEditingRoomId(room.id);
+    setEditCategories([...room.target_identities]);
+  };
+
+  const cancelEdit = () => {
+    setEditingRoomId(null);
+    setEditCategories([]);
+  };
+
+  const handleCategoryToggle = (value: string) => {
+    if (value === 'ALL') {
+      setEditCategories(editCategories.includes('ALL') ? [] : ['ALL']);
+    } else {
+      setEditCategories((prev) => {
+        const without = prev.filter((c) => c !== 'ALL');
+        return without.includes(value)
+          ? without.filter((c) => c !== value)
+          : [...without, value];
+      });
+    }
+  };
+
+  const saveCategories = async (roomId: number) => {
+    setSaving(true);
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/auth/admin/salon-rooms/${roomId}/categories`, {
+        method: 'PUT',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ target_identities: editCategories }),
+      });
+      if (res.ok) {
+        setEditingRoomId(null);
+        fetchRooms();
+      }
+    } catch (err) {
+      console.error('Failed to save categories:', err);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const getCategoryLabel = (identities: string[]) => {
+    if (!identities || identities.length === 0) return '全カテゴリー';
+    if (identities.includes('ALL')) return '全カテゴリー';
+    return identities.join(', ');
+  };
+
+  if (loading) {
+    return <div className="text-center py-8">読み込み中...</div>;
+  }
+
+  return (
+    <div>
+      <h2 className="text-lg font-semibold mb-4">サロンルーム管理</h2>
+      <p className="text-sm text-gray-600 mb-4">各サロンルームの参加可能コミュニティカテゴリーを確認・編集できます。</p>
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>ID</TableHead>
+            <TableHead>テーマ</TableHead>
+            <TableHead>種別</TableHead>
+            <TableHead>対象カテゴリー</TableHead>
+            <TableHead>作成者</TableHead>
+            <TableHead>状態</TableHead>
+            <TableHead>操作</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {rooms.map((room) => (
+            <TableRow key={room.id}>
+              <TableCell>{room.id}</TableCell>
+              <TableCell className="max-w-[200px] truncate">{room.theme}</TableCell>
+              <TableCell>{room.room_type}</TableCell>
+              <TableCell>
+                {editingRoomId === room.id ? (
+                  <div className="flex flex-wrap gap-1">
+                    {COMMUNITY_CATEGORIES.map((cat) => (
+                      <button
+                        key={cat.value}
+                        onClick={() => handleCategoryToggle(cat.value)}
+                        className={`text-xs px-2 py-1 rounded border ${
+                          editCategories.includes(cat.value)
+                            ? 'bg-black text-white border-black'
+                            : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                        }`}
+                      >
+                        {cat.label}
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <span className="text-sm">{getCategoryLabel(room.target_identities)}</span>
+                )}
+              </TableCell>
+              <TableCell>{room.creator_display_name || '-'}</TableCell>
+              <TableCell>
+                <span className={`text-xs px-2 py-1 rounded ${room.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+                  {room.is_active ? '有効' : '無効'}
+                </span>
+              </TableCell>
+              <TableCell>
+                {editingRoomId === room.id ? (
+                  <div className="flex gap-1">
+                    <Button size="sm" onClick={() => saveCategories(room.id)} disabled={saving}>
+                      <Check className="h-3 w-3" />
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={cancelEdit}>
+                      <X className="h-3 w-3" />
+                    </Button>
+                  </div>
+                ) : (
+                  <Button size="sm" variant="outline" onClick={() => startEdit(room)}>
+                    <Pencil className="h-3 w-3 mr-1" />
+                    編集
+                  </Button>
+                )}
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+      {rooms.length === 0 && (
+        <div className="text-center py-8 text-gray-500">サロンルームがありません</div>
       )}
     </div>
   );
