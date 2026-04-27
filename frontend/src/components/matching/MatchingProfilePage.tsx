@@ -768,12 +768,6 @@ const MatchingProfilePage: React.FC = () => {
                   </div>
                 )}
                 
-                {/* ニックネーム（下部中央）- ダミー表示時も表示 */}
-                {profile?.nickname && (
-                  <div className="absolute bottom-3 left-1/2 -translate-x-1/2 bg-black/80 text-white text-lg px-4 py-2 rounded-full font-bold shadow-xl z-10 border-2 border-white/20">
-                    {profile.nickname}
-                  </div>
-                )}
                 
                 <div className="text-center">
                   <svg className="w-20 h-20 mx-auto mb-3 text-gray-300" fill="currentColor" viewBox="0 0 24 24">
