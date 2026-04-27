@@ -89,9 +89,6 @@ const MatchingProfilePage: React.FC = () => {
     'トランスジェンダー': 'transgender', 'クィア': 'queer',
     'ストレート・アライ': 'ally', 'その他': 'other', '非公開': 'hidden'
   };
-  const POSITION_KEYS: Record<string, string> = {
-    'タチ': 'tachi', 'ウケ（ネコ）': 'uke', 'リバーシブル': 'reversible', '非公開': 'hidden'
-  };
   const HOBBY_KEYS: Record<string, string> = {
     '音楽': 'music', '映画': 'movies', 'ドラマ': 'drama', 'アニメ': 'anime', '漫画': 'manga',
     '読書': 'reading', 'カフェ': 'cafe', '料理': 'cooking', 'グルメ': 'gourmet', 'お酒': 'alcohol',
