@@ -485,7 +485,10 @@
     "communitySubtitle": "Start your story with posts and matching.",
     "freeUserNote": "* Free members can view all site content. Registration is required to post or access premium content.",
     "createPost": "Create Post",
-    "registerButton": "Register (¥770/month)"
+    "registerButton": "Register (¥770/month)",
+    "lgbtqCommunity": "LGBTQ+ Community",
+    "aboutCarat": "About Carat",
+    "monthlyFee": "¥770/month"
   },
   "membership": {
     "registrationRequired": "Registration required",
