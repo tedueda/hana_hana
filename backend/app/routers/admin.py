@@ -510,7 +510,7 @@ def generate_blog(
         except Exception as e:
             logger.warning("LLM attempt %d failed: %s", attempt + 1, e)
             if attempt == 2:
-                raise HTTPException(status_code=500, detail="Blog generation failed after retries: {e}")
+                raise HTTPException(status_code=500, detail=f"Blog generation failed after retries: {e}")
 
     keywords = result.get("keywords", [])[:8]
     final_title = result.get("final_title", body.title_candidates[0] if body.title_candidates else "Untitled")
