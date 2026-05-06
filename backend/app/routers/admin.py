@@ -43,7 +43,7 @@ else:
 
 LLM_MODEL = os.getenv("LLM_MODEL", "gpt-4o-mini")
 LLM_TEMPERATURE = float(os.getenv("LLM_TEMPERATURE", "0.7"))
-LLM_MAX_TOKENS = int(os.getenv("LLM_MAX_TOKENS", "3200"))
+LLM_MAX_TOKENS = int(os.getenv("LLM_MAX_TOKENS", "4096"))
 
 ADMIN_SEED_EMAIL = os.getenv("ADMIN_SEED_EMAIL", "ted@carat-community.com")
 ADMIN_SEED_PASSWORD = os.getenv("ADMIN_SEED_PASSWORD", "")
@@ -510,7 +510,7 @@ def generate_blog(
         except Exception as e:
             logger.warning("LLM attempt %d failed: %s", attempt + 1, e)
             if attempt == 2:
-                raise HTTPException(status_code=500, detail="Blog generation failed after retries")
+                raise HTTPException(status_code=500, detail="Blog generation failed after retries: {e}")
 
     keywords = result.get("keywords", [])[:8]
     final_title = result.get("final_title", body.title_candidates[0] if body.title_candidates else "Untitled")
