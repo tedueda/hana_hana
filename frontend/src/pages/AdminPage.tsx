@@ -199,6 +199,7 @@ const UserManagementTab: React.FC<{ token: string }> = ({ token }) => {
       </div>
 
       <Card>
+        <div className="overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow>
@@ -667,6 +668,7 @@ const BlogGeneratorTab: React.FC<{ token: string }> = ({ token }) => {
             {blogListLoading ? (
               <p className="text-gray-500 text-sm">読み込み中...</p>
             ) : (
+              <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -848,6 +850,8 @@ const FounderManagementTab: React.FC<{ token: string }> = ({ token }) => {
 
       {/* Founder List */}
       <div className="bg-white rounded-lg border">
+        <div className="bg-white rounded-lg border">
+  　　　 <div className="overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow>
@@ -1095,7 +1099,8 @@ const ReferralListTab: React.FC<{ token: string }> = ({ token }) => {
         ) : referrals.length === 0 ? (
           <div className="text-center py-8 text-gray-500">紹介登録データがありません</div>
         ) : (
-          <Table>
+          <div className="overflow-x-auto">
+      <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>登録日</TableHead>
@@ -1278,6 +1283,8 @@ const SalonManagementTab: React.FC<{ token: string }> = ({ token }) => {
     <div>
       <h2 className="text-lg font-semibold mb-4">サロンルーム管理</h2>
       <p className="text-sm text-gray-600 mb-4">各サロンルームの参加可能コミュニティカテゴリーを確認・編集できます。</p>
+      <p className="text-sm text-gray-600 mb-4">各サロンルームの参加可能コミュニティカテゴリーを確認・編集できます。</p>
+      <div className="overflow-x-auto">
       <Table>
         <TableHeader>
           <TableRow>
