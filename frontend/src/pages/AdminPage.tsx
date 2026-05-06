@@ -253,6 +253,7 @@ const UserManagementTab: React.FC<{ token: string }> = ({ token }) => {
             )}
           </TableBody>
         </Table>
+      　</div>
       </Card>
 
       {totalPages > 1 && (
@@ -710,6 +711,7 @@ const BlogGeneratorTab: React.FC<{ token: string }> = ({ token }) => {
                   ))}
                 </TableBody>
               </Table>
+              </div>
             )}
           </CardContent>
         </Card>
@@ -924,6 +926,7 @@ const FounderManagementTab: React.FC<{ token: string }> = ({ token }) => {
             ))}
           </TableBody>
         </Table>
+　　　　 </div>
       </div>
 
       {/* QR Code Dialog */}
@@ -1144,6 +1147,7 @@ const ReferralListTab: React.FC<{ token: string }> = ({ token }) => {
               ))}
             </TableBody>
           </Table>
+        </div>
         )}
       </div>
 
@@ -1351,6 +1355,7 @@ const SalonManagementTab: React.FC<{ token: string }> = ({ token }) => {
           ))}
         </TableBody>
       </Table>
+    </div>
       {rooms.length === 0 && (
         <div className="text-center py-8 text-gray-500">サロンルームがありません</div>
       )}
