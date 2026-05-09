@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight, Globe } from 'lucide-react';
+import { ArrowRight, Globe, LayoutGrid, List } from 'lucide-react';
 import { Button } from './ui/button';
 import { Card, CardContent } from './ui/card';
 import UnderConstructionModal from './UnderConstructionModal';
@@ -112,6 +112,7 @@ const HomePage: React.FC = () => {
   const [showConstructionModal, setShowConstructionModal] = useState(false);
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [boardViewMode, setBoardViewMode] = useState<'card' | 'list'>('list');
   const [upgradeFeatureName] = useState('');
   const [currentSlide, setCurrentSlide] = useState(0);
   const heroSectionRef = useRef<HTMLElement>(null);
@@ -395,15 +396,49 @@ const HomePage: React.FC = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* 掲示板セクション - 2カラムレイアウト */}
         <section className="py-8">
+          {/* セクションヘッダー＋切り替えボタン */}
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-2xl md:text-3xl font-serif font-semibold text-slate-900">掲示板</h2>
+            <div className="flex items-center gap-1 border border-gray-300 rounded-lg p-0.5">
+              <button
+                onClick={() => setBoardViewMode('card')}
+                className={`p-2 rounded-md transition-colors ${boardViewMode === 'card' ? 'bg-gray-800 text-white' : 'text-gray-500 hover:bg-gray-100'}`}
+                title="カード表示"
+                aria-label="カード表示"
+              >
+                <LayoutGrid className="h-4 w-4" />
+              </button>
+              <button
+                onClick={() => setBoardViewMode('list')}
+                className={`p-2 rounded-md transition-colors ${boardViewMode === 'list' ? 'bg-gray-800 text-white' : 'text-gray-500 hover:bg-gray-100'}`}
+                title="リスト表示"
+                aria-label="リスト表示"
+              >
+                <List className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-            {/* 左カラム（3/4）: カテゴリ別投稿リスト */}
+            {/* 左カラム（3/4）: カテゴリ別投稿 */}
             <div className="md:col-span-3 space-y-10">
               {boardCategories.map((cat) => {
                 const posts = (categoryPosts[cat.key] || []).slice(0, 4);
+                const getImageUrl = (post: any) => {
+                  const youtubeUrl = post.youtube_url || extractYouTubeUrl(post.body || '');
+                  if (youtubeUrl) return `https://i.ytimg.com/vi/${extractYouTubeId(youtubeUrl)}/mqdefault.jpg`;
+                  const url = post.media_url || (post.media_urls && post.media_urls[0]);
+                  if (!url) return null;
+                  return url.startsWith('http') ? url : (url.startsWith('/assets/') || url.startsWith('/images/')) ? url : `${API_URL}${url}`;
+                };
+                const formatDate = (d: string) => {
+                  const dt = new Date(d);
+                  return `${dt.getFullYear()}/${dt.getMonth() + 1}/${dt.getDate()}`;
+                };
                 return (
                   <div key={cat.key}>
                     {/* カテゴリヘッダー */}
-                    <div className="flex items-baseline justify-between mb-2 border-b-2 border-gray-800 pb-2">
+                    <div className="flex items-baseline justify-between mb-3 border-b-2 border-gray-800 pb-2">
                       <h3 className="text-lg font-bold text-slate-900 flex items-center gap-1">
                         <span>{cat.emoji}</span>
                         {t(`homepage.categories.${cat.key}.title`)}
@@ -415,64 +450,80 @@ const HomePage: React.FC = () => {
                         もっと見る →
                       </button>
                     </div>
-                    {/* 投稿リスト */}
+
                     {posts.length === 0 ? (
                       <p className="text-sm text-gray-400 py-4 text-center">投稿がまだありません</p>
+                    ) : boardViewMode === 'card' ? (
+                      /* カード表示 */
+                      <div className="grid grid-cols-2 gap-3">
+                        {posts.map((post) => {
+                          const imageUrl = getImageUrl(post);
+                          const bodyText = (post.body || '').replace(/<[^>]*>/g, '').replace(/https?:\/\/\S+/g, '').trim().slice(0, 80);
+                          return (
+                            <Card
+                              key={post.id}
+                              className="group cursor-pointer hover:shadow-lg transition-all duration-200 overflow-hidden"
+                              onClick={() => navigate(`/posts/${post.id}`)}
+                            >
+                              <div className="h-32 overflow-hidden bg-gray-100">
+                                <img
+                                  src={imageUrl || getCategoryPlaceholder(post.category)}
+                                  alt={post.title || '投稿'}
+                                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                                  onError={(e) => { (e.target as HTMLImageElement).src = getCategoryPlaceholder(post.category); }}
+                                />
+                              </div>
+                              <CardContent className="p-3 space-y-1">
+                                <h4 className="text-xs font-bold text-slate-900 line-clamp-2 leading-snug group-hover:text-gray-600">
+                                  {post.display_title || post.title}
+                                </h4>
+                                {bodyText && (
+                                  <p className="text-xs text-gray-500 line-clamp-2">{bodyText}</p>
+                                )}
+                                <div className="flex items-center justify-between text-xs text-gray-400 pt-1">
+                                  <span>{post.created_at ? formatDate(post.created_at) : ''}</span>
+                                  <div className="flex gap-2">
+                                    <span>◇ {(post as any).carat_count ?? 0}</span>
+                                    <span>○ {(post as any).comment_count ?? 0}</span>
+                                  </div>
+                                </div>
+                              </CardContent>
+                            </Card>
+                          );
+                        })}
+                      </div>
                     ) : (
+                      /* リスト表示 */
                       <div className="flex flex-col divide-y divide-gray-100">
                         {posts.map((post) => {
-                          const youtubeUrl = post.youtube_url || extractYouTubeUrl(post.body || '');
-                          const imageUrl = (() => {
-                            if (youtubeUrl) return `https://i.ytimg.com/vi/${extractYouTubeId(youtubeUrl)}/mqdefault.jpg`;
-                            const url = post.media_url || (post.media_urls && post.media_urls[0]);
-                            if (!url) return null;
-                            return url.startsWith('http') ? url : (url.startsWith('/assets/') || url.startsWith('/images/')) ? url : `${API_URL}${url}`;
-                          })();
-                          const bodyText = (post.body || '').replace(/<[^>]*>/g, '').replace(/https?:\/\/\S+/g, '').trim();
-                          const formatDate = (d: string) => {
-                            const dt = new Date(d);
-                            return `${dt.getFullYear()}/${dt.getMonth() + 1}/${dt.getDate()}`;
-                          };
+                          const imageUrl = getImageUrl(post);
+                          const bodyText = (post.body || '').replace(/<[^>]*>/g, '').replace(/https?:\/\/\S+/g, '').trim().slice(0, 80);
                           return (
                             <div
                               key={post.id}
-                              className="group flex gap-4 py-4 cursor-pointer hover:bg-gray-50 transition-colors px-1"
+                              className="group flex gap-4 py-3 cursor-pointer hover:bg-gray-50 transition-colors px-1"
                               onClick={() => navigate(`/posts/${post.id}`)}
                             >
-                              {/* サムネイル（4:3比率） */}
-                              <div className="flex-shrink-0 w-32 h-24 overflow-hidden rounded-md bg-gray-100">
-                                {imageUrl ? (
-                                  <img
-                                    src={imageUrl}
-                                    alt={post.title || '投稿'}
-                                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                                    onError={(e) => { (e.target as HTMLImageElement).src = getCategoryPlaceholder(post.category); }}
-                                  />
-                                ) : (
-                                  <img
-                                    src={getCategoryPlaceholder(post.category)}
-                                    alt={post.category || '投稿'}
-                                    className="w-full h-full object-contain p-2"
-                                  />
-                                )}
+                              <div className="flex-shrink-0 w-28 h-20 overflow-hidden rounded-md bg-gray-100">
+                                <img
+                                  src={imageUrl || getCategoryPlaceholder(post.category)}
+                                  alt={post.title || '投稿'}
+                                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                                  onError={(e) => { (e.target as HTMLImageElement).src = getCategoryPlaceholder(post.category); }}
+                                />
                               </div>
-                              {/* テキスト */}
                               <div className="flex-1 min-w-0 flex flex-col justify-between">
                                 <div className="space-y-1">
-                                  <h4 className="text-sm md:text-base font-bold text-slate-900 line-clamp-2 leading-snug group-hover:text-gray-600 transition-colors">
+                                  <h4 className="text-sm font-bold text-slate-900 line-clamp-2 leading-snug group-hover:text-gray-600">
                                     {post.display_title || post.title}
                                   </h4>
                                   {bodyText && (
-                                    <p className="text-xs text-gray-500 line-clamp-2 leading-relaxed hidden md:block">
-                                      {bodyText}
-                                    </p>
+                                    <p className="text-xs text-gray-500 line-clamp-2 hidden md:block">{bodyText}</p>
                                   )}
                                 </div>
                                 <div className="flex items-center justify-between mt-1">
-                                  <span className="text-xs text-gray-400">
-                                    {post.created_at ? formatDate(post.created_at) : ''}
-                                  </span>
-                                  <div className="flex items-center gap-3 text-xs text-gray-400">
+                                  <span className="text-xs text-gray-400">{post.created_at ? formatDate(post.created_at) : ''}</span>
+                                  <div className="flex gap-3 text-xs text-gray-400">
                                     <span>◇ {(post as any).carat_count ?? 0} カラット</span>
                                     <span>○ {(post as any).comment_count ?? 0}</span>
                                   </div>
