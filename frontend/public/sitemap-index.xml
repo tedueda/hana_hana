@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  
+  <!-- メインサイトマップ -->
+  <sitemap>
+    <loc>https://carat-community.com/sitemap.xml</loc>
+    <lastmod>2026-05-09</lastmod>
+  </sitemap>
+  
+  <!-- ブログサイトマップ（バックエンドから動的生成） -->
+  <sitemap>
+    <loc>https://ddxdewgmen.ap-northeast-1.awsapprunner.com/sitemap-blog.xml</loc>
+    <lastmod>2026-05-09</lastmod>
+  </sitemap>
+
+</sitemapindex>

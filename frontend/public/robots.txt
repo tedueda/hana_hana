@@ -13,4 +13,6 @@ User-agent: Bingbot
 Crawl-delay: 1
 
 # Sitemaps
+Sitemap: https://carat-community.com/sitemap-index.xml
 Sitemap: https://carat-community.com/sitemap.xml
+Sitemap: https://ddxdewgmen.ap-northeast-1.awsapprunner.com/sitemap-blog.xml
