@@ -107,6 +107,7 @@ const HomePage: React.FC = () => {
   const [categoryPosts, setCategoryPosts] = useState<{ [key: string]: Post[] }>({});
   const [translatedPosts, setTranslatedPosts] = useState<{ [key: number]: boolean }>({});
   const [newsArticles, setNewsArticles] = useState<any[]>([]);
+  const [latestBlogs, setLatestBlogs] = useState<any[]>([]);
   const [, setUsers] = useState<{ [key: number]: User }>(dummyUsers);
   const [loading, setLoading] = useState(false);
   const [showConstructionModal, setShowConstructionModal] = useState(false);
@@ -262,6 +263,12 @@ const HomePage: React.FC = () => {
     fetchPosts();
     fetchNews();
     fetchCategoryPosts(currentLanguage);
+    (async () => {
+      try {
+        const res = await fetch(`${API_URL}/api/blog?lang=ja&limit=6`);
+        if (res.ok) setLatestBlogs(await res.json());
+      } catch (e) { /* ignore */ }
+    })();
   }, [user, isAnonymous]);
 
   // Re-fetch category posts and news when language changes
@@ -657,6 +664,52 @@ const HomePage: React.FC = () => {
             ))}
           </div>
         </section>
+
+        {/* 最新ブログセクション */}
+        {latestBlogs.length > 0 && (
+        <section className="py-12">
+          <div className="flex flex-col md:flex-row md:items-baseline md:justify-between mb-6 gap-1 md:gap-0">
+            <h3 className="text-3xl md:text-4xl font-bold text-slate-900">最新ブログ</h3>
+            <Button
+              variant="ghost"
+              className="text-gray-600 hover:text-black hover:bg-gray-100 font-medium text-base self-start md:self-auto"
+              onClick={() => navigate('/blog')}
+            >
+              すべて見る <ArrowRight className="h-4 w-4 ml-1 inline" />
+            </Button>
+          </div>
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {latestBlogs.slice(0, 6).map((blog: any) => (
+              <Card
+                key={blog.id}
+                className="group bg-white border border-gray-200 hover:shadow-xl transition-all duration-300 cursor-pointer overflow-hidden rounded-lg"
+                onClick={() => navigate(`/blog/${blog.slug}`)}
+              >
+                {blog.image_url && (
+                  <div className="h-44 overflow-hidden">
+                    <img
+                      src={blog.image_url.startsWith('http') ? blog.image_url : `${API_URL}${blog.image_url}`}
+                      alt={blog.title}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
+                  </div>
+                )}
+                <CardContent className="p-5 space-y-2">
+                  <h4 className="text-base font-bold text-slate-900 line-clamp-2 group-hover:text-gray-700 transition-colors">
+                    {blog.title}
+                  </h4>
+                  {blog.excerpt && (
+                    <p className="text-sm text-gray-500 line-clamp-3">{blog.excerpt}</p>
+                  )}
+                  <span className="inline-flex items-center gap-1 text-sm text-blue-600 group-hover:underline">
+                    続きを読む <ArrowRight className="h-3 w-3" />
+                  </span>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </section>
+        )}
 
         {/* 参加CTA */}
         <section className="py-16">
