@@ -678,34 +678,38 @@ const HomePage: React.FC = () => {
               すべて見る <ArrowRight className="h-4 w-4 ml-1 inline" />
             </Button>
           </div>
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          <div className="flex flex-col divide-y divide-gray-100">
             {latestBlogs.slice(0, 6).map((blog: any) => (
-              <Card
+              <div
                 key={blog.id}
-                className="group bg-white border border-gray-200 hover:shadow-xl transition-all duration-300 cursor-pointer overflow-hidden rounded-lg"
+                className="group flex items-stretch gap-4 py-4 cursor-pointer hover:bg-gray-50 transition-colors rounded-lg px-2"
                 onClick={() => navigate(`/blog/${blog.slug}`)}
               >
-                {blog.image_url && (
-                  <div className="h-44 overflow-hidden">
+                {/* サムネイル */}
+                <div className="flex-shrink-0 w-24 h-16 md:w-32 md:h-20 overflow-hidden rounded-md bg-gray-100">
+                  {blog.image_url ? (
                     <img
                       src={blog.image_url.startsWith('http') ? blog.image_url : `${API_URL}${blog.image_url}`}
                       alt={blog.title}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                     />
-                  </div>
-                )}
-                <CardContent className="p-5 space-y-2">
-                  <h4 className="text-base font-bold text-slate-900 line-clamp-2 group-hover:text-gray-700 transition-colors">
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-3xl opacity-30">📝</div>
+                  )}
+                </div>
+                {/* タイトル */}
+                <div className="flex-shrink-0 w-1/3 flex items-center">
+                  <h4 className="text-sm md:text-base font-bold text-slate-900 line-clamp-3 group-hover:text-blue-600 transition-colors leading-snug">
                     {blog.title}
                   </h4>
-                  {blog.excerpt && (
-                    <p className="text-sm text-gray-500 line-clamp-3">{blog.excerpt}</p>
-                  )}
-                  <span className="inline-flex items-center gap-1 text-sm text-blue-600 group-hover:underline">
-                    続きを読む <ArrowRight className="h-3 w-3" />
-                  </span>
-                </CardContent>
-              </Card>
+                </div>
+                {/* 抜粋 */}
+                <div className="flex-1 flex items-center">
+                  <p className="text-sm text-gray-500 line-clamp-3 leading-relaxed">
+                    {blog.excerpt || ''}
+                  </p>
+                </div>
+              </div>
             ))}
           </div>
         </section>
