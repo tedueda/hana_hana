@@ -438,14 +438,17 @@ const HomePage: React.FC = () => {
                 return (
                   <div key={cat.key}>
                     {/* カテゴリヘッダー */}
-                    <div className="flex items-baseline justify-between mb-3 border-b-2 border-gray-800 pb-2">
-                      <h3 className="text-lg font-bold text-slate-900 flex items-center gap-1">
-                        <span>{cat.emoji}</span>
-                        {t(`homepage.categories.${cat.key}.title`)}
-                      </h3>
+                    <div className="flex items-center justify-between mb-4 pb-3 border-b border-gray-200">
+                      <div className="flex items-center gap-3">
+                        <div className="w-1 h-8 bg-gray-800 rounded-full flex-shrink-0" />
+                        <h3 className="text-xl font-bold text-slate-900 flex items-center gap-2">
+                          <span className="text-2xl leading-none">{cat.emoji}</span>
+                          {t(`homepage.categories.${cat.key}.title`)}
+                        </h3>
+                      </div>
                       <button
                         onClick={() => navigate(cat.link)}
-                        className="text-xs text-gray-500 hover:text-black transition-colors"
+                        className="text-xs text-gray-500 border border-gray-300 rounded-full px-3 py-1 hover:bg-gray-800 hover:text-white hover:border-gray-800 transition-all"
                       >
                         もっと見る →
                       </button>
