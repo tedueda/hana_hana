@@ -24,8 +24,9 @@
   status = 200
   force = true
 
-# SPAルーティング対応（最後に配置、静的ファイルは除外）
+# SPAルーティング対応（最後に配置、静的ファイルとAPIは除外）
 [[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
+  force = false
