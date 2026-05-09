@@ -678,15 +678,15 @@ const HomePage: React.FC = () => {
               すべて見る <ArrowRight className="h-4 w-4 ml-1 inline" />
             </Button>
           </div>
-          <div className="flex flex-col divide-y divide-gray-100">
+          <div className="flex flex-col divide-y divide-gray-200 border-t border-gray-200">
             {latestBlogs.slice(0, 6).map((blog: any) => (
               <div
                 key={blog.id}
-                className="group flex items-stretch gap-4 py-4 cursor-pointer hover:bg-gray-50 transition-colors rounded-lg px-2"
+                className="group flex items-center gap-3 py-3 cursor-pointer hover:bg-gray-50 transition-colors px-1"
                 onClick={() => navigate(`/blog/${blog.slug}`)}
               >
-                {/* サムネイル */}
-                <div className="flex-shrink-0 w-24 h-16 md:w-32 md:h-20 overflow-hidden rounded-md bg-gray-100">
+                {/* 正方形サムネイル */}
+                <div className="flex-shrink-0 w-20 h-20 md:w-24 md:h-24 overflow-hidden rounded-md bg-gray-100">
                   {blog.image_url ? (
                     <img
                       src={blog.image_url.startsWith('http') ? blog.image_url : `${API_URL}${blog.image_url}`}
@@ -694,20 +694,20 @@ const HomePage: React.FC = () => {
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                     />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center text-3xl opacity-30">📝</div>
+                    <div className="w-full h-full flex items-center justify-center text-2xl opacity-20">📝</div>
                   )}
                 </div>
-                {/* タイトル */}
-                <div className="flex-shrink-0 w-1/3 flex items-center">
-                  <h4 className="text-sm md:text-base font-bold text-slate-900 line-clamp-3 group-hover:text-blue-600 transition-colors leading-snug">
+                {/* タイトル＋抜粋 */}
+                <div className="flex-1 min-w-0 space-y-1">
+                  <h4 className="text-sm md:text-base font-bold text-slate-900 line-clamp-2 leading-snug group-hover:text-gray-600 transition-colors">
                     {blog.title}
                   </h4>
-                </div>
-                {/* 抜粋 */}
-                <div className="flex-1 flex items-center">
-                  <p className="text-sm text-gray-500 line-clamp-3 leading-relaxed">
-                    {blog.excerpt || ''}
-                  </p>
+                  {blog.excerpt && (
+                    <p className="text-xs md:text-sm text-gray-500 line-clamp-2 leading-relaxed">
+                      {blog.excerpt}
+                    </p>
+                  )}
+                  <p className="text-xs text-gray-400">カラット（Carat）</p>
                 </div>
               </div>
             ))}
