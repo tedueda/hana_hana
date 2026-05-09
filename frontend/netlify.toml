@@ -14,8 +14,10 @@
   status = 200
   force = true
 
-# SPA redirect to index.html
+# SPA redirect to index.html (exclude static files)
+# Note: Files in /public are served directly by Netlify
 [[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
+  force = false
