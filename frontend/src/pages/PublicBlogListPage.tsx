@@ -21,6 +21,25 @@ const PublicBlogListPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    document.title = 'ブログ | カラット（Carat）- LGBTQ+コミュニティ';
+    const setMeta = (name: string, content: string, property?: boolean) => {
+      const attr = property ? 'property' : 'name';
+      let el = document.querySelector(`meta[${attr}="${name}"]`) as HTMLMetaElement | null;
+      if (!el) { el = document.createElement('meta'); el.setAttribute(attr, name); document.head.appendChild(el); }
+      el.content = content;
+    };
+    setMeta('description', 'カラット（Carat）のLGBTQ+コミュニティブログ。ゲイ・レズビアン・バイセクシャル・トランスジェンダーに関する最新情報、体験談、コラムをお届けします。');
+    setMeta('og:title', 'ブログ | カラット（Carat）- LGBTQ+コミュニティ', true);
+    setMeta('og:description', 'LGBTQ+コミュニティの最新情報、体験談、コラムをお届けします。', true);
+    setMeta('og:url', 'https://carat-community.com/blog', true);
+    setMeta('og:type', 'website', true);
+    let canonical = document.querySelector('link[rel="canonical"]') as HTMLLinkElement | null;
+    if (!canonical) { canonical = document.createElement('link'); canonical.rel = 'canonical'; document.head.appendChild(canonical); }
+    canonical.href = 'https://carat-community.com/blog';
+    return () => { document.title = 'カラット（Carat）- 日本最大級のLGBTQ+コミュニティ | ゲイ・レズビアン・トランスジェンダーの交流プラットフォーム'; };
+  }, []);
+
+  useEffect(() => {
     (async () => {
       try {
         setLoading(true);
