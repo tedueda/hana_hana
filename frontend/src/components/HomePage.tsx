@@ -8,7 +8,6 @@ import { Button } from './ui/button';
 import { Card, CardContent } from './ui/card';
 import UnderConstructionModal from './UnderConstructionModal';
 import PremiumUpgradeModal from './PremiumUpgradeModal';
-import MemberMenuCards from './MemberMenuCards';
 import { Post, User } from '../types/Post';
 import { extractYouTubeId, extractYouTubeUrl } from '../utils/youtube';
 import HeroAudioPlayer from './HeroAudioPlayer';
@@ -394,142 +393,144 @@ const HomePage: React.FC = () => {
 
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* 掲示板セクション - 6カテゴリ */}
-        {boardCategories.map((cat) => (
-          <section key={cat.key} className="py-8">
-            <div className="flex flex-col md:flex-row md:items-baseline md:justify-between mb-2 gap-1 md:gap-0">
-              <div className="flex-1">
-                <h3 className="text-3xl md:text-4xl font-serif font-semibold text-slate-900 flex items-center gap-2">
-                  <span>{cat.emoji}</span>
-                  {t(`homepage.categories.${cat.key}.title`)}
-                </h3>
-                <p className="text-sm md:text-base text-slate-600 mt-1">{t(`homepage.categories.${cat.key}.desc`)}</p>
-              </div>
-              <Button 
-                variant="ghost" 
-                className="text-gray-700 hover:text-black hover:bg-gray-100 font-medium text-base md:text-xl self-start md:self-auto"
-                onClick={() => navigate(cat.link)}
-              >
-                {t('homepage.viewAll')}→
-              </Button>
-            </div>
-            <div className="flex flex-col md:grid md:grid-cols-2 lg:grid-cols-4 gap-4">
-              {(categoryPosts[cat.key] || []).slice(0, 4).map((post) => {
-                // youtube_urlフィールドがない場合、本文からYouTubeのURLを抽出
-                const extractedUrl = extractYouTubeUrl(post.body || '');
-                const youtubeUrl = post.youtube_url || extractedUrl;
-                console.log(`📌 Post ${post.id} - youtube_url:`, post.youtube_url, 'body:', post.body, 'extractedUrl:', extractedUrl, 'youtubeUrl:', youtubeUrl, 'media_url:', post.media_url);
-                return (
-                <Card 
-                  key={post.id} 
-                  onClick={() => navigate(`/posts/${post.id}`)}
-                  className="group backdrop-blur-md bg-gray-50/80 border border-gray-200 hover:bg-white hover:border-gray-300 transition-all duration-300 cursor-pointer hover:scale-[1.02] shadow-lg hover:shadow-2xl"
-                >
-                  <div className="flex flex-row md:flex-col">
-                  {youtubeUrl ? (
-                    <div className="w-32 h-20 md:w-full md:h-40 flex-shrink-0 overflow-hidden rounded-l-lg md:rounded-l-none md:rounded-t-lg bg-black flex items-center justify-center relative">
-                      <img 
-                        src={`https://i.ytimg.com/vi/${extractYouTubeId(youtubeUrl)}/hqdefault.jpg`}
-                        alt={post.title || 'YouTube動画'}
-                        className="w-full h-full object-cover"
-                        onError={(e) => {
-                          const target = e.target as HTMLImageElement;
-                          const videoId = extractYouTubeId(youtubeUrl || '');
-                          if (!videoId) { target.src = getCategoryPlaceholder(post.category); return; }
-                          if (target.src.includes('hqdefault')) {
-                            target.src = `https://i.ytimg.com/vi/${videoId}/mqdefault.jpg`;
-                          } else if (target.src.includes('mqdefault')) {
-                            target.src = `https://i.ytimg.com/vi/${videoId}/sddefault.jpg`;
-                          } else {
-                            target.src = getCategoryPlaceholder(post.category);
-                          }
-                        }}
-                      />
-                    </div>
-                  ) : (post.media_url || (post.media_urls && post.media_urls.length > 0)) ? (
-                    <div className="w-32 h-20 md:w-full md:h-40 flex-shrink-0 overflow-hidden rounded-l-lg md:rounded-l-none md:rounded-t-lg bg-gray-100 flex items-center justify-center">
-                      <img 
-                        src={`${(() => {
-                          const imageUrl = post.media_url || (post.media_urls && post.media_urls[0]);
-                          if (!imageUrl) return getCategoryPlaceholder(post.category);
-                          return imageUrl.startsWith('http') ? imageUrl : 
-                                 (imageUrl.startsWith('/assets/') || imageUrl.startsWith('/images/')) ? imageUrl : 
-                                 `${API_URL}${imageUrl}`;
-                        })()}`}
-                        alt={post.title || '投稿画像'}
-                        className="w-full h-full object-contain"
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).src = getCategoryPlaceholder(post.category);
-                        }}
-                      />
-                    </div>
-                  ) : (() => {
-                    const externalEmbed = detectExternalEmbed(post.body || '');
-                    if (externalEmbed) {
-                      return (
-                        <OgpThumbnail
-                          url={externalEmbed.originalUrl}
-                          alt={post.title || (externalEmbed.type === 'standfm' ? 'stand.fm' : 'Suno AI')}
-                          className="w-32 h-20 md:w-full md:h-40 flex-shrink-0 overflow-hidden rounded-l-lg md:rounded-l-none md:rounded-t-lg bg-gray-100 flex items-center justify-center"
-                          imgClassName="w-full h-full object-cover"
-                          fallback={
-                            <div className="w-32 h-20 md:w-full md:h-40 flex-shrink-0 overflow-hidden rounded-l-lg md:rounded-l-none md:rounded-t-lg bg-gradient-to-br from-purple-100 to-pink-100 flex flex-col items-center justify-center gap-1">
-                              <div className="text-3xl">{externalEmbed.type === 'standfm' ? '🎙️' : '🎵'}</div>
-                              <span className="text-xs font-medium text-gray-600">{externalEmbed.type === 'standfm' ? 'stand.fm' : 'Suno AI'}</span>
-                            </div>
-                          }
-                        />
-                      );
-                    }
-                    return (
-                      <div className="w-32 h-20 md:w-full md:h-40 flex-shrink-0 overflow-hidden rounded-l-lg md:rounded-l-none md:rounded-t-lg bg-gray-100 flex items-center justify-center">
-                        <img 
-                          src={getCategoryPlaceholder(post.category)}
-                          alt={cat.title}
-                          className="w-full h-full object-contain"
-                        />
-                      </div>
-                    );
-                  })()}
-                  <CardContent className="p-2 md:p-4 flex-1">
-                    <div className="flex items-start justify-between gap-2 mb-1">
-                      {(post.display_title || post.title) && (
-                        <h4 className="text-sm md:text-base font-serif font-semibold leading-snug text-slate-900 group-hover:gold-accent line-clamp-2 flex-1">
-                          {post.display_title || post.title}
-                        </h4>
-                      )}
-                      {post.original_lang && post.original_lang !== currentLanguage && (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setTranslatedPosts(prev => ({
-                              ...prev,
-                              [post.id]: !prev[post.id]
-                            }));
-                          }}
-                          className="flex-shrink-0 p-1 hover:bg-gray-100 rounded transition-colors"
-                          title={translatedPosts[post.id] ? t('common.showOriginal', '原文') : t('common.showTranslation', '翻訳')}
-                        >
-                          <Globe className={`h-4 w-4 ${translatedPosts[post.id] ? 'text-blue-600' : 'text-gray-400'}`} />
-                        </button>
-                      )}
-                    </div>
-                  </CardContent>
-                  </div>
-                </Card>
-              );
-              })}
-              {(!categoryPosts[cat.key] || categoryPosts[cat.key].length === 0) && (
-                <div className="col-span-4 text-center py-8 text-slate-500">
-                  投稿がまだありません
-                </div>
-              )}
-            </div>
-          </section>
-        ))}
+        {/* 掲示板セクション - 2カラムレイアウト */}
+        <section className="py-8">
+          <div className="flex flex-col md:flex-row md:items-baseline md:justify-between mb-4 gap-1 md:gap-0">
+            <h3 className="text-3xl md:text-4xl font-serif font-semibold text-slate-900">掲示板 最新投稿</h3>
+            <Button
+              variant="ghost"
+              className="text-gray-700 hover:text-black hover:bg-gray-100 font-medium text-base md:text-xl self-start md:self-auto"
+              onClick={() => navigate('/category/board')}
+            >
+              {t('homepage.viewAll')}→
+            </Button>
+          </div>
 
-        {/* 会員メニュー - カテゴリ一覧の直下 */}
-        <MemberMenuCards />
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+            {/* 左カラム（3/4）: 最新投稿リスト */}
+            <div className="md:col-span-3">
+              {(() => {
+                const allPosts = Object.values(categoryPosts)
+                  .flat()
+                  .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+                  .filter((post, idx, self) => self.findIndex(p => p.id === post.id) === idx)
+                  .slice(0, 20);
+
+                const categoryLabel: { [key: string]: string } = {
+                  music: '🎵 Music', art: '🎨 アート', comics: '🎭 サブカル',
+                  food: '🍽️ 食レポ', shops: '🍽️ 食レポ', tourism: '📍 ツーリズム', board: '💬 掲示板',
+                };
+
+                if (allPosts.length === 0) {
+                  return <p className="text-center py-12 text-slate-500">投稿がまだありません</p>;
+                }
+                return (
+                  <div className="flex flex-col divide-y divide-gray-200 border-t border-gray-200">
+                    {allPosts.map((post) => {
+                      const youtubeUrl = post.youtube_url || extractYouTubeUrl(post.body || '');
+                      const imageUrl = (() => {
+                        if (youtubeUrl) return `https://i.ytimg.com/vi/${extractYouTubeId(youtubeUrl)}/mqdefault.jpg`;
+                        const url = post.media_url || (post.media_urls && post.media_urls[0]);
+                        if (!url) return null;
+                        return url.startsWith('http') ? url : (url.startsWith('/assets/') || url.startsWith('/images/')) ? url : `${API_URL}${url}`;
+                      })();
+                      const formatDate = (d: string) => new Date(d).toLocaleDateString('ja-JP', { month: 'numeric', day: 'numeric' });
+                      return (
+                        <div
+                          key={post.id}
+                          className="group flex items-center gap-3 py-3 cursor-pointer hover:bg-gray-50 transition-colors px-1"
+                          onClick={() => navigate(`/posts/${post.id}`)}
+                        >
+                          {/* 正方形サムネイル */}
+                          <div className="flex-shrink-0 w-20 h-20 overflow-hidden rounded-md bg-gray-100">
+                            {imageUrl ? (
+                              <img
+                                src={imageUrl}
+                                alt={post.title || '投稿'}
+                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                                onError={(e) => { (e.target as HTMLImageElement).src = getCategoryPlaceholder(post.category); }}
+                              />
+                            ) : (
+                              <img
+                                src={getCategoryPlaceholder(post.category)}
+                                alt={post.category || '投稿'}
+                                className="w-full h-full object-contain"
+                              />
+                            )}
+                          </div>
+                          {/* テキスト */}
+                          <div className="flex-1 min-w-0 space-y-1">
+                            <h4 className="text-sm md:text-base font-bold text-slate-900 line-clamp-2 leading-snug group-hover:text-gray-600 transition-colors">
+                              {post.display_title || post.title}
+                            </h4>
+                            <div className="flex items-center gap-2 flex-wrap">
+                              {post.category && (
+                                <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">
+                                  {categoryLabel[post.category] || post.category}
+                                </span>
+                              )}
+                              <span className="text-xs text-gray-400">
+                                {post.created_at ? formatDate(post.created_at) : ''}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })()}
+            </div>
+
+            {/* 右カラム（1/4）: ナビゲーションサイドバー */}
+            <div className="md:col-span-1">
+              <div className="sticky top-4 space-y-6">
+                {/* 会員専用グループ */}
+                <div className="border border-gray-200 rounded-lg overflow-hidden">
+                  <div className="bg-gray-800 text-white text-sm font-bold px-4 py-2">会員専用</div>
+                  <div className="divide-y divide-gray-100">
+                    {[
+                      { label: '💑 会員マッチング', path: '/matching' },
+                      { label: '🏠 会員サロン', path: '/salon' },
+                      { label: '💼 ビジネス', path: '/business' },
+                    ].map(item => (
+                      <button
+                        key={item.path}
+                        onClick={() => navigate(item.path)}
+                        className="w-full text-left text-sm px-4 py-3 hover:bg-gray-50 transition-colors text-slate-700 font-medium"
+                      >
+                        {item.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* 掲示板グループ */}
+                <div className="border border-gray-200 rounded-lg overflow-hidden">
+                  <div className="bg-gray-800 text-white text-sm font-bold px-4 py-2">掲示板</div>
+                  <div className="divide-y divide-gray-100">
+                    {[
+                      { label: '🎵 Music', path: '/category/music' },
+                      { label: '🎨 アート・動画', path: '/category/art' },
+                      { label: '🎭 サブカルチャー', path: '/category/comics' },
+                      { label: '🍽️ 食レポ・お店', path: '/category/food' },
+                      { label: '📍 ツーリズム', path: '/category/tourism' },
+                      { label: '💬 掲示板', path: '/category/board' },
+                    ].map(item => (
+                      <button
+                        key={item.path}
+                        onClick={() => navigate(item.path)}
+                        className="w-full text-left text-sm px-4 py-3 hover:bg-gray-50 transition-colors text-slate-700"
+                      >
+                        {item.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
 
         {/* ライブウェディングバナー */}
         <section className="py-6">
