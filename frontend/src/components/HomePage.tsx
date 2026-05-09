@@ -395,96 +395,102 @@ const HomePage: React.FC = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* 掲示板セクション - 2カラムレイアウト */}
         <section className="py-8">
-          <div className="flex flex-col md:flex-row md:items-baseline md:justify-between mb-4 gap-1 md:gap-0">
-            <h3 className="text-3xl md:text-4xl font-serif font-semibold text-slate-900">掲示板 最新投稿</h3>
-            <Button
-              variant="ghost"
-              className="text-gray-700 hover:text-black hover:bg-gray-100 font-medium text-base md:text-xl self-start md:self-auto"
-              onClick={() => navigate('/category/board')}
-            >
-              {t('homepage.viewAll')}→
-            </Button>
-          </div>
-
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-            {/* 左カラム（3/4）: 最新投稿リスト */}
-            <div className="md:col-span-3">
-              {(() => {
-                const allPosts = Object.values(categoryPosts)
-                  .flat()
-                  .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-                  .filter((post, idx, self) => self.findIndex(p => p.id === post.id) === idx)
-                  .slice(0, 20);
-
-                const categoryLabel: { [key: string]: string } = {
-                  music: '🎵 Music', art: '🎨 アート', comics: '🎭 サブカル',
-                  food: '🍽️ 食レポ', shops: '🍽️ 食レポ', tourism: '📍 ツーリズム', board: '💬 掲示板',
-                };
-
-                if (allPosts.length === 0) {
-                  return <p className="text-center py-12 text-slate-500">投稿がまだありません</p>;
-                }
+            {/* 左カラム（3/4）: カテゴリ別投稿リスト */}
+            <div className="md:col-span-3 space-y-10">
+              {boardCategories.map((cat) => {
+                const posts = (categoryPosts[cat.key] || []).slice(0, 4);
                 return (
-                  <div className="flex flex-col divide-y divide-gray-200 border-t border-gray-200">
-                    {allPosts.map((post) => {
-                      const youtubeUrl = post.youtube_url || extractYouTubeUrl(post.body || '');
-                      const imageUrl = (() => {
-                        if (youtubeUrl) return `https://i.ytimg.com/vi/${extractYouTubeId(youtubeUrl)}/mqdefault.jpg`;
-                        const url = post.media_url || (post.media_urls && post.media_urls[0]);
-                        if (!url) return null;
-                        return url.startsWith('http') ? url : (url.startsWith('/assets/') || url.startsWith('/images/')) ? url : `${API_URL}${url}`;
-                      })();
-                      const formatDate = (d: string) => new Date(d).toLocaleDateString('ja-JP', { month: 'numeric', day: 'numeric' });
-                      return (
-                        <div
-                          key={post.id}
-                          className="group flex items-center gap-3 py-3 cursor-pointer hover:bg-gray-50 transition-colors px-1"
-                          onClick={() => navigate(`/posts/${post.id}`)}
-                        >
-                          {/* 正方形サムネイル */}
-                          <div className="flex-shrink-0 w-20 h-20 overflow-hidden rounded-md bg-gray-100">
-                            {imageUrl ? (
-                              <img
-                                src={imageUrl}
-                                alt={post.title || '投稿'}
-                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                                onError={(e) => { (e.target as HTMLImageElement).src = getCategoryPlaceholder(post.category); }}
-                              />
-                            ) : (
-                              <img
-                                src={getCategoryPlaceholder(post.category)}
-                                alt={post.category || '投稿'}
-                                className="w-full h-full object-contain"
-                              />
-                            )}
-                          </div>
-                          {/* テキスト */}
-                          <div className="flex-1 min-w-0 space-y-1">
-                            <h4 className="text-sm md:text-base font-bold text-slate-900 line-clamp-2 leading-snug group-hover:text-gray-600 transition-colors">
-                              {post.display_title || post.title}
-                            </h4>
-                            <div className="flex items-center gap-2 flex-wrap">
-                              {post.category && (
-                                <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">
-                                  {categoryLabel[post.category] || post.category}
-                                </span>
-                              )}
-                              <span className="text-xs text-gray-400">
-                                {post.created_at ? formatDate(post.created_at) : ''}
-                              </span>
+                  <div key={cat.key}>
+                    {/* カテゴリヘッダー */}
+                    <div className="flex items-baseline justify-between mb-2 border-b-2 border-gray-800 pb-2">
+                      <h3 className="text-lg font-bold text-slate-900 flex items-center gap-1">
+                        <span>{cat.emoji}</span>
+                        {t(`homepage.categories.${cat.key}.title`)}
+                      </h3>
+                      <button
+                        onClick={() => navigate(cat.link)}
+                        className="text-xs text-gray-500 hover:text-black transition-colors"
+                      >
+                        もっと見る →
+                      </button>
+                    </div>
+                    {/* 投稿リスト */}
+                    {posts.length === 0 ? (
+                      <p className="text-sm text-gray-400 py-4 text-center">投稿がまだありません</p>
+                    ) : (
+                      <div className="flex flex-col divide-y divide-gray-100">
+                        {posts.map((post) => {
+                          const youtubeUrl = post.youtube_url || extractYouTubeUrl(post.body || '');
+                          const imageUrl = (() => {
+                            if (youtubeUrl) return `https://i.ytimg.com/vi/${extractYouTubeId(youtubeUrl)}/mqdefault.jpg`;
+                            const url = post.media_url || (post.media_urls && post.media_urls[0]);
+                            if (!url) return null;
+                            return url.startsWith('http') ? url : (url.startsWith('/assets/') || url.startsWith('/images/')) ? url : `${API_URL}${url}`;
+                          })();
+                          const bodyText = (post.body || '').replace(/<[^>]*>/g, '').replace(/https?:\/\/\S+/g, '').trim();
+                          const formatDate = (d: string) => {
+                            const dt = new Date(d);
+                            return `${dt.getFullYear()}/${dt.getMonth() + 1}/${dt.getDate()}`;
+                          };
+                          return (
+                            <div
+                              key={post.id}
+                              className="group flex gap-4 py-4 cursor-pointer hover:bg-gray-50 transition-colors px-1"
+                              onClick={() => navigate(`/posts/${post.id}`)}
+                            >
+                              {/* サムネイル（4:3比率） */}
+                              <div className="flex-shrink-0 w-32 h-24 overflow-hidden rounded-md bg-gray-100">
+                                {imageUrl ? (
+                                  <img
+                                    src={imageUrl}
+                                    alt={post.title || '投稿'}
+                                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                                    onError={(e) => { (e.target as HTMLImageElement).src = getCategoryPlaceholder(post.category); }}
+                                  />
+                                ) : (
+                                  <img
+                                    src={getCategoryPlaceholder(post.category)}
+                                    alt={post.category || '投稿'}
+                                    className="w-full h-full object-contain p-2"
+                                  />
+                                )}
+                              </div>
+                              {/* テキスト */}
+                              <div className="flex-1 min-w-0 flex flex-col justify-between">
+                                <div className="space-y-1">
+                                  <h4 className="text-sm md:text-base font-bold text-slate-900 line-clamp-2 leading-snug group-hover:text-gray-600 transition-colors">
+                                    {post.display_title || post.title}
+                                  </h4>
+                                  {bodyText && (
+                                    <p className="text-xs text-gray-500 line-clamp-2 leading-relaxed hidden md:block">
+                                      {bodyText}
+                                    </p>
+                                  )}
+                                </div>
+                                <div className="flex items-center justify-between mt-1">
+                                  <span className="text-xs text-gray-400">
+                                    {post.created_at ? formatDate(post.created_at) : ''}
+                                  </span>
+                                  <div className="flex items-center gap-3 text-xs text-gray-400">
+                                    <span>◇ {(post as any).carat_count ?? 0} カラット</span>
+                                    <span>○ {(post as any).comment_count ?? 0}</span>
+                                  </div>
+                                </div>
+                              </div>
                             </div>
-                          </div>
-                        </div>
-                      );
-                    })}
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
                 );
-              })()}
+              })}
             </div>
 
             {/* 右カラム（1/4）: ナビゲーションサイドバー */}
             <div className="md:col-span-1">
-              <div className="sticky top-4 space-y-6">
+              <div className="sticky top-4 space-y-4">
                 {/* 会員専用グループ */}
                 <div className="border border-gray-200 rounded-lg overflow-hidden">
                   <div className="bg-gray-800 text-white text-sm font-bold px-4 py-2">会員専用</div>
@@ -497,7 +503,7 @@ const HomePage: React.FC = () => {
                       <button
                         key={item.path}
                         onClick={() => navigate(item.path)}
-                        className="w-full text-left text-sm px-4 py-3 hover:bg-gray-50 transition-colors text-slate-700 font-medium"
+                        className="w-full text-left text-sm px-4 py-2.5 hover:bg-gray-50 transition-colors text-slate-700 font-medium"
                       >
                         {item.label}
                       </button>
@@ -520,7 +526,26 @@ const HomePage: React.FC = () => {
                       <button
                         key={item.path}
                         onClick={() => navigate(item.path)}
-                        className="w-full text-left text-sm px-4 py-3 hover:bg-gray-50 transition-colors text-slate-700"
+                        className="w-full text-left text-sm px-4 py-2.5 hover:bg-gray-50 transition-colors text-slate-700"
+                      >
+                        {item.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* ニュース・ブロググループ */}
+                <div className="border border-gray-200 rounded-lg overflow-hidden">
+                  <div className="bg-gray-800 text-white text-sm font-bold px-4 py-2">コンテンツ</div>
+                  <div className="divide-y divide-gray-100">
+                    {[
+                      { label: '📰 ニュース', path: '/news' },
+                      { label: '✍️ ブログ', path: '/blog' },
+                    ].map(item => (
+                      <button
+                        key={item.path}
+                        onClick={() => navigate(item.path)}
+                        className="w-full text-left text-sm px-4 py-2.5 hover:bg-gray-50 transition-colors text-slate-700"
                       >
                         {item.label}
                       </button>
