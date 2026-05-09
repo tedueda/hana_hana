@@ -852,8 +852,7 @@ const FounderManagementTab: React.FC<{ token: string }> = ({ token }) => {
 
       {/* Founder List */}
       <div className="bg-white rounded-lg border">
-        <div className="bg-white rounded-lg border">
-  　　　 <div className="overflow-x-auto">
+        <div className="overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow>
@@ -926,7 +925,7 @@ const FounderManagementTab: React.FC<{ token: string }> = ({ token }) => {
             ))}
           </TableBody>
         </Table>
-　　　　 </div>
+      </div>
       </div>
 
       {/* QR Code Dialog */}
