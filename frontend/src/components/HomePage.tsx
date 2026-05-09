@@ -419,9 +419,9 @@ const HomePage: React.FC = () => {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-            {/* 左カラム（3/4）: カテゴリ別投稿 */}
-            <div className="md:col-span-3 space-y-10">
+          <div className="flex flex-col md:flex-row gap-6">
+            {/* 左カラム（広め）: カテゴリ別投稿 */}
+            <div className="flex-1 min-w-0 space-y-10">
               {boardCategories.map((cat) => {
                 const posts = (categoryPosts[cat.key] || []).slice(0, 4);
                 const getImageUrl = (post: any) => {
@@ -454,18 +454,18 @@ const HomePage: React.FC = () => {
                     {posts.length === 0 ? (
                       <p className="text-sm text-gray-400 py-4 text-center">投稿がまだありません</p>
                     ) : boardViewMode === 'card' ? (
-                      /* カード表示 */
-                      <div className="grid grid-cols-2 gap-3">
+                      /* カード表示（4列） */
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                         {posts.map((post) => {
                           const imageUrl = getImageUrl(post);
                           const bodyText = (post.body || '').replace(/<[^>]*>/g, '').replace(/https?:\/\/\S+/g, '').trim().slice(0, 80);
                           return (
                             <Card
                               key={post.id}
-                              className="group cursor-pointer hover:shadow-lg transition-all duration-200 overflow-hidden"
+                              className="group cursor-pointer hover:shadow-md transition-all duration-200 overflow-hidden"
                               onClick={() => navigate(`/posts/${post.id}`)}
                             >
-                              <div className="h-32 overflow-hidden bg-gray-100">
+                              <div className="h-24 overflow-hidden bg-gray-100">
                                 <img
                                   src={imageUrl || getCategoryPlaceholder(post.category)}
                                   alt={post.title || '投稿'}
@@ -473,18 +473,18 @@ const HomePage: React.FC = () => {
                                   onError={(e) => { (e.target as HTMLImageElement).src = getCategoryPlaceholder(post.category); }}
                                 />
                               </div>
-                              <CardContent className="p-3 space-y-1">
+                              <CardContent className="p-2 space-y-0.5">
                                 <h4 className="text-xs font-bold text-slate-900 line-clamp-2 leading-snug group-hover:text-gray-600">
                                   {post.display_title || post.title}
                                 </h4>
                                 {bodyText && (
-                                  <p className="text-xs text-gray-500 line-clamp-2">{bodyText}</p>
+                                  <p className="text-[10px] text-gray-500 line-clamp-2">{bodyText}</p>
                                 )}
-                                <div className="flex items-center justify-between text-xs text-gray-400 pt-1">
+                                <div className="flex items-center justify-between text-[10px] text-gray-400 pt-0.5">
                                   <span>{post.created_at ? formatDate(post.created_at) : ''}</span>
-                                  <div className="flex gap-2">
-                                    <span>◇ {(post as any).carat_count ?? 0}</span>
-                                    <span>○ {(post as any).comment_count ?? 0}</span>
+                                  <div className="flex gap-1">
+                                    <span>◇{(post as any).carat_count ?? 0}</span>
+                                    <span>○{(post as any).comment_count ?? 0}</span>
                                   </div>
                                 </div>
                               </CardContent>
@@ -539,12 +539,12 @@ const HomePage: React.FC = () => {
               })}
             </div>
 
-            {/* 右カラム（1/4）: ナビゲーションサイドバー */}
-            <div className="md:col-span-1">
+            {/* 右カラム（狭め固定幅）: ナビゲーションサイドバー */}
+            <div className="md:w-44 flex-shrink-0">
               <div className="sticky top-4 space-y-4">
                 {/* 会員専用グループ */}
                 <div className="border border-gray-200 rounded-lg overflow-hidden">
-                  <div className="bg-gray-800 text-white text-sm font-bold px-4 py-2">会員専用</div>
+                  <div className="bg-gray-800 text-white text-xs font-bold px-3 py-2">会員専用</div>
                   <div className="divide-y divide-gray-100">
                     {[
                       { label: '💑 会員マッチング', path: '/matching' },
@@ -554,7 +554,7 @@ const HomePage: React.FC = () => {
                       <button
                         key={item.path}
                         onClick={() => navigate(item.path)}
-                        className="w-full text-left text-sm px-4 py-2.5 hover:bg-gray-50 transition-colors text-slate-700 font-medium"
+                        className="w-full text-left text-xs px-3 py-2 hover:bg-gray-50 transition-colors text-slate-700 font-medium"
                       >
                         {item.label}
                       </button>
@@ -564,7 +564,7 @@ const HomePage: React.FC = () => {
 
                 {/* 掲示板グループ */}
                 <div className="border border-gray-200 rounded-lg overflow-hidden">
-                  <div className="bg-gray-800 text-white text-sm font-bold px-4 py-2">掲示板</div>
+                  <div className="bg-gray-800 text-white text-xs font-bold px-3 py-2">掲示板</div>
                   <div className="divide-y divide-gray-100">
                     {[
                       { label: '🎵 Music', path: '/category/music' },
@@ -577,7 +577,7 @@ const HomePage: React.FC = () => {
                       <button
                         key={item.path}
                         onClick={() => navigate(item.path)}
-                        className="w-full text-left text-sm px-4 py-2.5 hover:bg-gray-50 transition-colors text-slate-700"
+                        className="w-full text-left text-xs px-3 py-2 hover:bg-gray-50 transition-colors text-slate-700"
                       >
                         {item.label}
                       </button>
@@ -587,7 +587,7 @@ const HomePage: React.FC = () => {
 
                 {/* ニュース・ブロググループ */}
                 <div className="border border-gray-200 rounded-lg overflow-hidden">
-                  <div className="bg-gray-800 text-white text-sm font-bold px-4 py-2">コンテンツ</div>
+                  <div className="bg-gray-800 text-white text-xs font-bold px-3 py-2">コンテンツ</div>
                   <div className="divide-y divide-gray-100">
                     {[
                       { label: '📰 ニュース', path: '/news' },
@@ -596,7 +596,7 @@ const HomePage: React.FC = () => {
                       <button
                         key={item.path}
                         onClick={() => navigate(item.path)}
-                        className="w-full text-left text-sm px-4 py-2.5 hover:bg-gray-50 transition-colors text-slate-700"
+                        className="w-full text-left text-xs px-3 py-2 hover:bg-gray-50 transition-colors text-slate-700"
                       >
                         {item.label}
                       </button>
