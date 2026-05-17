@@ -20,6 +20,7 @@ from slowapi.util import get_remote_address
 from app.database import get_db
 from app.auth import get_current_admin_user, verify_password, create_access_token, get_password_hash
 from app.models import User, BlogPost, BlogPostTranslation, AuditLog, Founder, Referral, MatchingProfile, SalonRoom
+from app.services.google_indexing import get_indexing_service
 
 logger = logging.getLogger(__name__)
 
@@ -603,6 +604,17 @@ def publish_blog(
     db.commit()
     db.refresh(post)
     _write_audit(db, current_user.id, "BLOG_PUBLISH", request, target_type="blog", target_id=str(post.id))
+    
+    # Notify Google Indexing API about new blog post
+    try:
+        blog_url = f"https://carat-community.com/blog/{post.slug}"
+        indexing_service = get_indexing_service()
+        indexing_service.notify_url_updated(blog_url)
+        logger.info(f"Notified Google Indexing API about published blog: {blog_url}")
+    except Exception as e:
+        # Don't fail the publish operation if indexing notification fails
+        logger.error(f"Failed to notify Google Indexing API: {e}")
+    
     return BlogPublishResponse(id=str(post.id), slug=post.slug, status=post.status, published_at=post.published_at)
 
 
@@ -620,9 +632,23 @@ def delete_blog(
     post = db.query(BlogPost).filter(BlogPost.id == uid).first()
     if not post:
         raise HTTPException(status_code=404, detail="Blog not found")
+    
+    # Store slug before deletion for Google notification
+    blog_slug = post.slug
+    
     _write_audit(db, current_user.id, "BLOG_DELETE", request, target_type="blog", target_id=str(post.id), metadata={"title": post.title})
     db.delete(post)
     db.commit()
+    
+    # Notify Google Indexing API about deleted blog post
+    try:
+        blog_url = f"https://carat-community.com/blog/{blog_slug}"
+        indexing_service = get_indexing_service()
+        indexing_service.notify_url_deleted(blog_url)
+        logger.info(f"Notified Google Indexing API about deleted blog: {blog_url}")
+    except Exception as e:
+        logger.error(f"Failed to notify Google Indexing API about deletion: {e}")
+    
     return {"ok": True}
 
 
