@@ -20,7 +20,7 @@ RUN poetry config virtualenvs.create false \
 # Copy application code
 COPY . .
 # Ensure media directory exists (for runtime mounting/serving)
-RUN mkdir -p media && chmod +x start.sh || true
+RUN mkdir -p media && chmod +x start.sh setup_google_credentials.sh || true
 
 # Expose port
 EXPOSE 8000

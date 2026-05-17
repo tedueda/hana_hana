@@ -10,6 +10,11 @@ export MEDIA_DIR="${MEDIA_DIR:-/data/media}"
 # Ensure Python can import the application package
 export PYTHONPATH="${PYTHONPATH:-/app}:/app"
 
+# Setup Google Service Account credentials
+if [ -f "./setup_google_credentials.sh" ]; then
+  ./setup_google_credentials.sh
+fi
+
 # Run Alembic migrations only if RUN_MIGRATIONS is explicitly set to true
 RUN_MIGRATIONS="${RUN_MIGRATIONS:-false}"
 if [ "$RUN_MIGRATIONS" = "true" ]; then
