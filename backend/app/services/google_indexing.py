@@ -20,6 +20,10 @@ class GoogleIndexingService:
     
     def _initialize(self):
         """Initialize Google Indexing API credentials"""
+        logger.info("=" * 50)
+        logger.info("Initializing Google Indexing API...")
+        logger.info("=" * 50)
+        
         try:
             # Path to service account JSON file
             service_account_file = os.getenv(
@@ -27,20 +31,29 @@ class GoogleIndexingService:
                 '/app/google-service-account.json'
             )
             
+            logger.info(f"Looking for service account file: {service_account_file}")
+            
             if not os.path.exists(service_account_file):
-                logger.warning(f"Google service account file not found: {service_account_file}")
+                logger.warning(f"❌ Google service account file not found: {service_account_file}")
+                logger.warning("Google Indexing API will NOT be available")
                 return
+            
+            logger.info(f"✅ Service account file found")
             
             self.credentials = service_account.Credentials.from_service_account_file(
                 service_account_file,
                 scopes=['https://www.googleapis.com/auth/indexing']
             )
             
+            logger.info("✅ Credentials loaded successfully")
+            
             self.service = build('indexing', 'v3', credentials=self.credentials)
-            logger.info("Google Indexing API initialized successfully")
+            logger.info("✅ Google Indexing API initialized successfully")
+            logger.info("=" * 50)
             
         except Exception as e:
-            logger.error(f"Failed to initialize Google Indexing API: {e}")
+            logger.error(f"❌ Failed to initialize Google Indexing API: {e}")
+            logger.error("=" * 50)
     
     def notify_url_updated(self, url: str) -> bool:
         """
