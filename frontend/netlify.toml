@@ -7,6 +7,14 @@
 # Site settings > Build & deploy > Environment > Environment variables
 # This prevents old URLs from being committed to the repository.
 
+# Prerendering for SEO (Googlebot can see full HTML)
+[[plugins]]
+  package = "@netlify/plugin-sitemap"
+
+[build.environment]
+  # Enable prerendering for specific paths
+  PRERENDER = "true"
+
 # Proxy API requests to backend (must be BEFORE the SPA catch-all)
 [[redirects]]
   from = "/api/*"
