@@ -260,6 +260,15 @@ const HomePage: React.FC = () => {
   };
 
   useEffect(() => {
+    // Set canonical URL for homepage
+    let canonical = document.querySelector('link[rel="canonical"]') as HTMLLinkElement | null;
+    if (!canonical) {
+      canonical = document.createElement('link');
+      canonical.rel = 'canonical';
+      document.head.appendChild(canonical);
+    }
+    canonical.href = 'https://carat-community.com/';
+
     fetchPosts();
     fetchNews();
     fetchCategoryPosts(currentLanguage);
@@ -273,11 +282,31 @@ const HomePage: React.FC = () => {
 
   // Re-fetch category posts and news when language changes
   useEffect(() => {
+    // Set canonical URL for homepage
+    let canonical = document.querySelector('link[rel="canonical"]') as HTMLLinkElement | null;
+    if (!canonical) {
+      canonical = document.createElement('link');
+      canonical.rel = 'canonical';
+      document.head.appendChild(canonical);
+    }
+    canonical.href = 'https://carat-community.com/';
+
+    fetchPosts();
     fetchCategoryPosts(currentLanguage);
     fetchNews(currentLanguage);
   }, [currentLanguage]);
 
   useEffect(() => {
+    // Set canonical URL for homepage
+    let canonical = document.querySelector('link[rel="canonical"]') as HTMLLinkElement | null;
+    if (!canonical) {
+      canonical = document.createElement('link');
+      canonical.rel = 'canonical';
+      document.head.appendChild(canonical);
+    }
+    canonical.href = 'https://carat-community.com/';
+
+    fetchPosts();
     const slideInterval = setInterval(() => {
       setCurrentSlide((prev) => (prev + 1) % 5);
     }, 8000);
