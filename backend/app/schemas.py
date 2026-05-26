@@ -353,6 +353,121 @@ class SalonMessage(SalonMessageBase):
         from_attributes = True
 
 
+# ===== Salon Category / Post / Comment Schemas =====
+
+class SalonCategorySchema(BaseModel):
+    id: int
+    name: str
+    display_name: str
+    description: Optional[str] = None
+    group_name: str
+    icon: Optional[str] = None
+    sort_order: int = 0
+    is_active: bool = True
+    warning_text: Optional[str] = None
+    room_count: int = 0
+
+    class Config:
+        from_attributes = True
+
+
+class SalonRoomExtended(BaseModel):
+    id: int
+    category_id: Optional[int] = None
+    category_name: Optional[str] = None
+    creator_id: int
+    theme: str
+    description: str
+    target_identities: List[str] = []
+    target_audiences: Optional[List[str]] = None
+    room_type: str
+    visibility: str = "public"
+    thumbnail_url: Optional[str] = None
+    allow_anonymous: bool = False
+    is_active: bool = True
+    status: str = "active"
+    tags: List[str] = []
+    created_at: datetime
+    updated_at: datetime
+    participant_count: int = 0
+    post_count: int = 0
+    creator_display_name: Optional[str] = None
+    last_post_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
+
+class SalonRoomCreateExtended(BaseModel):
+    theme: str
+    description: str
+    category_id: int
+    target_audiences: Optional[List[str]] = None
+    visibility: str = "public"
+    tags: Optional[List[str]] = None
+    thumbnail_url: Optional[str] = None
+
+
+class SalonPostCreate(BaseModel):
+    content: str
+
+
+class SalonPostSchema(BaseModel):
+    id: int
+    room_id: int
+    user_id: int
+    content: str
+    status: str = "active"
+    created_at: datetime
+    updated_at: datetime
+    user_display_name: Optional[str] = None
+    user_avatar_url: Optional[str] = None
+    comment_count: int = 0
+
+    class Config:
+        from_attributes = True
+
+
+class SalonCommentCreate(BaseModel):
+    content: str
+
+
+class SalonCommentSchema(BaseModel):
+    id: int
+    post_id: int
+    user_id: int
+    content: str
+    status: str = "active"
+    created_at: datetime
+    updated_at: datetime
+    user_display_name: Optional[str] = None
+    user_avatar_url: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
+
+class SalonReportCreate(BaseModel):
+    room_id: Optional[int] = None
+    post_id: Optional[int] = None
+    comment_id: Optional[int] = None
+    reason: str
+
+
+class SalonReportSchema(BaseModel):
+    id: int
+    room_id: Optional[int] = None
+    post_id: Optional[int] = None
+    comment_id: Optional[int] = None
+    reported_by_user_id: int
+    reason: str
+    status: str = "pending"
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
 # ===== Flea Market (フリマ) Schemas =====
 
 class TransactionMethodEnum(str, Enum):

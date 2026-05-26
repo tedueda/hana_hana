@@ -599,17 +599,40 @@ class DonationSupport(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 
+class SalonCategory(Base):
+    __tablename__ = "salon_categories"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(100), nullable=False, unique=True)
+    display_name = Column(String(100), nullable=False)
+    description = Column(Text, nullable=True)
+    group_name = Column(String(100), nullable=False)
+    icon = Column(String(50), nullable=True)
+    sort_order = Column(Integer, default=0)
+    is_active = Column(Boolean, default=True)
+    warning_text = Column(Text, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+    rooms = relationship("SalonRoom", back_populates="category")
+
+
 class SalonRoom(Base):
     __tablename__ = "salon_rooms"
 
     id = Column(Integer, primary_key=True, index=True)
+    category_id = Column(Integer, ForeignKey("salon_categories.id"), nullable=True)
     creator_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     theme = Column(String(200), nullable=False)
     description = Column(Text, nullable=False)
     target_identities = Column(JSON, nullable=False)
+    target_audiences = Column(JSON, nullable=True)
     room_type = Column(String(50), nullable=False)
+    visibility = Column(String(20), default="public")
+    thumbnail_url = Column(String(500), nullable=True)
     allow_anonymous = Column(Boolean, default=False)
     is_active = Column(Boolean, default=True)
+    status = Column(String(20), default="active")
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
@@ -617,9 +640,12 @@ class SalonRoom(Base):
         CheckConstraint("room_type IN ('consultation', 'exchange', 'story', 'other')", name="check_salon_room_type"),
     )
 
+    category = relationship("SalonCategory", back_populates="rooms")
     creator = relationship("User")
     participants = relationship("SalonParticipant", back_populates="room")
     messages = relationship("SalonMessage", back_populates="room")
+    tags = relationship("SalonRoomTag", back_populates="room", cascade="all, delete-orphan")
+    posts = relationship("SalonPost", back_populates="room", cascade="all, delete-orphan")
 
 
 class SalonParticipant(Base):
@@ -652,6 +678,64 @@ class SalonMessage(Base):
     room = relationship("SalonRoom", back_populates="messages")
     user = relationship("User")
     translations = relationship("SalonMessageTranslation", back_populates="salon_message", cascade="all, delete-orphan")
+
+
+class SalonRoomTag(Base):
+    __tablename__ = "salon_room_tags"
+
+    id = Column(Integer, primary_key=True, index=True)
+    room_id = Column(Integer, ForeignKey("salon_rooms.id", ondelete="CASCADE"), nullable=False)
+    tag_name = Column(String(100), nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    room = relationship("SalonRoom", back_populates="tags")
+
+
+class SalonPost(Base):
+    __tablename__ = "salon_posts"
+
+    id = Column(Integer, primary_key=True, index=True)
+    room_id = Column(Integer, ForeignKey("salon_rooms.id", ondelete="CASCADE"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    content = Column(Text, nullable=False)
+    status = Column(String(20), default="active")
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+    room = relationship("SalonRoom", back_populates="posts")
+    user = relationship("User")
+    comments = relationship("SalonComment", back_populates="post", cascade="all, delete-orphan")
+
+
+class SalonComment(Base):
+    __tablename__ = "salon_comments"
+
+    id = Column(Integer, primary_key=True, index=True)
+    post_id = Column(Integer, ForeignKey("salon_posts.id", ondelete="CASCADE"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    content = Column(Text, nullable=False)
+    status = Column(String(20), default="active")
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+    post = relationship("SalonPost", back_populates="comments")
+    user = relationship("User")
+
+
+class SalonReport(Base):
+    __tablename__ = "salon_reports"
+
+    id = Column(Integer, primary_key=True, index=True)
+    room_id = Column(Integer, ForeignKey("salon_rooms.id", ondelete="SET NULL"), nullable=True)
+    post_id = Column(Integer, ForeignKey("salon_posts.id", ondelete="SET NULL"), nullable=True)
+    comment_id = Column(Integer, ForeignKey("salon_comments.id", ondelete="SET NULL"), nullable=True)
+    reported_by_user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    reason = Column(Text, nullable=False)
+    status = Column(String(20), default="pending")
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+    reporter = relationship("User")
 
 
 # ===== Flea Market (フリマ) domain models =====

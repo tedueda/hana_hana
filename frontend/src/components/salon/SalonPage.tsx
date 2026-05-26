@@ -1,96 +1,64 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { useTranslation } from 'react-i18next';
 import { Button } from '../ui/button';
 import { Card, CardContent } from '../ui/card';
-import { Plus, MessageCircle, Grid3x3, List, ArrowLeft } from 'lucide-react';
-import SalonRoomCard from './SalonRoomCard';
-import CreateSalonRoomModal from './CreateSalonRoomModal';
+import { Plus, ArrowLeft, ChevronRight } from 'lucide-react';
 import { API_URL } from '../../config';
 
-interface SalonRoom {
+interface SalonCategory {
   id: number;
-  creator_id: number;
-  theme: string;
-  description: string;
-  target_identities: string[];
-  room_type: string;
-  allow_anonymous: boolean;
+  name: string;
+  display_name: string;
+  description: string | null;
+  group_name: string;
+  icon: string | null;
+  sort_order: number;
   is_active: boolean;
-  created_at: string;
-  updated_at: string;
-  participant_count: number;
-  creator_display_name: string | null;
+  warning_text: string | null;
+  room_count: number;
 }
 
+const GROUP_ORDER = [
+  'エンタメ・カルチャー',
+  'ライフスタイル',
+  '社会・知識',
+  '大人向け・ディープテーマ',
+  'スポーツ',
+];
+
 const SalonPage: React.FC = () => {
-  const { user, token } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
-  const { t } = useTranslation();
-  const [rooms, setRooms] = useState<SalonRoom[]>([]);
+  const [categories, setCategories] = useState<SalonCategory[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const [selectedRoomType, setSelectedRoomType] = useState<string | null>(null);
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
-  // 有料会員かどうか
   const isPaidUser = user?.membership_type === 'premium' || user?.membership_type === 'admin' || user?.membership_type === 'founder_free';
-  const isLoggedIn = !!user;
-
-  const fetchRooms = async () => {
-    
-    try {
-      setLoading(true);
-      const params = new URLSearchParams();
-      if (selectedRoomType) {
-        params.append('room_type', selectedRoomType);
-      }
-      
-      const headers: HeadersInit = {};
-      if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-      }
-      
-      const response = await fetch(`${API_URL}/api/salon/rooms?${params}`, {
-        headers,
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        setRooms(data);
-      } else if (response.status === 403) {
-        setError(t('salon.paidMemberOnly'));
-      } else {
-        setError(t('salon.fetchFailed'));
-      }
-    } catch (err) {
-      setError(t('salon.networkError'));
-    } finally {
-      setLoading(false);
-    }
-  };
 
   useEffect(() => {
-    fetchRooms();
-  }, [token, selectedRoomType]);
+    const fetchCategories = async () => {
+      try {
+        setLoading(true);
+        const res = await fetch(`${API_URL}/api/salon/categories`);
+        if (res.ok) {
+          setCategories(await res.json());
+        }
+      } catch (err) {
+        console.error('Failed to fetch salon categories:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchCategories();
+  }, []);
 
-  const handleRoomCreated = () => {
-    setShowCreateModal(false);
-    fetchRooms();
-  };
+  const grouped = GROUP_ORDER.map(groupName => ({
+    groupName,
+    items: categories.filter(c => c.group_name === groupName),
+  })).filter(g => g.items.length > 0);
 
-  const roomTypes = [
-    { value: null, label: t('salon.roomTypes.all') },
-    { value: 'consultation', label: t('salon.roomTypes.consultation') },
-    { value: 'exchange', label: t('salon.roomTypes.exchange') },
-    { value: 'story', label: t('salon.roomTypes.story') },
-    { value: 'other', label: t('salon.roomTypes.other') },
-  ];
-
-  const handleRoomClick = (roomId: number) => {
-    if (!isLoggedIn) {
+  const handleCategoryClick = (categoryId: number) => {
+    if (!user) {
       navigate('/login');
       return;
     }
@@ -98,11 +66,11 @@ const SalonPage: React.FC = () => {
       navigate('/account');
       return;
     }
-    navigate(`/salon/rooms/${roomId}`);
+    navigate(`/salon/category/${categoryId}`);
   };
 
-  const handleNewPost = () => {
-    if (!isLoggedIn) {
+  const handleCreateRoom = () => {
+    if (!user) {
       navigate('/login');
       return;
     }
@@ -110,145 +78,90 @@ const SalonPage: React.FC = () => {
       navigate('/account');
       return;
     }
-    setShowCreateModal(true);
+    navigate('/salon/create');
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-gray-500">読み込み中...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 py-8">
+      <div className="max-w-6xl mx-auto px-4 py-8">
+        {/* Header */}
         <div className="mb-4 flex items-center justify-between">
-          <Button 
-            variant="ghost" 
+          <Button
+            variant="ghost"
             onClick={() => navigate('/feed')}
             className="text-gray-700 hover:text-gray-900 hover:bg-gray-100"
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
-            {t('salon.backToHome')}
+            戻る
           </Button>
           <Button
-            onClick={handleNewPost}
-            className="bg-black hover:bg-gray-800"
+            onClick={handleCreateRoom}
+            className="bg-black hover:bg-gray-800 text-white"
           >
             <Plus className="h-4 w-4 mr-2" />
-            新規投稿
+            サロンを作成する
           </Button>
         </div>
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-8">
-          <div>
-            <h1 className="text-3xl font-serif font-bold text-gray-900">{t('salon.title')}</h1>
-            <p className="text-gray-600 mt-1">{t('salon.subtitle')}</p>
-          </div>
+
+        {/* Title & Description */}
+        <div className="mb-10">
+          <h1 className="text-3xl md:text-4xl font-serif font-bold text-gray-900 mb-3">
+            会員サロン
+          </h1>
+          <p className="text-gray-600 text-base leading-relaxed max-w-2xl">
+            好きなテーマでつながる、Caratの会員専用サロンです。興味のあるカテゴリーを選んで、自由にサロン室を作成・参加できます。
+          </p>
         </div>
 
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-          <div className="flex gap-2 overflow-x-auto pb-2">
-            {roomTypes.map((type) => (
-              <Button
-                key={type.value || 'all'}
-                variant={selectedRoomType === type.value ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setSelectedRoomType(type.value)}
-                className={selectedRoomType === type.value ? 'bg-black' : ''}
-              >
-                {type.label}
-              </Button>
-            ))}
-          </div>
-          <div className="flex gap-2">
-            <Button
-              variant={viewMode === 'grid' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setViewMode('grid')}
-              className={viewMode === 'grid' ? 'bg-black' : ''}
-            >
-              <Grid3x3 className="h-4 w-4" />
-            </Button>
-            <Button
-              variant={viewMode === 'list' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setViewMode('list')}
-              className={viewMode === 'list' ? 'bg-black' : ''}
-            >
-              <List className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
-
-        {loading ? (
-          <div className="text-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto"></div>
-            <p className="mt-4 text-gray-600">{t('salon.loading')}</p>
-          </div>
-        ) : error ? (
-          <div className="text-center py-12">
-            <p className="text-red-500">{error}</p>
-          </div>
-        ) : rooms.length === 0 ? (
-          <div className="text-center py-12">
-            <MessageCircle className="h-12 w-12 mx-auto text-gray-400 mb-4" />
-            <p className="text-gray-600">{t('salon.noRoomsYet')}</p>
-            <p className="text-gray-500 text-sm mt-2">{t('salon.createFirstRoom')}</p>
-          </div>
-        ) : viewMode === 'grid' ?(
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {rooms.map((room) => (
-              <SalonRoomCard
-                key={room.id}
-                room={room}
-                onClick={() => handleRoomClick(room.id)}
-              />
-            ))}
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {rooms.map((room) => (
-              <Card
-                key={room.id}
-                className="hover:shadow-lg transition-shadow cursor-pointer"
-                onClick={() => handleRoomClick(room.id)}
-              >
-                <CardContent className="p-4">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-2">
-                        <span className="px-2 py-1 bg-gray-100 rounded text-xs font-medium">
-                          {t(`salon.roomTypes.${room.room_type}`)}
-                        </span>
-                        {room.allow_anonymous && (
-                          <span className="text-xs text-gray-500">{t('salon.anonymousAllowed')}</span>
-                        )}
-                      </div>
-                      <h3 className="font-semibold text-lg mb-2">{room.theme}</h3>
-                      <p className="text-sm text-gray-600 line-clamp-2 mb-2">
-                        {room.description}
-                      </p>
-                      <div className="mb-2">
-                        <span className="text-xs px-2 py-1 rounded bg-blue-50 text-blue-700">
-                          {t('salon.target')}: {room.target_identities?.includes('ALL') || !room.target_identities?.length ? t('salon.identities.ALL') : room.target_identities.map((id) => t(`salon.identities.${id}`, { defaultValue: id })).slice(0, 3).join(', ') + (room.target_identities.length > 3 ? '...' : '')}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-4 text-sm text-gray-500">
-                        <span className="flex items-center gap-1">
-                          <MessageCircle className="h-4 w-4" />
-                          {t('salon.participants', { count: room.participant_count })}
-                        </span>
-                        <span>{t('salon.creator')}: {room.creator_display_name || t('common.unknownUser')}</span>
-                        <span>{new Date(room.created_at).toLocaleDateString()}</span>
+        {/* Category Groups */}
+        {grouped.map(group => (
+          <section key={group.groupName} className="mb-10">
+            <div className="flex items-center mb-4">
+              <div className="w-1 h-6 bg-gray-800 rounded-full mr-3" />
+              <h2 className="text-xl font-serif font-semibold text-gray-900">
+                {group.groupName}
+              </h2>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {group.items.map(cat => (
+                <Card
+                  key={cat.id}
+                  className="cursor-pointer transition-all hover:shadow-md hover:scale-[1.01] border border-gray-200"
+                  onClick={() => handleCategoryClick(cat.id)}
+                >
+                  <CardContent className="p-5">
+                    <div className="flex items-start gap-3">
+                      <span className="text-2xl flex-shrink-0">{cat.icon || '📁'}</span>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between mb-1">
+                          <h3 className="text-base font-bold text-gray-900 truncate">
+                            {cat.display_name}
+                          </h3>
+                          <ChevronRight className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                        </div>
+                        <p className="text-sm text-gray-500 line-clamp-2 mb-2">
+                          {cat.description}
+                        </p>
+                        <div className="text-xs text-gray-400">
+                          サロン室 {cat.room_count}件
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        )}
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </section>
+        ))}
       </div>
-
-      <CreateSalonRoomModal
-        isOpen={showCreateModal}
-        onClose={() => setShowCreateModal(false)}
-        onCreated={handleRoomCreated}
-      />
     </div>
   );
 };
