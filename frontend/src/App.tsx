@@ -35,7 +35,7 @@ import DonationPage from './components/DonationPage';
 import MarketplacePage from './pages/members/MarketplacePage';
 import FavoritesPage from './pages/members/FavoritesPage';
 import AccountPage from './pages/members/AccountPage';
-import { SalonPage, SalonRoomDetailPage } from './components/salon';
+import { SalonPage, SalonCategoryPage, SalonRoomDetailPage, CreateSalonRoomPage } from './components/salon';
 import BusinessPage from './pages/members/BusinessPage';
 import JewelryProductList from './components/jewelry/JewelryProductList';
 import JewelryProductDetail from './components/jewelry/JewelryProductDetail';
@@ -312,6 +312,8 @@ function AppContent() {
                     } />
                     {/* Salon routes - 有料会員専用 */}
                     <Route path="/salon" element={<PaidMemberRoute><SalonPage /></PaidMemberRoute>} />
+                    <Route path="/salon/category/:categoryId" element={<PaidMemberRoute><SalonCategoryPage /></PaidMemberRoute>} />
+                    <Route path="/salon/create" element={<PaidMemberRoute><CreateSalonRoomPage /></PaidMemberRoute>} />
                     <Route path="/salon/rooms/:roomId" element={<PaidMemberRoute><SalonRoomDetailPage /></PaidMemberRoute>} />
                     {/* Business page - 閲覧は誰でもOK（出品・チャットは有料会員のみ） */}
                     <Route path="/business" element={<BusinessPage />} />

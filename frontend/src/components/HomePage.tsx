@@ -15,6 +15,7 @@ import liveWeddingBanner from '../assets/images/LiveWedding.png';
 import { API_URL } from '../config';
 import { detectExternalEmbed } from '../utils/embedExtractors';
 import OgpThumbnail from './common/OgpThumbnail';
+import PopularSalons from './salon/PopularSalons';
 
 const boardCategories = [
   { key: "music", title: "ミュージック", desc: "あなたの好きな楽曲、作成した楽曲を投稿して共有しましょう！", emoji: "🎵", link: "/category/music" },
@@ -421,6 +422,9 @@ const HomePage: React.FC = () => {
           </div>
         </section>
 
+
+        {/* 人気のサロン */}
+        <PopularSalons />
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* 掲示板セクション - 2カラムレイアウト */}
