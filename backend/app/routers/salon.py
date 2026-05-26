@@ -666,7 +666,10 @@ def _get_avatar_url(db: Session, user_id: int) -> Optional[str]:
 
 @router.get("/categories", response_model=List[SalonCategorySchema])
 def list_categories(db: Session = Depends(get_db)):
-    cats = db.query(SalonCategory).filter(SalonCategory.is_active == True).order_by(SalonCategory.sort_order).all()
+    try:
+        cats = db.query(SalonCategory).filter(SalonCategory.is_active == True).order_by(SalonCategory.sort_order).all()
+    except Exception:
+        return []
     result = []
     for cat in cats:
         room_count = db.query(func.count(SalonRoom.id)).filter(
@@ -981,33 +984,36 @@ def list_popular_rooms(
     limit: int = Query(10, ge=1, le=20),
     db: Session = Depends(get_db),
 ):
-    post_count_sub = (
-        db.query(
-            SalonPost.room_id,
-            func.count(SalonPost.id).label("post_count"),
-            func.max(SalonPost.created_at).label("last_post_at"),
+    try:
+        post_count_sub = (
+            db.query(
+                SalonPost.room_id,
+                func.count(SalonPost.id).label("post_count"),
+                func.max(SalonPost.created_at).label("last_post_at"),
+            )
+            .filter(SalonPost.status == "active")
+            .group_by(SalonPost.room_id)
+            .subquery()
         )
-        .filter(SalonPost.status == "active")
-        .group_by(SalonPost.room_id)
-        .subquery()
-    )
 
-    rooms = (
-        db.query(SalonRoom)
-        .outerjoin(post_count_sub, SalonRoom.id == post_count_sub.c.room_id)
-        .filter(
-            SalonRoom.status == "active",
-            SalonRoom.is_active == True,
-            SalonRoom.visibility == "public",
+        rooms = (
+            db.query(SalonRoom)
+            .outerjoin(post_count_sub, SalonRoom.id == post_count_sub.c.room_id)
+            .filter(
+                SalonRoom.status == "active",
+                SalonRoom.is_active == True,
+                SalonRoom.visibility == "public",
+            )
+            .order_by(
+                func.coalesce(post_count_sub.c.post_count, 0).desc(),
+                func.coalesce(post_count_sub.c.last_post_at, SalonRoom.created_at).desc(),
+                SalonRoom.created_at.desc(),
+            )
+            .limit(limit)
+            .all()
         )
-        .order_by(
-            func.coalesce(post_count_sub.c.post_count, 0).desc(),
-            func.coalesce(post_count_sub.c.last_post_at, SalonRoom.created_at).desc(),
-            SalonRoom.created_at.desc(),
-        )
-        .limit(limit)
-        .all()
-    )
+    except Exception:
+        return []
 
     return [_build_room_dict(r, db) for r in rooms]
 
