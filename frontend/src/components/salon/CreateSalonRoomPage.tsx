@@ -3,7 +3,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
-import { ArrowLeft, X } from 'lucide-react';
+import { ArrowLeft, X, Upload } from 'lucide-react';
 import { API_URL } from '../../config';
 
 interface SalonCategory {
@@ -13,16 +13,16 @@ interface SalonCategory {
   icon: string | null;
 }
 
-const TARGET_AUDIENCE_OPTIONS = [
-  { value: '全員', label: '全員' },
-  { value: 'ゲイ', label: 'ゲイ' },
-  { value: 'レズビアン', label: 'レズビアン' },
-  { value: 'バイセクシュアル', label: 'バイセクシュアル' },
-  { value: 'トランスジェンダー', label: 'トランスジェンダー' },
-  { value: 'ノンバイナリー', label: 'ノンバイナリー' },
-  { value: 'クエスチョニング', label: 'クエスチョニング' },
-  { value: 'アライ', label: 'アライ' },
-  { value: 'その他', label: 'その他' },
+const AUDIENCE_OPTIONS = [
+  { value: '全員', label: '全員', badge: 'ALL' },
+  { value: 'ゲイ', label: 'ゲイ', badge: 'G' },
+  { value: 'レズビアン', label: 'レズビアン', badge: 'L' },
+  { value: 'バイセクシュアル', label: 'バイセクシュアル', badge: 'B' },
+  { value: 'トランスジェンダー', label: 'トランスジェンダー', badge: 'T' },
+  { value: 'ノンバイナリー', label: 'ノンバイナリー', badge: 'NB' },
+  { value: 'クエスチョニング', label: 'クエスチョニング', badge: 'Q' },
+  { value: 'アライ', label: 'アライ', badge: 'A' },
+  { value: 'その他', label: 'その他', badge: '他' },
 ];
 
 const CreateSalonRoomPage: React.FC = () => {
@@ -35,10 +35,11 @@ const CreateSalonRoomPage: React.FC = () => {
   const [categoryId, setCategoryId] = useState<number | null>(preselectedCategory ? Number(preselectedCategory) : null);
   const [theme, setTheme] = useState('');
   const [description, setDescription] = useState('');
-  const [visibility, setVisibility] = useState('public');
   const [targetAudiences, setTargetAudiences] = useState<string[]>(['全員']);
   const [tagInput, setTagInput] = useState('');
   const [tags, setTags] = useState<string[]>([]);
+  const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
+  const [thumbnailPreview, setThumbnailPreview] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -81,6 +82,36 @@ const CreateSalonRoomPage: React.FC = () => {
     setTags(prev => prev.filter(t => t !== tag));
   };
 
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setThumbnailFile(file);
+      const reader = new FileReader();
+      reader.onload = (ev) => setThumbnailPreview(ev.target?.result as string);
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const uploadImage = async (): Promise<string | null> => {
+    if (!thumbnailFile || !token) return null;
+    const formData = new FormData();
+    formData.append('file', thumbnailFile);
+    try {
+      const res = await fetch(`${API_URL}/api/media/upload`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` },
+        body: formData,
+      });
+      if (res.ok) {
+        const data = await res.json();
+        return data.url;
+      }
+    } catch (err) {
+      console.error('Image upload failed:', err);
+    }
+    return null;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!categoryId || !theme.trim() || !description.trim()) {
@@ -90,6 +121,16 @@ const CreateSalonRoomPage: React.FC = () => {
     setSubmitting(true);
     setError(null);
     try {
+      let thumbnailUrl: string | null = null;
+      if (thumbnailFile) {
+        thumbnailUrl = await uploadImage();
+        if (!thumbnailUrl) {
+          setError('画像のアップロードに失敗しました。もう一度お試しください。');
+          setSubmitting(false);
+          return;
+        }
+      }
+
       const res = await fetch(`${API_URL}/api/salon/v2/rooms`, {
         method: 'POST',
         headers: {
@@ -101,8 +142,9 @@ const CreateSalonRoomPage: React.FC = () => {
           description: description.trim(),
           category_id: categoryId,
           target_audiences: targetAudiences,
-          visibility,
+          visibility: targetAudiences.includes('全員') ? 'public' : 'restricted',
           tags: tags.length > 0 ? tags : null,
+          thumbnail_url: thumbnailUrl,
         }),
       });
       if (res.ok) {
@@ -178,41 +220,51 @@ const CreateSalonRoomPage: React.FC = () => {
             />
           </div>
 
-          {/* Target Audiences */}
+          {/* Thumbnail Image */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">おすすめ対象</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">イメージ画像</label>
+            <div className="flex items-center gap-4">
+              {thumbnailPreview ? (
+                <div className="relative w-24 h-24 rounded-lg overflow-hidden border border-gray-200">
+                  <img src={thumbnailPreview} alt="preview" className="w-full h-full object-cover" />
+                  <button
+                    type="button"
+                    onClick={() => { setThumbnailFile(null); setThumbnailPreview(null); }}
+                    className="absolute top-1 right-1 bg-black/50 text-white rounded-full p-0.5"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </div>
+              ) : (
+                <label className="flex flex-col items-center justify-center w-24 h-24 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-gray-400 transition-colors">
+                  <Upload className="h-5 w-5 text-gray-400 mb-1" />
+                  <span className="text-xs text-gray-400">画像選択</span>
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    onChange={handleImageChange}
+                    className="hidden"
+                  />
+                </label>
+              )}
+              <p className="text-xs text-gray-400">JPEG, PNG, WEBP（最大10MB）</p>
+            </div>
+          </div>
+
+          {/* Target Audiences (merged with visibility) */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">公開範囲</label>
+            <p className="text-xs text-gray-400 mb-3">
+              選択したセクシュアリティに該当する会員のみ入室できます。「全員」を選ぶと全会員に公開されます。
+            </p>
             <div className="flex flex-wrap gap-2">
-              {TARGET_AUDIENCE_OPTIONS.map(opt => (
+              {AUDIENCE_OPTIONS.map(opt => (
                 <button
                   key={opt.value}
                   type="button"
                   onClick={() => handleAudienceToggle(opt.value)}
                   className={`px-3 py-1.5 text-sm rounded-full border transition-colors ${
                     targetAudiences.includes(opt.value)
-                      ? 'bg-gray-800 text-white border-gray-800'
-                      : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'
-                  }`}
-                >
-                  {opt.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Visibility */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">公開範囲</label>
-            <div className="flex gap-3">
-              {[
-                { value: 'public', label: '全会員に公開' },
-                { value: 'invite', label: '招待制' },
-              ].map(opt => (
-                <button
-                  key={opt.value}
-                  type="button"
-                  onClick={() => setVisibility(opt.value)}
-                  className={`px-4 py-2 text-sm rounded-lg border transition-colors ${
-                    visibility === opt.value
                       ? 'bg-gray-800 text-white border-gray-800'
                       : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'
                   }`}

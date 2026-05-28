@@ -6,6 +6,17 @@ import { Card, CardContent } from '../ui/card';
 import { ArrowLeft, Send, Users, MessageSquare, Clock, ChevronDown, ChevronUp, Flag } from 'lucide-react';
 import { API_URL } from '../../config';
 
+const AUDIENCE_BADGE_MAP: Record<string, string> = {
+  'ゲイ': 'G',
+  'レズビアン': 'L',
+  'バイセクシュアル': 'B',
+  'トランスジェンダー': 'T',
+  'ノンバイナリー': 'NB',
+  'クエスチョニング': 'Q',
+  'アライ': 'A',
+  'その他': '他',
+};
+
 interface SalonRoom {
   id: number;
   category_id: number | null;
@@ -15,6 +26,7 @@ interface SalonRoom {
   tags: string[];
   visibility: string;
   target_audiences: string[] | null;
+  thumbnail_url: string | null;
   participant_count: number;
   post_count: number;
   creator_id: number;
@@ -212,8 +224,22 @@ const SalonRoomDetailPage: React.FC = () => {
         {/* Room Info */}
         <div className="bg-white rounded-xl border border-gray-200 p-6 mb-6">
           <div className="flex items-start justify-between">
-            <div>
-              <h1 className="text-2xl font-serif font-bold text-gray-900 mb-2">{room.theme}</h1>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 mb-2">
+                <h1 className="text-2xl font-serif font-bold text-gray-900">{room.theme}</h1>
+                {room.target_audiences && !room.target_audiences.includes('全員') && room.target_audiences.length > 0 && (
+                  <div className="flex gap-1 flex-shrink-0">
+                    {room.target_audiences.map(a => {
+                      const badge = AUDIENCE_BADGE_MAP[a] || a.charAt(0);
+                      return (
+                        <span key={a} className="inline-flex items-center justify-center min-w-[24px] h-[24px] px-1 text-[11px] font-bold bg-gradient-to-r from-pink-500 to-purple-500 text-white rounded-full">
+                          {badge}
+                        </span>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
               {room.category_name && (
                 <span className="inline-block text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-full mb-3">
                   {room.category_name}

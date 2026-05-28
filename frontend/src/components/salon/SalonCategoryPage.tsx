@@ -25,12 +25,26 @@ interface SalonRoomItem {
   description: string;
   tags: string[];
   visibility: string;
+  target_audiences: string[] | null;
+  thumbnail_url: string | null;
   participant_count: number;
   post_count: number;
   creator_display_name: string | null;
   created_at: string;
   last_post_at: string | null;
 }
+
+const AUDIENCE_BADGE_MAP: Record<string, string> = {
+  'ゲイ': 'G',
+  'レズビアン': 'L',
+  'バイセクシュアル': 'B',
+  'トランスジェンダー': 'T',
+  'ノンバイナリー': 'NB',
+  'クエスチョニング': 'Q',
+  'アライ': 'A',
+  'その他': '他',
+  '全員': 'ALL',
+};
 
 const SalonCategoryPage: React.FC = () => {
   const { user } = useAuth();
@@ -78,6 +92,11 @@ const SalonCategoryPage: React.FC = () => {
     if (!dateStr) return '-';
     const d = new Date(dateStr);
     return `${d.getFullYear()}/${(d.getMonth() + 1).toString().padStart(2, '0')}/${d.getDate().toString().padStart(2, '0')}`;
+  };
+
+  const getAudienceBadges = (audiences: string[] | null) => {
+    if (!audiences || audiences.length === 0 || audiences.includes('全員')) return null;
+    return audiences.map(a => AUDIENCE_BADGE_MAP[a] || a.charAt(0)).filter(Boolean);
   };
 
   if (loading) {
@@ -141,51 +160,76 @@ const SalonCategoryPage: React.FC = () => {
           </div>
         ) : (
           <div className="space-y-3">
-            {rooms.map(room => (
-              <Card
-                key={room.id}
-                className="cursor-pointer transition-all hover:shadow-md border border-gray-200"
-                onClick={() => handleRoomClick(room.id)}
-              >
-                <CardContent className="p-5">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1 min-w-0">
-                      <h3 className="text-base font-bold text-gray-900 mb-1 truncate">{room.theme}</h3>
-                      <p className="text-sm text-gray-500 line-clamp-2 mb-3">{room.description}</p>
-                      <div className="flex flex-wrap items-center gap-3 text-xs text-gray-400">
-                        <span className="flex items-center gap-1">
-                          <MessageSquare className="h-3.5 w-3.5" />
-                          投稿 {room.post_count}件
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <Users className="h-3.5 w-3.5" />
-                          参加 {room.participant_count}人
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <Clock className="h-3.5 w-3.5" />
-                          最終投稿 {formatDate(room.last_post_at)}
-                        </span>
-                        {room.creator_display_name && (
-                          <span>作成者: {room.creator_display_name}</span>
+            {rooms.map(room => {
+              const badges = getAudienceBadges(room.target_audiences);
+              return (
+                <Card
+                  key={room.id}
+                  className="cursor-pointer transition-all hover:shadow-md border border-gray-200"
+                  onClick={() => handleRoomClick(room.id)}
+                >
+                  <CardContent className="p-5">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <h3 className="text-base font-bold text-gray-900 truncate">{room.theme}</h3>
+                          {badges && badges.length > 0 && (
+                            <div className="flex gap-1 flex-shrink-0">
+                              {badges.map(badge => (
+                                <span
+                                  key={badge}
+                                  className="inline-flex items-center justify-center min-w-[22px] h-[22px] px-1 text-[10px] font-bold bg-gradient-to-r from-pink-500 to-purple-500 text-white rounded-full"
+                                >
+                                  {badge}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                        <p className="text-sm text-gray-500 line-clamp-2 mb-3">{room.description}</p>
+                        <div className="flex flex-wrap items-center gap-3 text-xs text-gray-400">
+                          <span className="flex items-center gap-1">
+                            <MessageSquare className="h-3.5 w-3.5" />
+                            投稿 {room.post_count}件
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <Users className="h-3.5 w-3.5" />
+                            参加 {room.participant_count}人
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <Clock className="h-3.5 w-3.5" />
+                            最終投稿 {formatDate(room.last_post_at)}
+                          </span>
+                          {room.creator_display_name && (
+                            <span>作成者: {room.creator_display_name}</span>
+                          )}
+                        </div>
+                        {room.tags.length > 0 && (
+                          <div className="flex flex-wrap gap-1.5 mt-2">
+                            {room.tags.map(tag => (
+                              <span key={tag} className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">
+                                #{tag}
+                              </span>
+                            ))}
+                          </div>
                         )}
                       </div>
-                      {room.tags.length > 0 && (
-                        <div className="flex flex-wrap gap-1.5 mt-2">
-                          {room.tags.map(tag => (
-                            <span key={tag} className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">
-                              #{tag}
-                            </span>
-                          ))}
-                        </div>
-                      )}
+                      {/* Thumbnail + Action */}
+                      <div className="flex flex-col items-center gap-2 flex-shrink-0">
+                        {room.thumbnail_url && (
+                          <div className="w-16 h-16 rounded-lg overflow-hidden border border-gray-200">
+                            <img src={room.thumbnail_url} alt="" className="w-full h-full object-cover" />
+                          </div>
+                        )}
+                        <Button variant="outline" size="sm" className="text-xs">
+                          見る
+                        </Button>
+                      </div>
                     </div>
-                    <Button variant="outline" size="sm" className="ml-4 flex-shrink-0 text-xs">
-                      見る
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                  </CardContent>
+                </Card>
+              );
+            })}
           </div>
         )}
       </div>
