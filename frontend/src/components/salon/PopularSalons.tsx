@@ -13,7 +13,25 @@ interface PopularRoom {
   post_count: number;
   participant_count: number;
   last_post_at: string | null;
+  target_audiences: string[] | null;
+  thumbnail_url: string | null;
 }
+
+const AUDIENCE_BADGE_MAP: Record<string, string> = {
+  'ゲイ': 'G',
+  'レズビアン': 'L',
+  'バイセクシュアル': 'B',
+  'トランスジェンダー': 'T',
+  'ノンバイナリー': 'NB',
+  'クエスチョニング': 'Q',
+  'アライ': 'A',
+  'その他': '他',
+};
+
+const getAudienceBadges = (audiences: string[] | null) => {
+  if (!audiences || audiences.length === 0 || audiences.includes('全員')) return null;
+  return audiences.map(a => AUDIENCE_BADGE_MAP[a] || a.charAt(0)).filter(Boolean);
+};
 
 const PopularSalons: React.FC = () => {
   const navigate = useNavigate();
@@ -117,29 +135,46 @@ const PopularSalons: React.FC = () => {
                   className="overflow-y-auto max-h-[400px] p-4 space-y-3 scrollbar-thin"
                   style={{ scrollbarWidth: 'thin' }}
                 >
-                  {rooms.map(room => (
-                    <Card
-                      key={room.id}
-                      className="cursor-pointer transition-all hover:shadow-md border border-gray-100"
-                      onClick={() => navigate(`/salon/rooms/${room.id}`)}
-                    >
-                      <CardContent className="p-4">
-                        <h3 className="text-sm font-bold text-gray-900 mb-1 truncate">{room.theme}</h3>
-                        <div className="flex items-center gap-2 text-xs text-gray-400 mb-1.5">
-                          {room.category_name && <span>{room.category_name}</span>}
-                          <span className="flex items-center gap-0.5">
-                            <MessageSquare className="h-3 w-3" />
-                            {room.post_count}件
-                          </span>
-                          <span className="flex items-center gap-0.5">
-                            <Users className="h-3 w-3" />
-                            {room.participant_count}人
-                          </span>
-                        </div>
-                        <p className="text-xs text-gray-500 line-clamp-2">{room.description}</p>
-                      </CardContent>
-                    </Card>
-                  ))}
+                  {rooms.map(room => {
+                    const badges = getAudienceBadges(room.target_audiences);
+                    return (
+                      <Card
+                        key={room.id}
+                        className="cursor-pointer transition-all hover:shadow-md border border-gray-100"
+                        onClick={() => navigate(`/salon/rooms/${room.id}`)}
+                      >
+                        <CardContent className="p-4">
+                          <div className="flex items-start gap-3">
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-1.5 mb-1">
+                                <h3 className="text-sm font-bold text-gray-900 truncate">{room.theme}</h3>
+                                {badges && badges.map(badge => (
+                                  <span key={badge} className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-0.5 text-[9px] font-bold bg-gradient-to-r from-pink-500 to-purple-500 text-white rounded-full flex-shrink-0">{badge}</span>
+                                ))}
+                              </div>
+                              <div className="flex items-center gap-2 text-xs text-gray-400 mb-1.5">
+                                {room.category_name && <span>{room.category_name}</span>}
+                                <span className="flex items-center gap-0.5">
+                                  <MessageSquare className="h-3 w-3" />
+                                  {room.post_count}件
+                                </span>
+                                <span className="flex items-center gap-0.5">
+                                  <Users className="h-3 w-3" />
+                                  {room.participant_count}人
+                                </span>
+                              </div>
+                              <p className="text-xs text-gray-500 line-clamp-2">{room.description}</p>
+                            </div>
+                            {room.thumbnail_url && (
+                              <div className="w-12 h-12 rounded-lg overflow-hidden border border-gray-200 flex-shrink-0">
+                                <img src={room.thumbnail_url} alt="" className="w-full h-full object-cover" />
+                              </div>
+                            )}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
                 </div>
                 {/* Scroll buttons */}
                 <div className="absolute right-2 top-1/2 -translate-y-1/2 flex flex-col gap-1">
@@ -166,30 +201,47 @@ const PopularSalons: React.FC = () => {
 
               {/* Mobile: horizontal scroll */}
               <div className="md:hidden overflow-x-auto p-4 flex gap-3 snap-x snap-mandatory" style={{ scrollbarWidth: 'none' }}>
-                {rooms.map(room => (
-                  <Card
-                    key={room.id}
-                    className="cursor-pointer flex-shrink-0 w-[260px] snap-start transition-all hover:shadow-md border border-gray-100"
-                    onClick={() => navigate(`/salon/rooms/${room.id}`)}
-                  >
-                    <CardContent className="p-4">
-                      <h3 className="text-sm font-bold text-gray-900 mb-1 truncate">{room.theme}</h3>
-                      <div className="flex items-center gap-2 text-xs text-gray-400 mb-1.5">
-                        {room.category_name && <span>{room.category_name}</span>}
-                        <span className="flex items-center gap-0.5">
-                          <MessageSquare className="h-3 w-3" />
-                          {room.post_count}件
-                        </span>
-                        <span className="flex items-center gap-0.5">
-                          <Users className="h-3 w-3" />
-                          {room.participant_count}人
-                        </span>
-                      </div>
-                      <p className="text-xs text-gray-500 line-clamp-2">{room.description}</p>
-                      <Button size="sm" variant="outline" className="mt-2 text-xs w-full">見る</Button>
-                    </CardContent>
-                  </Card>
-                ))}
+                {rooms.map(room => {
+                  const badges = getAudienceBadges(room.target_audiences);
+                  return (
+                    <Card
+                      key={room.id}
+                      className="cursor-pointer flex-shrink-0 w-[260px] snap-start transition-all hover:shadow-md border border-gray-100"
+                      onClick={() => navigate(`/salon/rooms/${room.id}`)}
+                    >
+                      <CardContent className="p-4">
+                        <div className="flex items-start gap-3">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-1.5 mb-1">
+                              <h3 className="text-sm font-bold text-gray-900 truncate">{room.theme}</h3>
+                              {badges && badges.map(badge => (
+                                <span key={badge} className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-0.5 text-[9px] font-bold bg-gradient-to-r from-pink-500 to-purple-500 text-white rounded-full flex-shrink-0">{badge}</span>
+                              ))}
+                            </div>
+                            <div className="flex items-center gap-2 text-xs text-gray-400 mb-1.5">
+                              {room.category_name && <span>{room.category_name}</span>}
+                              <span className="flex items-center gap-0.5">
+                                <MessageSquare className="h-3 w-3" />
+                                {room.post_count}件
+                              </span>
+                              <span className="flex items-center gap-0.5">
+                                <Users className="h-3 w-3" />
+                                {room.participant_count}人
+                              </span>
+                            </div>
+                            <p className="text-xs text-gray-500 line-clamp-2">{room.description}</p>
+                          </div>
+                          {room.thumbnail_url && (
+                            <div className="w-12 h-12 rounded-lg overflow-hidden border border-gray-200 flex-shrink-0">
+                              <img src={room.thumbnail_url} alt="" className="w-full h-full object-cover" />
+                            </div>
+                          )}
+                        </div>
+                        <Button size="sm" variant="outline" className="mt-2 text-xs w-full">見る</Button>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
               </div>
             </div>
           </div>
