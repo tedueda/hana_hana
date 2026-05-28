@@ -258,6 +258,49 @@ def run_migration(
     return {"status": "ok"}
 
 
+@router.post("/activate-user")
+def activate_user(
+    payload: dict,
+    db: Session = Depends(get_db),
+    x_admin_secret: str | None = Header(default=None, alias="X-Admin-Secret"),
+):
+    """Activate a user and set membership type (for invited members, etc.)."""
+    if os.getenv("ALLOW_MIGRATION_API", "false").lower() != "true":
+        raise HTTPException(status_code=403, detail="migration_api_disabled")
+    admin_secret = os.getenv("ADMIN_SECRET")
+    if not admin_secret or x_admin_secret != admin_secret:
+        raise HTTPException(status_code=401, detail="unauthorized")
+
+    email = payload.get("email")
+    if not email:
+        raise HTTPException(status_code=400, detail="email is required")
+
+    user = db.query(User).filter(User.email == email, User.deleted_at.is_(None)).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="user not found")
+
+    membership_type = payload.get("membership_type", "founder_free")
+    user.membership_type = membership_type
+    user.is_active = True
+    if payload.get("subscription_status"):
+        user.subscription_status = payload["subscription_status"]
+
+    db.commit()
+    db.refresh(user)
+
+    return {
+        "status": "ok",
+        "user": {
+            "id": user.id,
+            "email": user.email,
+            "display_name": user.display_name,
+            "is_active": user.is_active,
+            "membership_type": user.membership_type,
+            "subscription_status": user.subscription_status,
+        }
+    }
+
+
 @router.post("/cleanup-test-data")
 def cleanup_test_data(
     payload: dict,
