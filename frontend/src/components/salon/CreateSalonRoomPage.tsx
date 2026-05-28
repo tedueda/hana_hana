@@ -124,6 +124,11 @@ const CreateSalonRoomPage: React.FC = () => {
       let thumbnailUrl: string | null = null;
       if (thumbnailFile) {
         thumbnailUrl = await uploadImage();
+        if (!thumbnailUrl) {
+          setError('画像のアップロードに失敗しました。もう一度お試しください。');
+          setSubmitting(false);
+          return;
+        }
       }
 
       const res = await fetch(`${API_URL}/api/salon/v2/rooms`, {
