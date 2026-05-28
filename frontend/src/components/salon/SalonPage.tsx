@@ -35,16 +35,23 @@ const SalonPage: React.FC = () => {
 
   const isPaidUser = user?.membership_type === 'premium' || user?.membership_type === 'admin' || user?.membership_type === 'founder_free';
 
+  const [error, setError] = useState(false);
+
   useEffect(() => {
     const fetchCategories = async () => {
       try {
         setLoading(true);
+        setError(false);
         const res = await fetch(`${API_URL}/api/salon/categories`);
         if (res.ok) {
-          setCategories(await res.json());
+          const data = await res.json();
+          setCategories(Array.isArray(data) ? data : []);
+        } else {
+          setError(true);
         }
       } catch (err) {
         console.error('Failed to fetch salon categories:', err);
+        setError(true);
       } finally {
         setLoading(false);
       }
@@ -120,6 +127,28 @@ const SalonPage: React.FC = () => {
             好きなテーマでつながる、Caratの会員専用サロンです。興味のあるカテゴリーを選んで、自由にサロン室を作成・参加できます。
           </p>
         </div>
+
+        {/* Error or empty state */}
+        {!loading && (error || categories.length === 0) && (
+          <div className="flex flex-col items-center justify-center py-16 text-center">
+            <div className="text-4xl mb-4">📂</div>
+            <h3 className="text-lg font-semibold text-gray-700 mb-2">
+              {error ? 'カテゴリーの読み込みに失敗しました' : 'カテゴリーがまだ準備されていません'}
+            </h3>
+            <p className="text-sm text-gray-500 mb-4">
+              {error
+                ? 'サーバーとの通信でエラーが発生しました。しばらくしてからもう一度お試しください。'
+                : 'まもなくカテゴリーが追加されます。'}
+            </p>
+            <Button
+              variant="outline"
+              onClick={() => window.location.reload()}
+              className="text-sm"
+            >
+              再読み込み
+            </Button>
+          </div>
+        )}
 
         {/* Category Groups */}
         {grouped.map(group => (
