@@ -1,9 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from '../ui/button';
 import { Card, CardContent } from '../ui/card';
 import { ArrowLeft, Plus, MessageSquare, Users, Clock, AlertTriangle } from 'lucide-react';
+import { Tabs, TabsList, TabsTrigger } from '../ui/tabs';
 import { API_URL } from '../../config';
 
 interface SalonCategory {
@@ -46,6 +47,15 @@ const AUDIENCE_BADGE_MAP: Record<string, string> = {
   '全員': 'ALL',
 };
 
+const SEGMENT_OPTIONS = [
+  { value: 'all', label: '全て' },
+  { value: 'ゲイ', label: 'ゲイ' },
+  { value: 'レズビアン', label: 'レズビアン' },
+  { value: 'バイセクシュアル', label: 'バイ' },
+  { value: 'トランスジェンダー', label: 'トランス' },
+  { value: 'その他', label: 'その他' },
+];
+
 const SalonCategoryPage: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -53,6 +63,7 @@ const SalonCategoryPage: React.FC = () => {
   const [category, setCategory] = useState<SalonCategory | null>(null);
   const [rooms, setRooms] = useState<SalonRoomItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [segment, setSegment] = useState('all');
 
   const isPaidUser = user?.membership_type === 'premium' || user?.membership_type === 'admin' || user?.membership_type === 'founder_free';
 
@@ -98,6 +109,14 @@ const SalonCategoryPage: React.FC = () => {
     if (!audiences || audiences.length === 0 || audiences.includes('全員')) return null;
     return audiences.map(a => AUDIENCE_BADGE_MAP[a] || a.charAt(0)).filter(Boolean);
   };
+
+  const filteredRooms = useMemo(() => {
+    if (segment === 'all') return rooms;
+    return rooms.filter(room => {
+      if (!room.target_audiences || room.target_audiences.includes('全員')) return true;
+      return room.target_audiences.includes(segment);
+    });
+  }, [rooms, segment]);
 
   if (loading) {
     return (
@@ -148,8 +167,21 @@ const SalonCategoryPage: React.FC = () => {
           </div>
         )}
 
+        {/* Sexuality Segment Filter */}
+        <div className="mb-6">
+          <Tabs value={segment} onValueChange={setSegment}>
+            <TabsList className="grid w-full grid-cols-6">
+              {SEGMENT_OPTIONS.map(opt => (
+                <TabsTrigger key={opt.value} value={opt.value}>
+                  {opt.label}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </Tabs>
+        </div>
+
         {/* Room list */}
-        {rooms.length === 0 ? (
+        {filteredRooms.length === 0 ? (
           <div className="text-center py-16 bg-white rounded-xl border border-gray-200">
             <p className="text-gray-500 mb-4">まだサロン室がありません。</p>
             <p className="text-gray-400 text-sm mb-6">最初のサロン室を作成して、交流を始めましょう。</p>
@@ -160,7 +192,7 @@ const SalonCategoryPage: React.FC = () => {
           </div>
         ) : (
           <div className="space-y-3">
-            {rooms.map(room => {
+            {filteredRooms.map(room => {
               const badges = getAudienceBadges(room.target_audiences);
               return (
                 <Card
