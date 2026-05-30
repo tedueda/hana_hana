@@ -282,6 +282,11 @@ def activate_user(
     membership_type = payload.get("membership_type", "founder_free")
     user.membership_type = membership_type
     user.is_active = True
+    user.email_verified = True
+    user.kyc_status = "VERIFIED"
+    if membership_type == "founder_free":
+        user.subscription_exempt = True
+        user.is_founder_free_member = True
     if payload.get("subscription_status"):
         user.subscription_status = payload["subscription_status"]
 
@@ -297,6 +302,9 @@ def activate_user(
             "is_active": user.is_active,
             "membership_type": user.membership_type,
             "subscription_status": user.subscription_status,
+            "email_verified": user.email_verified,
+            "kyc_status": user.kyc_status,
+            "subscription_exempt": user.subscription_exempt,
         }
     }
 
