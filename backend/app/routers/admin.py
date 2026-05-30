@@ -217,9 +217,10 @@ def delete_user(user_id: int, request: Request,
         raise HTTPException(status_code=404, detail="User not found")
     user.deleted_at = datetime.now(timezone.utc)
     user.is_active = False
+    deleted_referrals = db.query(Referral).filter(Referral.user_id == user_id).delete(synchronize_session=False)
     db.commit()
     _write_audit(db, current_user.id, "USER_DELETE", request, target_type="user", target_id=str(user_id))
-    return {"ok": True}
+    return {"ok": True, "deleted_referrals": deleted_referrals}
 
 
 class UpdateUserRequest(BaseModel):

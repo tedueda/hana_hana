@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, Header, HTTPException
 from sqlalchemy.orm import Session
 from app.database import get_db
-from app.models import User, Profile, MatchingProfile, MatchingProfileImage, Post, MediaAsset
+from app.models import User, Profile, MatchingProfile, MatchingProfileImage, Post, MediaAsset, Referral
 from sqlalchemy import text
 import os
 
@@ -307,6 +307,35 @@ def activate_user(
             "subscription_exempt": user.subscription_exempt,
         }
     }
+
+
+@router.delete("/referral/{referral_id}")
+def delete_referral(
+    referral_id: int,
+    db: Session = Depends(get_db),
+    x_admin_secret: str | None = Header(default=None, alias="X-Admin-Secret"),
+):
+    """Delete a referral record by ID."""
+    if os.getenv("ALLOW_MIGRATION_API", "false").lower() != "true":
+        raise HTTPException(status_code=403, detail="migration_api_disabled")
+    admin_secret = os.getenv("ADMIN_SECRET")
+    if not admin_secret or x_admin_secret != admin_secret:
+        raise HTTPException(status_code=401, detail="unauthorized")
+
+    referral = db.query(Referral).filter(Referral.id == referral_id).first()
+    if not referral:
+        raise HTTPException(status_code=404, detail="referral not found")
+
+    info = {
+        "id": referral.id,
+        "user_id": referral.user_id,
+        "ref_code": referral.ref_code,
+        "founder_code": referral.founder_code,
+    }
+    db.delete(referral)
+    db.commit()
+
+    return {"status": "ok", "deleted": info}
 
 
 @router.post("/cleanup-test-data")
