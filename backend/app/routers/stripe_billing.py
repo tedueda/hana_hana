@@ -14,7 +14,7 @@ from sqlalchemy.orm import Session
 from pydantic import BaseModel, EmailStr
 
 from app.database import get_db
-from app.models import User, Profile, MatchingProfile, Founder, Referral
+from app.models import User, Profile, MatchingProfile, Founder, Ambassador, Referral
 from app.auth import get_password_hash, get_current_active_user, create_access_token
 from sqlalchemy import text
 
@@ -144,9 +144,10 @@ async def register_only(
         if existing_phone and (not existing_user or existing_phone.id != existing_user.id):
             raise HTTPException(status_code=400, detail="この携帯番号は既に使用されています")
 
-    # Check if ref code is a valid active founder code
+    # Check if ref code is a valid active founder or ambassador code
     founder_free = False
     founder_code_val = None
+    ambassador_code_val = None
     ref_code = request.ref if request.ref else None
 
     if ref_code:
@@ -178,12 +179,20 @@ async def register_only(
                 if total < FOUNDER_FREE_LIMIT:
                     founder_free = True
                     founder_code_val = founder.founder_code
+            else:
+                # Check ambassador codes (paid referral)
+                ambassador = db.query(Ambassador).filter(
+                    Ambassador.ambassador_code == ref_code,
+                    Ambassador.is_active == True,
+                ).first()
+                if ambassador:
+                    ambassador_code_val = ambassador.ambassador_code
         except Exception as e:
-            logger.error(f"Founder ref check failed (ref={ref_code}): {e}")
+            logger.error(f"Ref code check failed (ref={ref_code}): {e}")
             db.rollback()
-            # Fall back to normal (paid) registration
             founder_free = False
             founder_code_val = None
+            ambassador_code_val = None
 
     # Resolve membership_type: try 'founder_free' first, fall back to 'premium'
     # if the DB CHECK constraint hasn't been updated yet.
@@ -223,6 +232,16 @@ async def register_only(
                 status="registered",
             )
             db.add(referral)
+        elif ambassador_code_val:
+            existing_user.referred_by_ambassador_code = ambassador_code_val
+            existing_user.ref_code_used = ambassador_code_val
+            referral = Referral(
+                user_id=existing_user.id,
+                ref_code=ambassador_code_val,
+                ambassador_code=ambassador_code_val,
+                status="registered",
+            )
+            db.add(referral)
         try:
             db.commit()
         except Exception as e:
@@ -257,7 +276,7 @@ async def register_only(
                 raise
         user = existing_user
     else:
-        def _create_new_user(mtype: str, is_ff: bool, ff_code: str | None) -> User:
+        def _create_new_user(mtype: str, is_ff: bool, ff_code: str | None, amb_code: str | None) -> User:
             return User(
                 email=request.email,
                 password_hash=get_password_hash(request.password),
@@ -274,13 +293,14 @@ async def register_only(
                 is_founder_free_member=is_ff,
                 subscription_exempt=is_ff,
                 referred_by_founder_code=ff_code,
-                ref_code_used=ff_code,
+                referred_by_ambassador_code=amb_code,
+                ref_code_used=ff_code or amb_code,
                 account_status="pending_email",
                 card_required=not is_ff,
                 card_registered=False,
             )
 
-        user = _create_new_user(membership_type_val, founder_free, founder_code_val)
+        user = _create_new_user(membership_type_val, founder_free, founder_code_val, ambassador_code_val)
         db.add(user)
         try:
             db.flush()
@@ -292,7 +312,7 @@ async def register_only(
                 membership_type_val = "premium"
                 founder_free = False
                 founder_code_val = None
-                user = _create_new_user("premium", False, None)
+                user = _create_new_user("premium", False, None, ambassador_code_val)
                 db.add(user)
                 db.flush()
             else:
@@ -312,12 +332,20 @@ async def register_only(
         )
         db.add(matching_profile)
 
-        # Create referral record if founder code was used
+        # Create referral record if founder or ambassador code was used
         if founder_code_val:
             referral = Referral(
                 user_id=user.id,
                 ref_code=founder_code_val,
                 founder_code=founder_code_val,
+                status="registered",
+            )
+            db.add(referral)
+        elif ambassador_code_val:
+            referral = Referral(
+                user_id=user.id,
+                ref_code=ambassador_code_val,
+                ambassador_code=ambassador_code_val,
                 status="registered",
             )
             db.add(referral)

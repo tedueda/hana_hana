@@ -93,6 +93,30 @@ def _seed_founders(db):
         print(f"⚠️ Failed seeding founders: {e}")
 
 
+def _seed_ambassadors(db):
+    """Seed 10 initial ambassador codes (Pa01-Pa10) for paid member recruitment."""
+    try:
+        existing = db.execute(text("SELECT COUNT(*) FROM ambassadors")).scalar()
+        if existing >= 10:
+            print("✅ Ambassadors already seeded")
+            return
+        for i in range(1, 11):
+            code = f"Pa{i:02d}"
+            name = f"有料会員紹介{i:02d}"
+            db.execute(
+                text(
+                    "INSERT INTO ambassadors (ambassador_code, display_name, is_active) "
+                    "VALUES (:code, :name, TRUE) ON CONFLICT (ambassador_code) DO NOTHING"
+                ),
+                {"code": code, "name": name},
+            )
+        db.commit()
+        print("✅ Seeded 10 ambassador codes (Pa01-Pa10)")
+    except Exception as e:
+        db.rollback()
+        print(f"⚠️ Failed seeding ambassadors: {e}")
+
+
 @app.on_event("startup")
 def run_migrations():
     """Run database migrations on startup"""
@@ -359,6 +383,7 @@ def run_migrations():
             _add_column_if_missing("users", "subscription_exempt", "BOOLEAN DEFAULT FALSE")
             _add_column_if_missing("users", "is_founder_free_member", "BOOLEAN DEFAULT FALSE")
             _add_column_if_missing("users", "referred_by_founder_code", "VARCHAR(20)")
+            _add_column_if_missing("users", "referred_by_ambassador_code", "VARCHAR(20)")
             _add_column_if_missing("users", "ref_code_used", "VARCHAR(20)")
             # Update membership_type constraint to include founder_free.
             # Query pg_constraint to find ALL check constraints on this column,
@@ -416,18 +441,49 @@ def run_migrations():
             # Ensure founders are seeded even if table existed
             _seed_founders(db)
 
+        # Ambassadors table (paid member referral)
+        if not _table_exists("ambassadors"):
+            try:
+                db.execute(
+                    text(
+                        """
+                        CREATE TABLE IF NOT EXISTS ambassadors (
+                            id SERIAL PRIMARY KEY,
+                            ambassador_code VARCHAR(20) UNIQUE NOT NULL,
+                            display_name VARCHAR(100) NOT NULL,
+                            is_active BOOLEAN DEFAULT TRUE,
+                            max_invites INTEGER,
+                            created_at TIMESTAMPTZ DEFAULT NOW(),
+                            updated_at TIMESTAMPTZ DEFAULT NOW()
+                        )
+                        """
+                    )
+                )
+                db.execute(text("CREATE INDEX IF NOT EXISTS ix_ambassadors_ambassador_code ON ambassadors(ambassador_code)"))
+                db.commit()
+                print("✅ Created table: ambassadors")
+                _seed_ambassadors(db)
+            except Exception as e:
+                db.rollback()
+                print(f"⚠️ Failed creating table ambassadors: {e}")
+        else:
+            print("✅ ambassadors table already exists")
+            _seed_ambassadors(db)
+
         # Referrals table - add new columns if exists
         if _table_exists("referrals"):
             _add_column_if_missing("referrals", "founder_code", "VARCHAR(20)")
+            _add_column_if_missing("referrals", "ambassador_code", "VARCHAR(20)")
             _add_column_if_missing("referrals", "status", "VARCHAR(20) DEFAULT 'registered'")
             _add_column_if_missing("referrals", "registered_at", "TIMESTAMPTZ DEFAULT NOW()")
             _add_column_if_missing("referrals", "updated_at", "TIMESTAMPTZ DEFAULT NOW()")
             try:
                 db.execute(text("CREATE INDEX IF NOT EXISTS ix_referrals_founder_code ON referrals(founder_code)"))
+                db.execute(text("CREATE INDEX IF NOT EXISTS ix_referrals_ambassador_code ON referrals(ambassador_code)"))
                 db.commit()
             except Exception as e:
                 db.rollback()
-                print(f"⚠️ Failed creating index ix_referrals_founder_code: {e}")
+                print(f"⚠️ Failed creating index on referrals: {e}")
 
         # Referrals table
         if not _table_exists("referrals"):
