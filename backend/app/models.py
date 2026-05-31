@@ -32,6 +32,25 @@ class User(Base):
     # Stripe Identity (KYC) fields
     kyc_status = Column(String(50), default="UNVERIFIED")  # UNVERIFIED, PENDING, VERIFIED, REJECTED
     stripe_identity_verification_session_id = Column(String(255), nullable=True)
+
+    # Account status (new registration flow)
+    account_status = Column(String(30), default="pending_email")
+    # pending_email / email_verified / identity_pending / identity_verified
+    # identity_review / identity_rejected / card_pending / active / suspended
+
+    # Identity verification info (separate from profile)
+    real_name_kanji = Column(String(200), nullable=True)
+    birthdate = Column(Date, nullable=True)
+    verified_name = Column(String(200), nullable=True)
+    verified_birthdate = Column(Date, nullable=True)
+    identity_verified_at = Column(DateTime(timezone=True), nullable=True)
+    identity_verification_method = Column(String(50), nullable=True)
+    identity_retry_count = Column(Integer, default=0)
+    identity_document_type = Column(String(50), nullable=True)
+
+    # Card registration management
+    card_required = Column(Boolean, default=True)
+    card_registered = Column(Boolean, default=False)
     
     # Legacy paid user flag (for existing test users)
     is_legacy_paid = Column(Boolean, default=False)

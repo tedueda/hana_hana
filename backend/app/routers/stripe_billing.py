@@ -50,6 +50,12 @@ class CreateIdentitySessionRequest(BaseModel):
     pass  # No additional fields needed, uses current user
 
 
+class SubmitIdentityInfoRequest(BaseModel):
+    real_name: str
+    birthdate: str  # YYYY-MM-DD
+    document_type: str  # drivers_license, my_number_card, passport
+
+
 class CreatePortalSessionRequest(BaseModel):
     return_url: Optional[str] = None
 
@@ -200,6 +206,10 @@ async def register_only(
         existing_user.kyc_status = "UNVERIFIED"
         existing_user.is_verified = False
         existing_user.stripe_identity_verification_session_id = None
+        existing_user.account_status = "pending_email"
+        existing_user.card_required = not founder_free
+        existing_user.card_registered = False
+        existing_user.identity_retry_count = 0
         if founder_free:
             existing_user.membership_type = "founder_free"
             existing_user.is_founder_free_member = True
@@ -265,6 +275,9 @@ async def register_only(
                 subscription_exempt=is_ff,
                 referred_by_founder_code=ff_code,
                 ref_code_used=ff_code,
+                account_status="pending_email",
+                card_required=not is_ff,
+                card_registered=False,
             )
 
         user = _create_new_user(membership_type_val, founder_free, founder_code_val)
@@ -398,6 +411,7 @@ async def verify_email(
             raise HTTPException(status_code=400, detail="トークンの有効期限が切れています。再送信してください。")
 
     user.email_verified = True
+    user.account_status = "email_verified"
     # Keep email_verification_token_hash so re-clicks can still find the user.
     # Set a 1-hour re-click window for KYC continuation.
     user.email_verification_expires = datetime.utcnow() + timedelta(hours=1)
@@ -417,6 +431,8 @@ async def verify_email(
             "display_name": user.display_name,
             "is_founder_free_member": bool(user.is_founder_free_member),
             "subscription_exempt": bool(user.subscription_exempt),
+            "account_status": user.account_status,
+            "card_required": bool(getattr(user, 'card_required', True)),
         }
     }
 
@@ -645,21 +661,79 @@ async def get_checkout_session(session_id: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=400, detail=str(e))
 
 
+@router.post("/submit-identity-info")
+async def submit_identity_info(
+    request: SubmitIdentityInfoRequest,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """Submit real name and birthdate for identity verification, then create Stripe Identity session."""
+    import re
+    from datetime import date as date_type
+
+    if not STRIPE_SECRET_KEY:
+        raise HTTPException(status_code=500, detail="Stripe not configured")
+
+    if current_user.kyc_status == "VERIFIED":
+        raise HTTPException(status_code=400, detail="Identity already verified")
+
+    if getattr(current_user, 'identity_retry_count', 0) >= 3:
+        raise HTTPException(status_code=400, detail="IDENTITY_MAX_RETRIES")
+
+    if request.document_type not in ("drivers_license", "my_number_card", "passport"):
+        raise HTTPException(status_code=400, detail="Invalid document type")
+
+    try:
+        bd = date_type.fromisoformat(request.birthdate)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid birthdate format. Use YYYY-MM-DD")
+
+    current_user.real_name_kanji = request.real_name.strip()
+    current_user.birthdate = bd
+    current_user.identity_document_type = request.document_type
+    current_user.account_status = "identity_pending"
+    db.commit()
+
+    try:
+        verification_session = stripe.identity.VerificationSession.create(
+            type="document",
+            metadata={
+                "user_id": str(current_user.id),
+                "document_type": request.document_type,
+            },
+            options={
+                "document": {
+                    "require_matching_selfie": False
+                }
+            }
+        )
+
+        current_user.stripe_identity_verification_session_id = verification_session.id
+        current_user.kyc_status = "PENDING"
+        db.commit()
+
+        return {
+            "client_secret": verification_session.client_secret,
+            "session_id": verification_session.id
+        }
+    except stripe.error.StripeError as e:
+        logger.error(f"Stripe Identity error: {e}")
+        raise HTTPException(status_code=400, detail=str(e))
+
+
 @router.post("/create-identity-session")
 async def create_identity_session(
     current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db)
 ):
-    """Create a Stripe Identity verification session for KYC."""
+    """Create a Stripe Identity verification session for KYC (legacy endpoint)."""
     if not STRIPE_SECRET_KEY:
         raise HTTPException(status_code=500, detail="Stripe not configured")
-    
-    # Check if already verified
+
     if current_user.kyc_status == "VERIFIED":
         raise HTTPException(status_code=400, detail="Identity already verified")
-    
+
     try:
-        # Create Identity verification session
         verification_session = stripe.identity.VerificationSession.create(
             type="document",
             metadata={
@@ -667,16 +741,16 @@ async def create_identity_session(
             },
             options={
                 "document": {
-                    "require_matching_selfie": True
+                    "require_matching_selfie": False
                 }
             }
         )
-        
-        # Update user with session ID
+
         current_user.stripe_identity_verification_session_id = verification_session.id
         current_user.kyc_status = "PENDING"
+        current_user.account_status = "identity_pending"
         db.commit()
-        
+
         return {
             "client_secret": verification_session.client_secret,
             "session_id": verification_session.id
@@ -729,30 +803,156 @@ async def get_subscription_status(
     }
 
 
+def _normalize_name(name: str) -> str:
+    """Normalize a name for comparison: strip, lowercase, remove spaces, convert kana."""
+    import unicodedata
+    if not name:
+        return ""
+    n = unicodedata.normalize("NFKC", name)
+    n = n.strip().lower()
+    n = n.replace(" ", "").replace("\u3000", "")
+    # Convert katakana to hiragana for comparison
+    result = []
+    for ch in n:
+        cp = ord(ch)
+        if 0x30A1 <= cp <= 0x30F6:
+            result.append(chr(cp - 0x60))
+        else:
+            result.append(ch)
+    return "".join(result)
+
+
+def _names_match(input_name: str, doc_name: str) -> bool:
+    """Check if user-input name matches document name (with fuzzy normalization)."""
+    if not input_name or not doc_name:
+        return False
+    return _normalize_name(input_name) == _normalize_name(doc_name)
+
+
+def _dates_match(input_date, doc_date) -> bool:
+    """Check if dates match."""
+    from datetime import date as date_type
+    if not input_date or not doc_date:
+        return False
+    if isinstance(input_date, str):
+        input_date = date_type.fromisoformat(input_date)
+    if isinstance(doc_date, str):
+        doc_date = date_type.fromisoformat(doc_date)
+    return input_date == doc_date
+
+
+def _verify_identity_match(user: User, vs) -> dict:
+    """Compare user-input identity info with Stripe Identity document data."""
+    from datetime import date as date_type
+
+    doc_name = None
+    doc_dob = None
+
+    try:
+        if hasattr(vs, 'last_verification_report') and vs.last_verification_report:
+            report = stripe.identity.VerificationReport.retrieve(vs.last_verification_report)
+            if hasattr(report, 'document') and report.document:
+                doc = report.document
+                first = getattr(doc, 'first_name', '') or ''
+                last = getattr(doc, 'last_name', '') or ''
+                doc_name = f"{last}{first}".strip() or f"{first}{last}".strip()
+                if not doc_name:
+                    doc_name = None
+                dob = getattr(doc, 'dob', None)
+                if dob:
+                    doc_dob = date_type(year=dob.get('year', 0), month=dob.get('month', 0), day=dob.get('day', 0))
+    except Exception as e:
+        logger.error(f"Failed to retrieve verification report: {e}")
+        return {"match": False, "reason": "report_error", "doc_name": None, "doc_dob": None}
+
+    name_ok = _names_match(user.real_name_kanji or "", doc_name or "")
+    date_ok = _dates_match(user.birthdate, doc_dob)
+
+    return {
+        "match": name_ok and date_ok,
+        "name_match": name_ok,
+        "date_match": date_ok,
+        "doc_name": doc_name,
+        "doc_dob": str(doc_dob) if doc_dob else None,
+    }
+
+
 @router.get("/kyc-status")
 async def get_kyc_status(
     current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db)
 ):
-    """Poll KYC verification status. Used by frontend to check if webhook has confirmed KYC."""
+    """Poll KYC verification status with name/birthdate matching."""
     session_id = current_user.stripe_identity_verification_session_id
 
     if current_user.kyc_status == "VERIFIED" or current_user.is_legacy_paid:
-        return {"kyc_status": "VERIFIED", "can_proceed_to_payment": True}
+        account_status = getattr(current_user, 'account_status', 'active')
+        return {"kyc_status": "VERIFIED", "can_proceed_to_payment": True, "account_status": account_status}
 
     if session_id and STRIPE_SECRET_KEY:
         try:
             vs = stripe.identity.VerificationSession.retrieve(session_id)
             if vs.status == "verified" and current_user.kyc_status != "VERIFIED":
-                current_user.kyc_status = "VERIFIED"
-                current_user.is_verified = True
-                db.commit()
-                return {"kyc_status": "VERIFIED", "can_proceed_to_payment": True}
-            return {"kyc_status": current_user.kyc_status, "stripe_status": vs.status, "can_proceed_to_payment": False}
+                # Document verified by Stripe — now check name/birthdate match
+                match_result = _verify_identity_match(current_user, vs)
+
+                if match_result["match"]:
+                    current_user.kyc_status = "VERIFIED"
+                    current_user.is_verified = True
+                    current_user.verified_name = match_result.get("doc_name")
+                    current_user.verified_birthdate = match_result.get("doc_dob")
+                    current_user.identity_verified_at = datetime.utcnow()
+                    current_user.identity_verification_method = "stripe_identity"
+
+                    # Determine next status based on card_required
+                    if getattr(current_user, 'card_required', True) and not getattr(current_user, 'card_registered', False):
+                        current_user.account_status = "card_pending"
+                    else:
+                        current_user.account_status = "active"
+                    db.commit()
+                    return {
+                        "kyc_status": "VERIFIED",
+                        "can_proceed_to_payment": True,
+                        "account_status": current_user.account_status,
+                        "identity_match": True,
+                    }
+                else:
+                    # Name/birthdate mismatch
+                    retry_count = getattr(current_user, 'identity_retry_count', 0) + 1
+                    current_user.identity_retry_count = retry_count
+                    current_user.kyc_status = "UNVERIFIED"
+                    current_user.stripe_identity_verification_session_id = None
+
+                    if retry_count >= 3:
+                        current_user.account_status = "identity_review"
+                    else:
+                        current_user.account_status = "identity_rejected"
+                    db.commit()
+                    return {
+                        "kyc_status": "MISMATCH",
+                        "can_proceed_to_payment": False,
+                        "account_status": current_user.account_status,
+                        "identity_match": False,
+                        "name_match": match_result.get("name_match"),
+                        "date_match": match_result.get("date_match"),
+                        "retry_count": retry_count,
+                        "max_retries": 3,
+                    }
+
+            return {
+                "kyc_status": current_user.kyc_status,
+                "stripe_status": vs.status,
+                "can_proceed_to_payment": False,
+                "account_status": getattr(current_user, 'account_status', 'identity_pending'),
+            }
         except stripe.error.StripeError as e:
             logger.error(f"Failed to check verification session: {e}")
 
-    return {"kyc_status": current_user.kyc_status, "can_proceed_to_payment": False}
+    return {
+        "kyc_status": current_user.kyc_status,
+        "can_proceed_to_payment": False,
+        "account_status": getattr(current_user, 'account_status', 'pending_email'),
+    }
 
 
 @router.post("/webhook")
@@ -914,11 +1114,11 @@ async def handle_identity_verified(data: dict, db: Session):
         User.stripe_identity_verification_session_id == session_id
     ).first()
     
-    if user:
+    if user and user.kyc_status != "VERIFIED":
         user.kyc_status = "VERIFIED"
         user.is_verified = True
         db.commit()
-        logger.info(f"Identity verified for user {user.id}")
+        logger.info(f"Identity verified via webhook for user {user.id}, pending name/birthdate match")
 
 
 async def handle_identity_requires_input(data: dict, db: Session):

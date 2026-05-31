@@ -45,6 +45,11 @@ class User(UserBase):
     subscription_status: Optional[str] = None
     is_legacy_paid: Optional[bool] = None
     premium: Optional[bool] = None
+    account_status: Optional[str] = None
+    card_required: Optional[bool] = None
+    card_registered: Optional[bool] = None
+    is_founder_free_member: Optional[bool] = None
+    subscription_exempt: Optional[bool] = None
     
     class Config:
         from_attributes = True

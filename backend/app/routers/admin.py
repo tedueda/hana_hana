@@ -155,6 +155,12 @@ class UserListItem(BaseModel):
     community_category: Optional[str] = None
     position: Optional[str] = None
     profile_complete: bool = False
+    account_status: Optional[str] = None
+    membership_type: Optional[str] = None
+    card_required: Optional[bool] = None
+    card_registered: Optional[bool] = None
+    kyc_status: Optional[str] = None
+    referred_by_founder_code: Optional[str] = None
 
 class UserListResponse(BaseModel):
     items: List[UserListItem]
@@ -199,6 +205,12 @@ def list_users(
                 community_category=getattr(profiles.get(u.id), 'community_category', None) or getattr(profiles.get(u.id), 'identity', None),
                 position=getattr(profiles.get(u.id), 'position', None),
                 profile_complete=_is_profile_complete(profiles.get(u.id), u.display_name or ""),
+                account_status=getattr(u, 'account_status', None),
+                membership_type=u.membership_type,
+                card_required=getattr(u, 'card_required', None),
+                card_registered=getattr(u, 'card_registered', None),
+                kyc_status=u.kyc_status,
+                referred_by_founder_code=getattr(u, 'referred_by_founder_code', None),
             )
             for u in items
         ],
