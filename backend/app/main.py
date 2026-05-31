@@ -195,6 +195,17 @@ def run_migrations():
             _add_column_if_missing("users", "email_verified", "BOOLEAN DEFAULT FALSE")
             _add_column_if_missing("users", "email_verification_token_hash", "VARCHAR(64)")
             _add_column_if_missing("users", "email_verification_expires", "TIMESTAMPTZ")
+            _add_column_if_missing("users", "account_status", "VARCHAR(30) DEFAULT 'pending_email'")
+            _add_column_if_missing("users", "real_name_kanji", "VARCHAR(200)")
+            _add_column_if_missing("users", "birthdate", "DATE")
+            _add_column_if_missing("users", "verified_name", "VARCHAR(200)")
+            _add_column_if_missing("users", "verified_birthdate", "DATE")
+            _add_column_if_missing("users", "identity_verified_at", "TIMESTAMPTZ")
+            _add_column_if_missing("users", "identity_verification_method", "VARCHAR(50)")
+            _add_column_if_missing("users", "identity_retry_count", "INTEGER DEFAULT 0")
+            _add_column_if_missing("users", "identity_document_type", "VARCHAR(50)")
+            _add_column_if_missing("users", "card_required", "BOOLEAN DEFAULT TRUE")
+            _add_column_if_missing("users", "card_registered", "BOOLEAN DEFAULT FALSE")
         
         if _table_exists("posts"):
             _add_column_if_missing("posts", "category", "VARCHAR")
