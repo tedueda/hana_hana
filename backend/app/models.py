@@ -82,6 +82,7 @@ class User(Base):
     subscription_exempt = Column(Boolean, default=False)
     is_founder_free_member = Column(Boolean, default=False)
     referred_by_founder_code = Column(String(20), nullable=True)
+    referred_by_ambassador_code = Column(String(20), nullable=True)
     ref_code_used = Column(String(20), nullable=True)
 
     __table_args__ = (
@@ -1169,6 +1170,20 @@ class Founder(Base):
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
 
+# ===== Ambassadors (paid referral) =====
+
+class Ambassador(Base):
+    __tablename__ = "ambassadors"
+
+    id = Column(Integer, primary_key=True, index=True)
+    ambassador_code = Column(String(20), unique=True, nullable=False, index=True)
+    display_name = Column(String(100), nullable=False)
+    is_active = Column(Boolean, default=True)
+    max_invites = Column(Integer, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+
 # ===== Referral tracking =====
 
 class Referral(Base):
@@ -1178,6 +1193,7 @@ class Referral(Base):
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     ref_code = Column(String(20), nullable=False, index=True)
     founder_code = Column(String(20), nullable=True, index=True)
+    ambassador_code = Column(String(20), nullable=True, index=True)
     status = Column(String(20), server_default="registered", nullable=False)
     registered_at = Column(DateTime(timezone=True), server_default=func.now())
     paid_at = Column(DateTime(timezone=True), nullable=True)

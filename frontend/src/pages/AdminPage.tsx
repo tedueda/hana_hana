@@ -41,6 +41,7 @@ const AdminPage: React.FC = () => {
         <TabsList className="mb-6 flex-wrap">
           <TabsTrigger value="users">ユーザー管理</TabsTrigger>
           <TabsTrigger value="founders">創業メンバー管理</TabsTrigger>
+          <TabsTrigger value="ambassadors">有料会員紹介管理</TabsTrigger>
           <TabsTrigger value="referrals">紹介登録一覧</TabsTrigger>
           <TabsTrigger value="salon">サロン管理</TabsTrigger>
           <TabsTrigger value="blog">ブログ作成</TabsTrigger>
@@ -50,6 +51,9 @@ const AdminPage: React.FC = () => {
         </TabsContent>
         <TabsContent value="founders">
           <FounderManagementTab token={adminToken} />
+        </TabsContent>
+        <TabsContent value="ambassadors">
+          <AmbassadorManagementTab token={adminToken} />
         </TabsContent>
         <TabsContent value="referrals">
           <ReferralListTab token={adminToken} />
@@ -968,6 +972,206 @@ const FounderManagementTab: React.FC<{ token: string }> = ({ token }) => {
           <DialogHeader>
             <DialogTitle>QRコード: {qrDialog.code}</DialogTitle>
             <DialogDescription>このQRコードをスキャンすると紹介登録ページに遷移します</DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-center py-4">
+            {qrDialog.dataUrl && <img src={qrDialog.dataUrl} alt={`QR Code for ${qrDialog.code}`} className="w-64 h-64" />}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setQrDialog({ open: false, code: '', dataUrl: '' })}>閉じる</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+};
+
+// ===== Ambassador Management Tab =====
+interface AmbassadorItem {
+  id: number;
+  ambassador_code: string;
+  display_name: string;
+  is_active: boolean;
+  max_invites: number | null;
+  referral_count: number;
+  referral_url: string;
+  created_at: string;
+  updated_at: string;
+}
+
+const AmbassadorManagementTab: React.FC<{ token: string }> = ({ token }) => {
+  const [ambassadors, setAmbassadors] = useState<AmbassadorItem[]>([]);
+  const [totalPaidReferrals, setTotalPaidReferrals] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editName, setEditName] = useState('');
+  const [copiedCode, setCopiedCode] = useState<string | null>(null);
+  const [qrDialog, setQrDialog] = useState<{ open: boolean; code: string; dataUrl: string }>({ open: false, code: '', dataUrl: '' });
+
+  const fetchAmbassadors = useCallback(async () => {
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/admin/ambassadors`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setAmbassadors(data.items);
+        setTotalPaidReferrals(data.total_paid_referrals);
+      }
+    } catch (e) {
+      console.error('Failed to fetch ambassadors', e);
+    } finally {
+      setLoading(false);
+    }
+  }, [token]);
+
+  useEffect(() => { fetchAmbassadors(); }, [fetchAmbassadors]);
+
+  const handleToggleActive = async (id: number, currentActive: boolean) => {
+    try {
+      await fetch(`${BACKEND_URL}/api/admin/ambassadors/${id}`, {
+        method: 'PUT',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ is_active: !currentActive }),
+      });
+      fetchAmbassadors();
+    } catch (e) {
+      console.error('Failed to toggle ambassador', e);
+    }
+  };
+
+  const handleSaveName = async (id: number) => {
+    try {
+      await fetch(`${BACKEND_URL}/api/admin/ambassadors/${id}`, {
+        method: 'PUT',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ display_name: editName }),
+      });
+      setEditingId(null);
+      fetchAmbassadors();
+    } catch (e) {
+      console.error('Failed to update ambassador name', e);
+    }
+  };
+
+  const handleCopyUrl = (code: string, url: string) => {
+    navigator.clipboard.writeText(url);
+    setCopiedCode(code);
+    setTimeout(() => setCopiedCode(null), 2000);
+  };
+
+  const handleShowQr = async (id: number, code: string) => {
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/admin/ambassadors/${id}/qr`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setQrDialog({ open: true, code, dataUrl: data.qr_data_url });
+      }
+    } catch (e) {
+      console.error('Failed to fetch QR', e);
+    }
+  };
+
+  if (loading) return <div className="text-center py-8">読み込み中...</div>;
+
+  return (
+    <div className="space-y-6">
+      {/* Summary */}
+      <div className="bg-white rounded-lg border p-6">
+        <h3 className="text-lg font-semibold mb-3">有料会員紹介コード</h3>
+        <p className="text-sm text-gray-500">
+          有料会員紹介経由の登録数: <span className="font-semibold text-gray-800">{totalPaidReferrals}</span> 名
+        </p>
+        <p className="text-xs text-gray-400 mt-1">
+          紹介コード経由の新規登録は、本人確認＋クレジットカード登録が必要です
+        </p>
+      </div>
+
+      {/* Ambassador List */}
+      <div className="bg-white rounded-lg border">
+        <div className="overflow-x-auto">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>コード</TableHead>
+              <TableHead>表示名</TableHead>
+              <TableHead className="text-center">紹介数</TableHead>
+              <TableHead>紹介URL</TableHead>
+              <TableHead className="text-center">QR</TableHead>
+              <TableHead className="text-center">状態</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {ambassadors.map((a) => (
+              <TableRow key={a.id} className={!a.is_active ? 'opacity-50' : ''}>
+                <TableCell className="font-mono font-bold">{a.ambassador_code}</TableCell>
+                <TableCell>
+                  {editingId === a.id ? (
+                    <div className="flex items-center gap-1">
+                      <Input
+                        value={editName}
+                        onChange={(e) => setEditName(e.target.value)}
+                        className="h-8 w-40"
+                        onKeyDown={(e) => e.key === 'Enter' && handleSaveName(a.id)}
+                      />
+                      <Button size="sm" variant="ghost" onClick={() => handleSaveName(a.id)}>
+                        <Check className="h-4 w-4 text-green-600" />
+                      </Button>
+                      <Button size="sm" variant="ghost" onClick={() => setEditingId(null)}>
+                        <X className="h-4 w-4 text-red-600" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-1">
+                      <span>{a.display_name}</span>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => { setEditingId(a.id); setEditName(a.display_name); }}
+                      >
+                        <Pencil className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  )}
+                </TableCell>
+                <TableCell className="text-center">{a.referral_count}</TableCell>
+                <TableCell>
+                  <div className="flex items-center gap-1">
+                    <span className="text-xs text-gray-500 truncate max-w-[200px]">{a.referral_url}</span>
+                    <Button size="sm" variant="ghost" onClick={() => handleCopyUrl(a.ambassador_code, a.referral_url)}>
+                      {copiedCode === a.ambassador_code ? <Check className="h-3 w-3 text-green-600" /> : <Copy className="h-3 w-3" />}
+                    </Button>
+                  </div>
+                </TableCell>
+                <TableCell className="text-center">
+                  <Button size="sm" variant="ghost" onClick={() => handleShowQr(a.id, a.ambassador_code)}>
+                    <QrCode className="h-4 w-4" />
+                  </Button>
+                </TableCell>
+                <TableCell className="text-center">
+                  <Button
+                    size="sm"
+                    variant={a.is_active ? 'default' : 'outline'}
+                    onClick={() => handleToggleActive(a.id, a.is_active)}
+                    className="text-xs"
+                  >
+                    {a.is_active ? '有効' : '無効'}
+                  </Button>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+      </div>
+
+      {/* QR Code Dialog */}
+      <Dialog open={qrDialog.open} onOpenChange={(open) => setQrDialog((prev) => ({ ...prev, open }))}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>QRコード: {qrDialog.code}</DialogTitle>
+            <DialogDescription>このQRコードをスキャンすると有料会員登録ページに遷移します</DialogDescription>
           </DialogHeader>
           <div className="flex justify-center py-4">
             {qrDialog.dataUrl && <img src={qrDialog.dataUrl} alt={`QR Code for ${qrDialog.code}`} className="w-64 h-64" />}

@@ -19,7 +19,7 @@ from slowapi.util import get_remote_address
 
 from app.database import get_db
 from app.auth import get_current_admin_user, verify_password, create_access_token, get_password_hash
-from app.models import User, BlogPost, BlogPostTranslation, AuditLog, Founder, Referral, MatchingProfile, SalonRoom
+from app.models import User, BlogPost, BlogPostTranslation, AuditLog, Founder, Ambassador, Referral, MatchingProfile, SalonRoom
 from app.services.google_indexing import get_indexing_service
 
 logger = logging.getLogger(__name__)
@@ -1140,6 +1140,147 @@ def get_founder_qr(
         return {"url": url, "qr_data_url": None, "error": "qrcode library not installed"}
 
 
+# ──────────────── Ambassadors (Paid Referral) ────────────────
+
+class AmbassadorItem(BaseModel):
+    id: int
+    ambassador_code: str
+    display_name: str
+    is_active: bool
+    max_invites: Optional[int] = None
+    referral_count: int = 0
+    referral_url: str = ""
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
+
+
+class AmbassadorListResponse(BaseModel):
+    items: List[AmbassadorItem]
+    total_paid_referrals: int
+
+
+class AmbassadorCreateRequest(BaseModel):
+    ambassador_code: str
+    display_name: str
+    is_active: bool = True
+    max_invites: Optional[int] = None
+
+
+class AmbassadorUpdateRequest(BaseModel):
+    display_name: Optional[str] = None
+    is_active: Optional[bool] = None
+    max_invites: Optional[int] = None
+
+
+@router.get("/api/admin/ambassadors", response_model=AmbassadorListResponse)
+def list_ambassadors(
+    current_user: User = Depends(get_current_admin_user),
+    db: Session = Depends(get_db),
+):
+    ambassadors = db.query(Ambassador).order_by(Ambassador.id).all()
+    total_paid = db.query(Referral).filter(
+        Referral.ambassador_code.isnot(None),
+    ).count()
+
+    items = []
+    for a in ambassadors:
+        count = db.query(Referral).filter(Referral.ambassador_code == a.ambassador_code).count()
+        items.append(AmbassadorItem(
+            id=a.id,
+            ambassador_code=a.ambassador_code,
+            display_name=a.display_name,
+            is_active=a.is_active,
+            max_invites=a.max_invites,
+            referral_count=count,
+            referral_url=f"{SITE_URL}/register?ref={a.ambassador_code}",
+            created_at=a.created_at,
+            updated_at=a.updated_at,
+        ))
+    return AmbassadorListResponse(
+        items=items,
+        total_paid_referrals=total_paid,
+    )
+
+
+@router.post("/api/admin/ambassadors")
+def create_ambassador(
+    body: AmbassadorCreateRequest,
+    request: Request,
+    current_user: User = Depends(get_current_admin_user),
+    db: Session = Depends(get_db),
+):
+    existing = db.query(Ambassador).filter(Ambassador.ambassador_code == body.ambassador_code).first()
+    if existing:
+        raise HTTPException(status_code=400, detail="Ambassador code already exists")
+    ambassador = Ambassador(
+        ambassador_code=body.ambassador_code,
+        display_name=body.display_name,
+        is_active=body.is_active,
+        max_invites=body.max_invites,
+    )
+    db.add(ambassador)
+    db.commit()
+    db.refresh(ambassador)
+    _write_audit(db, current_user.id, "AMBASSADOR_CREATE", request,
+                 target_type="ambassador", target_id=str(ambassador.id),
+                 metadata={"ambassador_code": body.ambassador_code})
+    return {"ok": True, "id": ambassador.id, "ambassador_code": ambassador.ambassador_code}
+
+
+@router.put("/api/admin/ambassadors/{ambassador_id}")
+def update_ambassador(
+    ambassador_id: int,
+    body: AmbassadorUpdateRequest,
+    request: Request,
+    current_user: User = Depends(get_current_admin_user),
+    db: Session = Depends(get_db),
+):
+    ambassador = db.query(Ambassador).filter(Ambassador.id == ambassador_id).first()
+    if not ambassador:
+        raise HTTPException(status_code=404, detail="Ambassador not found")
+    updates = {}
+    if body.display_name is not None:
+        ambassador.display_name = body.display_name
+        updates["display_name"] = body.display_name
+    if body.is_active is not None:
+        ambassador.is_active = body.is_active
+        updates["is_active"] = body.is_active
+    if body.max_invites is not None:
+        ambassador.max_invites = body.max_invites
+        updates["max_invites"] = body.max_invites
+    db.commit()
+    db.refresh(ambassador)
+    _write_audit(db, current_user.id, "AMBASSADOR_UPDATE", request,
+                 target_type="ambassador", target_id=str(ambassador.id), metadata=updates)
+    return {"ok": True, "ambassador_code": ambassador.ambassador_code}
+
+
+@router.get("/api/admin/ambassadors/{ambassador_id}/qr")
+def get_ambassador_qr(
+    ambassador_id: int,
+    current_user: User = Depends(get_current_admin_user),
+    db: Session = Depends(get_db),
+):
+    ambassador = db.query(Ambassador).filter(Ambassador.id == ambassador_id).first()
+    if not ambassador:
+        raise HTTPException(status_code=404, detail="Ambassador not found")
+    url = f"{SITE_URL}/register?ref={ambassador.ambassador_code}"
+    try:
+        import qrcode
+        qr = qrcode.QRCode(version=1, box_size=10, border=4)
+        qr.add_data(url)
+        qr.make(fit=True)
+        img = qr.make_image(fill_color="black", back_color="white")
+        buf = io.BytesIO()
+        img.save(buf, format="PNG")
+        buf.seek(0)
+        import base64
+        b64 = base64.b64encode(buf.read()).decode()
+        return {"url": url, "qr_data_url": f"data:image/png;base64,{b64}"}
+    except ImportError:
+        return {"url": url, "qr_data_url": None, "error": "qrcode library not installed"}
+
+
 # ──────────────── Referral List ────────────────
 
 class ReferralListItem(BaseModel):
@@ -1149,6 +1290,8 @@ class ReferralListItem(BaseModel):
     user_email: str = ""
     founder_code: Optional[str] = None
     founder_display_name: Optional[str] = None
+    ambassador_code: Optional[str] = None
+    ambassador_display_name: Optional[str] = None
     ref_code: str = ""
     membership_type: str = ""
     status: str = "registered"
@@ -1199,6 +1342,9 @@ def list_referrals(
     founder_names: dict[str, str] = {}
     for f in db.query(Founder).all():
         founder_names[f.founder_code] = f.display_name
+    ambassador_names: dict[str, str] = {}
+    for a in db.query(Ambassador).all():
+        ambassador_names[a.ambassador_code] = a.display_name
 
     items = []
     for r in refs:
@@ -1210,6 +1356,8 @@ def list_referrals(
             user_email=user.email if user else "",
             founder_code=r.founder_code,
             founder_display_name=founder_names.get(r.founder_code or "", None),
+            ambassador_code=getattr(r, 'ambassador_code', None),
+            ambassador_display_name=ambassador_names.get(getattr(r, 'ambassador_code', '') or '', None),
             ref_code=r.ref_code,
             membership_type=user.membership_type if user else "",
             status=r.status or "registered",
@@ -1282,38 +1430,53 @@ def export_referrals_csv(
 
 @router.get("/api/referrals/validate")
 def validate_referral(ref: str = "", db: Session = Depends(get_db)):
-    """Validate a referral code. Returns founder info and availability."""
+    """Validate a referral code. Checks founder codes first, then ambassador codes."""
     if not ref:
         return {"valid": False, "reason": "no_code"}
 
+    # Check founder codes first
     founder = db.query(Founder).filter(Founder.founder_code == ref).first()
-    if not founder:
-        return {"valid": False, "reason": "invalid_code"}
-    if not founder.is_active:
-        return {"valid": False, "reason": "inactive_code"}
+    if founder:
+        if not founder.is_active:
+            return {"valid": False, "reason": "inactive_code"}
 
-    total_founder_free = db.query(User).filter(
-        User.is_founder_free_member == True,
-        User.deleted_at.is_(None),
-    ).count()
+        total_founder_free = db.query(User).filter(
+            User.is_founder_free_member == True,
+            User.deleted_at.is_(None),
+        ).count()
 
-    if total_founder_free >= FOUNDER_FREE_LIMIT:
+        if total_founder_free >= FOUNDER_FREE_LIMIT:
+            return {
+                "valid": False,
+                "reason": "cap_reached",
+                "founder_display_name": founder.display_name,
+                "total": total_founder_free,
+                "limit": FOUNDER_FREE_LIMIT,
+            }
+
         return {
-            "valid": False,
-            "reason": "cap_reached",
+            "valid": True,
+            "ref_type": "founder",
+            "founder_code": founder.founder_code,
             "founder_display_name": founder.display_name,
+            "remaining": FOUNDER_FREE_LIMIT - total_founder_free,
             "total": total_founder_free,
             "limit": FOUNDER_FREE_LIMIT,
         }
 
-    return {
-        "valid": True,
-        "founder_code": founder.founder_code,
-        "founder_display_name": founder.display_name,
-        "remaining": FOUNDER_FREE_LIMIT - total_founder_free,
-        "total": total_founder_free,
-        "limit": FOUNDER_FREE_LIMIT,
-    }
+    # Check ambassador codes
+    ambassador = db.query(Ambassador).filter(Ambassador.ambassador_code == ref).first()
+    if ambassador:
+        if not ambassador.is_active:
+            return {"valid": False, "reason": "inactive_code"}
+        return {
+            "valid": True,
+            "ref_type": "ambassador",
+            "ambassador_code": ambassador.ambassador_code,
+            "ambassador_display_name": ambassador.display_name,
+        }
+
+    return {"valid": False, "reason": "invalid_code"}
 
 
 # ──────────────── Founder Status (Public) ────────────────
