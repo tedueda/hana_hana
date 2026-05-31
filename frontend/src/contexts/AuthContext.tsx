@@ -206,9 +206,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         if (detail === 'EMAIL_NOT_VERIFIED') {
           setError('メールアドレスの確認が完了していません。登録時に届いたメールのリンクをクリックしてください。');
         } else if (detail === 'KYC_NOT_VERIFIED') {
-          setError('本人確認（KYC）が完了していません。登録手続きを最初からやり直してください。');
+          setError('本人確認が完了していません。メール内のリンクから本人確認手続きを行ってください。');
+        } else if (detail === 'IDENTITY_REJECTED') {
+          setError('本人確認書類と入力情報が一致しませんでした。再度本人確認手続きを行ってください。');
+        } else if (detail === 'IDENTITY_UNDER_REVIEW') {
+          setError('本人確認は現在運営チームが確認中です。確認完了後にメールでお知らせします。');
+        } else if (detail === 'CARD_NOT_REGISTERED') {
+          setError('クレジットカードの登録が完了していません。登録手続きを続けてください。');
+        } else if (detail === 'ACCOUNT_SUSPENDED') {
+          setError('アカウントが停止されています。詳しくは運営までお問い合わせください。');
         } else if (detail === 'SUBSCRIPTION_NOT_ACTIVE') {
           setError('決済が完了していません。登録手続きを最初からやり直してください。');
+        } else if (detail === 'REGISTRATION_INCOMPLETE') {
+          setError('登録手続きが完了していません。登録手続きを最初からやり直してください。');
         } else {
           setError('メールアドレスまたはパスワードが正しくありません');
         }

@@ -104,7 +104,6 @@ const SubscribePage: React.FC = () => {
   const [formData, setFormData] = useState({
     email: '',
     display_name: '',
-    phone_number: '',
     password: '',
     password_confirm: '',
     preferred_lang: currentLanguage,
@@ -168,7 +167,6 @@ const SubscribePage: React.FC = () => {
         body: JSON.stringify({
           email: formData.email,
           display_name: formData.display_name,
-          phone_number: formData.phone_number.trim() || null,
           password: formData.password,
           preferred_lang: formData.preferred_lang,
           residence_country: formData.residence_country,
@@ -270,21 +268,6 @@ const SubscribePage: React.FC = () => {
               />
             </div>
 
-            <div>
-              <label className="block text-black text-sm font-medium mb-2">
-                携帯番号
-              </label>
-              <input
-                type="tel"
-                name="phone_number"
-                value={formData.phone_number}
-                onChange={handleChange}
-                className="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg text-black placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-black focus:border-black"
-                placeholder="090-1234-5678"
-                required
-              />
-            </div>
-            
             <div>
               <label className="block text-black text-sm font-medium mb-2">
                 {t('subscribe.password')}

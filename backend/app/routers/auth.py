@@ -442,14 +442,34 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = 
         raise HTTPException(status_code=400, detail="Inactive user")
     # Legacy paid users skip all remaining checks
     if not user.is_legacy_paid:
-        if not getattr(user, 'email_verified', False):
-            raise HTTPException(status_code=403, detail="EMAIL_NOT_VERIFIED")
-        if getattr(user, 'kyc_status', 'UNVERIFIED') != 'VERIFIED':
-            raise HTTPException(status_code=403, detail="KYC_NOT_VERIFIED")
-        # Founder free members (subscription_exempt) skip subscription check only
-        if not getattr(user, 'subscription_exempt', False):
-            if getattr(user, 'subscription_status', None) != 'active':
-                raise HTTPException(status_code=403, detail="SUBSCRIPTION_NOT_ACTIVE")
+        # Use account_status if available, fall back to field-level checks
+        acct_status = getattr(user, 'account_status', None)
+        if acct_status and acct_status != 'active':
+            if acct_status == 'pending_email':
+                raise HTTPException(status_code=403, detail="EMAIL_NOT_VERIFIED")
+            elif acct_status in ('email_verified', 'identity_pending'):
+                raise HTTPException(status_code=403, detail="KYC_NOT_VERIFIED")
+            elif acct_status == 'identity_rejected':
+                raise HTTPException(status_code=403, detail="IDENTITY_REJECTED")
+            elif acct_status == 'identity_review':
+                raise HTTPException(status_code=403, detail="IDENTITY_UNDER_REVIEW")
+            elif acct_status == 'identity_verified':
+                raise HTTPException(status_code=403, detail="KYC_NOT_VERIFIED")
+            elif acct_status == 'card_pending':
+                raise HTTPException(status_code=403, detail="CARD_NOT_REGISTERED")
+            elif acct_status == 'suspended':
+                raise HTTPException(status_code=403, detail="ACCOUNT_SUSPENDED")
+            else:
+                raise HTTPException(status_code=403, detail="REGISTRATION_INCOMPLETE")
+        elif not acct_status:
+            # Legacy field-level checks for users without account_status
+            if not getattr(user, 'email_verified', False):
+                raise HTTPException(status_code=403, detail="EMAIL_NOT_VERIFIED")
+            if getattr(user, 'kyc_status', 'UNVERIFIED') != 'VERIFIED':
+                raise HTTPException(status_code=403, detail="KYC_NOT_VERIFIED")
+            if not getattr(user, 'subscription_exempt', False):
+                if getattr(user, 'subscription_status', None) != 'active':
+                    raise HTTPException(status_code=403, detail="SUBSCRIPTION_NOT_ACTIVE")
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
         data={"sub": user.email}, expires_delta=access_token_expires
@@ -469,14 +489,32 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
         raise HTTPException(status_code=400, detail="Inactive user")
     # Legacy paid users skip all remaining checks
     if not user.is_legacy_paid:
-        if not getattr(user, 'email_verified', False):
-            raise HTTPException(status_code=403, detail="EMAIL_NOT_VERIFIED")
-        if getattr(user, 'kyc_status', 'UNVERIFIED') != 'VERIFIED':
-            raise HTTPException(status_code=403, detail="KYC_NOT_VERIFIED")
-        # Founder free members (subscription_exempt) skip subscription check only
-        if not getattr(user, 'subscription_exempt', False):
-            if getattr(user, 'subscription_status', None) != 'active':
-                raise HTTPException(status_code=403, detail="SUBSCRIPTION_NOT_ACTIVE")
+        acct_status = getattr(user, 'account_status', None)
+        if acct_status and acct_status != 'active':
+            if acct_status == 'pending_email':
+                raise HTTPException(status_code=403, detail="EMAIL_NOT_VERIFIED")
+            elif acct_status in ('email_verified', 'identity_pending'):
+                raise HTTPException(status_code=403, detail="KYC_NOT_VERIFIED")
+            elif acct_status == 'identity_rejected':
+                raise HTTPException(status_code=403, detail="IDENTITY_REJECTED")
+            elif acct_status == 'identity_review':
+                raise HTTPException(status_code=403, detail="IDENTITY_UNDER_REVIEW")
+            elif acct_status == 'identity_verified':
+                raise HTTPException(status_code=403, detail="KYC_NOT_VERIFIED")
+            elif acct_status == 'card_pending':
+                raise HTTPException(status_code=403, detail="CARD_NOT_REGISTERED")
+            elif acct_status == 'suspended':
+                raise HTTPException(status_code=403, detail="ACCOUNT_SUSPENDED")
+            else:
+                raise HTTPException(status_code=403, detail="REGISTRATION_INCOMPLETE")
+        elif not acct_status:
+            if not getattr(user, 'email_verified', False):
+                raise HTTPException(status_code=403, detail="EMAIL_NOT_VERIFIED")
+            if getattr(user, 'kyc_status', 'UNVERIFIED') != 'VERIFIED':
+                raise HTTPException(status_code=403, detail="KYC_NOT_VERIFIED")
+            if not getattr(user, 'subscription_exempt', False):
+                if getattr(user, 'subscription_status', None) != 'active':
+                    raise HTTPException(status_code=403, detail="SUBSCRIPTION_NOT_ACTIVE")
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
         data={"sub": user.email}, expires_delta=access_token_expires
@@ -519,6 +557,11 @@ async def read_users_me(
         "subscription_status": current_user.subscription_status,
         "is_legacy_paid": current_user.is_legacy_paid,
         "premium": premium,
+        "account_status": getattr(current_user, 'account_status', None),
+        "card_required": getattr(current_user, 'card_required', True),
+        "card_registered": getattr(current_user, 'card_registered', False),
+        "is_founder_free_member": getattr(current_user, 'is_founder_free_member', False),
+        "subscription_exempt": getattr(current_user, 'subscription_exempt', False),
     }
     
     return user_dict

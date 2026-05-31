@@ -124,6 +124,12 @@ interface UserItem {
   community_category: string | null;
   position: string | null;
   profile_complete: boolean;
+  account_status: string | null;
+  membership_type: string | null;
+  card_required: boolean | null;
+  card_registered: boolean | null;
+  kyc_status: string | null;
+  referred_by_founder_code: string | null;
 }
 
 const UserManagementTab: React.FC<{ token: string }> = ({ token }) => {
@@ -205,26 +211,61 @@ const UserManagementTab: React.FC<{ token: string }> = ({ token }) => {
             <TableRow>
               <TableHead>表示名</TableHead>
               <TableHead>メール</TableHead>
-              <TableHead>カテゴリー</TableHead>
-              <TableHead>ポジション</TableHead>
+              <TableHead>会員種別</TableHead>
+              <TableHead>アカウント状態</TableHead>
+              <TableHead>本人確認</TableHead>
+              <TableHead>カード</TableHead>
               <TableHead>プロフィール</TableHead>
               <TableHead>登録日</TableHead>
-              <TableHead>決済状態</TableHead>
+              <TableHead>紹介コード</TableHead>
               <TableHead className="w-16"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {loading ? (
-              <TableRow><TableCell colSpan={8} className="text-center py-8 text-gray-500">読み込み中...</TableCell></TableRow>
+              <TableRow><TableCell colSpan={10} className="text-center py-8 text-gray-500">読み込み中...</TableCell></TableRow>
             ) : users.length === 0 ? (
-              <TableRow><TableCell colSpan={8} className="text-center py-8 text-gray-500">ユーザーが見つかりません</TableCell></TableRow>
+              <TableRow><TableCell colSpan={10} className="text-center py-8 text-gray-500">ユーザーが見つかりません</TableCell></TableRow>
             ) : (
               users.map(u => (
                 <TableRow key={u.id}>
                   <TableCell className="font-medium">{u.display_name}</TableCell>
                   <TableCell className="text-sm text-gray-600">{u.email}</TableCell>
-                  <TableCell className="text-sm text-gray-600">{u.community_category || '-'}</TableCell>
-                  <TableCell className="text-sm text-gray-600">{u.position || '-'}</TableCell>
+                  <TableCell>
+                    <span className={`text-xs px-2 py-1 rounded-full ${
+                      u.membership_type === 'founder_free' ? 'bg-purple-100 text-purple-700' :
+                      u.membership_type === 'admin' ? 'bg-blue-100 text-blue-700' :
+                      'bg-gray-100 text-gray-600'
+                    }`}>
+                      {u.membership_type === 'founder_free' ? '招待' :
+                       u.membership_type === 'admin' ? '管理者' :
+                       u.membership_type === 'premium' ? '通常' : u.membership_type || '-'}
+                    </span>
+                  </TableCell>
+                  <TableCell>
+                    <span className={`text-xs px-2 py-1 rounded-full ${
+                      u.account_status === 'active' ? 'bg-green-100 text-green-700' :
+                      u.account_status === 'suspended' ? 'bg-red-100 text-red-700' :
+                      u.account_status === 'identity_review' ? 'bg-orange-100 text-orange-700' :
+                      u.account_status === 'identity_rejected' ? 'bg-red-100 text-red-700' :
+                      'bg-yellow-100 text-yellow-700'
+                    }`}>
+                      {u.account_status || '-'}
+                    </span>
+                  </TableCell>
+                  <TableCell>
+                    <span className={`text-xs px-2 py-1 rounded-full ${
+                      u.kyc_status === 'VERIFIED' ? 'bg-green-100 text-green-700' :
+                      u.kyc_status === 'PENDING' ? 'bg-yellow-100 text-yellow-700' :
+                      'bg-gray-100 text-gray-600'
+                    }`}>
+                      {u.kyc_status || 'UNVERIFIED'}
+                    </span>
+                  </TableCell>
+                  <TableCell className="text-sm text-gray-600">
+                    {u.card_required === false ? '不要' :
+                     u.card_registered ? '登録済' : '未登録'}
+                  </TableCell>
                   <TableCell>
                     <span className={`text-xs px-2 py-1 rounded-full ${u.profile_complete ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}`}>
                       {u.profile_complete ? '完成' : '未完成'}
@@ -233,15 +274,8 @@ const UserManagementTab: React.FC<{ token: string }> = ({ token }) => {
                   <TableCell className="text-sm text-gray-600">
                     {u.created_at ? new Date(u.created_at).toLocaleDateString('ja-JP') : '-'}
                   </TableCell>
-                  <TableCell>
-                    <span className={`text-xs px-2 py-1 rounded-full ${
-                      u.subscription_status === 'active' ? 'bg-green-100 text-green-700' :
-                      u.subscription_status === 'past_due' ? 'bg-yellow-100 text-yellow-700' :
-                      u.subscription_status === 'canceled' ? 'bg-red-100 text-red-700' :
-                      'bg-gray-100 text-gray-600'
-                    }`}>
-                      {u.subscription_status || u.payment_status || '-'}
-                    </span>
+                  <TableCell className="text-sm text-gray-600">
+                    {u.referred_by_founder_code || '-'}
                   </TableCell>
                   <TableCell>
                     <Button variant="ghost" size="sm" onClick={() => setDeleteTarget(u)}>

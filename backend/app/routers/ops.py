@@ -93,6 +93,37 @@ def run_migration(
     db.execute(text("CREATE INDEX IF NOT EXISTS ix_donation_project_images_project_id ON donation_project_images(project_id)"))
     db.execute(text("CREATE INDEX IF NOT EXISTS ix_donation_supports_project_id ON donation_supports(project_id)"))
 
+    # 4b) Registration flow columns on users table
+    db.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS account_status VARCHAR(30) DEFAULT 'pending_email'"))
+    db.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS real_name_kanji VARCHAR(200)"))
+    db.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS birthdate DATE"))
+    db.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS verified_name VARCHAR(200)"))
+    db.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS verified_birthdate DATE"))
+    db.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS identity_verified_at TIMESTAMP WITH TIME ZONE"))
+    db.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS identity_verification_method VARCHAR(50)"))
+    db.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS identity_retry_count INTEGER DEFAULT 0"))
+    db.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS identity_document_type VARCHAR(50)"))
+    db.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS card_required BOOLEAN DEFAULT TRUE"))
+    db.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS card_registered BOOLEAN DEFAULT FALSE"))
+
+    # Backfill: set existing active users to account_status='active'
+    db.execute(text("""
+        UPDATE users
+        SET account_status = 'active'
+        WHERE is_active = TRUE
+          AND email_verified = TRUE
+          AND (kyc_status = 'VERIFIED' OR is_legacy_paid = TRUE)
+          AND account_status = 'pending_email'
+          AND deleted_at IS NULL
+    """))
+    # Backfill: set card_required=false for founder_free members
+    db.execute(text("""
+        UPDATE users
+        SET card_required = FALSE
+        WHERE (subscription_exempt = TRUE OR is_founder_free_member = TRUE)
+          AND deleted_at IS NULL
+    """))
+
     # 5) Posts table funding columns
     db.execute(text("ALTER TABLE posts ADD COLUMN IF NOT EXISTS goal_amount INTEGER DEFAULT 0"))
     db.execute(text("ALTER TABLE posts ADD COLUMN IF NOT EXISTS current_amount INTEGER DEFAULT 0"))
@@ -284,9 +315,11 @@ def activate_user(
     user.is_active = True
     user.email_verified = True
     user.kyc_status = "VERIFIED"
+    user.account_status = "active"
     if membership_type == "founder_free":
         user.subscription_exempt = True
         user.is_founder_free_member = True
+        user.card_required = False
     if payload.get("subscription_status"):
         user.subscription_status = payload["subscription_status"]
 
@@ -305,6 +338,7 @@ def activate_user(
             "email_verified": user.email_verified,
             "kyc_status": user.kyc_status,
             "subscription_exempt": user.subscription_exempt,
+            "account_status": getattr(user, 'account_status', None),
         }
     }
 
