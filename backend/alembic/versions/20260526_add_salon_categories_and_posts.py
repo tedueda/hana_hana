@@ -38,8 +38,27 @@ def upgrade() -> None:
             sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.text("now()")),
         )
 
-    # 2. Add new columns to salon_rooms if they don't exist
-    if "salon_rooms" in existing_tables:
+    # 2. Create salon_rooms if it doesn't exist, or add new columns
+    if "salon_rooms" not in existing_tables:
+        op.create_table(
+            "salon_rooms",
+            sa.Column("id", sa.Integer, primary_key=True, index=True),
+            sa.Column("category_id", sa.Integer, sa.ForeignKey("salon_categories.id"), nullable=True),
+            sa.Column("creator_id", sa.Integer, sa.ForeignKey("users.id"), nullable=False),
+            sa.Column("theme", sa.String(200), nullable=False),
+            sa.Column("description", sa.Text, nullable=False),
+            sa.Column("target_identities", sa.JSON, nullable=False),
+            sa.Column("target_audiences", sa.JSON, nullable=True),
+            sa.Column("room_type", sa.String(50), nullable=False),
+            sa.Column("visibility", sa.String(20), server_default="public"),
+            sa.Column("thumbnail_url", sa.String(500), nullable=True),
+            sa.Column("allow_anonymous", sa.Boolean, server_default="false"),
+            sa.Column("is_active", sa.Boolean, server_default="true"),
+            sa.Column("status", sa.String(20), server_default="active"),
+            sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.text("now()")),
+            sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.text("now()")),
+        )
+    else:
         existing_columns = [c["name"] for c in inspector.get_columns("salon_rooms")]
         if "category_id" not in existing_columns:
             op.add_column("salon_rooms", sa.Column("category_id", sa.Integer, sa.ForeignKey("salon_categories.id"), nullable=True))
