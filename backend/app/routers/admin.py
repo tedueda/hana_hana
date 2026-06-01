@@ -244,6 +244,7 @@ class UpdateUserRequest(BaseModel):
     email_verified: Optional[bool] = None
     kyc_status: Optional[str] = None
     subscription_exempt: Optional[bool] = None
+    account_status: Optional[str] = None
 
 
 @router.put("/api/admin/users/update")
@@ -279,6 +280,9 @@ def update_user_by_email(
     if body.subscription_exempt is not None:
         user.subscription_exempt = body.subscription_exempt
         updates["subscription_exempt"] = body.subscription_exempt
+    if body.account_status is not None:
+        user.account_status = body.account_status
+        updates["account_status"] = body.account_status
     
     db.commit()
     db.refresh(user)

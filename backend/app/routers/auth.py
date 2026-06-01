@@ -440,8 +440,15 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = 
         )
     if not user.is_active:
         raise HTTPException(status_code=400, detail="Inactive user")
-    # Legacy paid users skip all remaining checks
-    if not user.is_legacy_paid:
+    # Legacy paid users and verified founder_free members skip registration checks
+    _skip_registration_checks = (
+        user.is_legacy_paid
+        or (
+            getattr(user, 'subscription_exempt', False)
+            and getattr(user, 'kyc_status', 'UNVERIFIED') == 'VERIFIED'
+        )
+    )
+    if not _skip_registration_checks:
         # Use account_status if available, fall back to field-level checks
         acct_status = getattr(user, 'account_status', None)
         if acct_status and acct_status != 'active':
@@ -487,8 +494,15 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
         )
     if not user.is_active:
         raise HTTPException(status_code=400, detail="Inactive user")
-    # Legacy paid users skip all remaining checks
-    if not user.is_legacy_paid:
+    # Legacy paid users and verified founder_free members skip registration checks
+    _skip_registration_checks = (
+        user.is_legacy_paid
+        or (
+            getattr(user, 'subscription_exempt', False)
+            and getattr(user, 'kyc_status', 'UNVERIFIED') == 'VERIFIED'
+        )
+    )
+    if not _skip_registration_checks:
         acct_status = getattr(user, 'account_status', None)
         if acct_status and acct_status != 'active':
             if acct_status == 'pending_email':
