@@ -667,6 +667,27 @@ def run_migrations():
             db.rollback()
             print(f"⚠️ Failed fixing email_verified for test users: {e}")
 
+        # Fix: Set account_status='active' for all pre-existing active users.
+        # When the account_status column was added with DEFAULT 'pending_email',
+        # existing verified users got 'pending_email' and could no longer log in.
+        try:
+            result = db.execute(text(
+                "UPDATE users "
+                "SET account_status = 'active', email_verified = TRUE "
+                "WHERE is_active = TRUE "
+                "AND (account_status IS NULL OR account_status = 'pending_email') "
+                "AND created_at < '2026-05-31T00:00:00Z'"
+            ))
+            affected = result.rowcount
+            db.commit()
+            if affected > 0:
+                print(f"✅ Fixed account_status for {affected} pre-existing active user(s)")
+            else:
+                print("✅ All active users already have correct account_status")
+        except Exception as e:
+            db.rollback()
+            print(f"⚠️ Failed fixing account_status for existing users: {e}")
+
         # One-time cleanup: Delete 9 Ca05 test referral records (all test registrations)
         try:
             result = db.execute(text(
