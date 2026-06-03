@@ -104,6 +104,14 @@ const SubscribePage: React.FC = () => {
 
   const isFounderFree = !!(refCode && refValidation?.valid && refValidation?.ref_type === 'founder');
   const isAmbassadorPaid = !!(refCode && refValidation?.valid && refValidation?.ref_type === 'ambassador');
+
+  // Ambassador (paid) referral codes: redirect to /about page so user can browse first
+  // The ReferralTracker will save the ref code to cookie for later registration
+  React.useEffect(() => {
+    if (isAmbassadorPaid && refCode) {
+      navigate(`/about?ref=${encodeURIComponent(refCode)}`, { replace: true });
+    }
+  }, [isAmbassadorPaid, refCode, navigate]);
   
   const [formData, setFormData] = useState({
     email: '',
