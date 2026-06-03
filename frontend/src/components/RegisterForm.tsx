@@ -11,11 +11,14 @@ import { BACKEND_URL } from '@/config';
 interface RefValidation {
   valid: boolean;
   reason?: string;
+  ref_type?: 'founder' | 'ambassador';
   founder_code?: string;
   founder_display_name?: string;
   remaining?: number;
   total?: number;
   limit?: number;
+  ambassador_code?: string;
+  ambassador_display_name?: string;
 }
 
 const RegisterForm: React.FC = () => {
@@ -116,7 +119,8 @@ const RegisterForm: React.FC = () => {
     setIsLoading(false);
   };
 
-  const isFounderFree = refCode && refValidation?.valid;
+  const isFounderFree = refCode && refValidation?.valid && refValidation?.ref_type === 'founder';
+  const isAmbassadorPaid = refCode && refValidation?.valid && refValidation?.ref_type === 'ambassador';
   const isCapReached = refCode && refValidation && !refValidation.valid && refValidation.reason === 'cap_reached';
 
   return (
@@ -136,6 +140,8 @@ const RegisterForm: React.FC = () => {
           <CardDescription className="text-lg md:text-xl text-carat-gray5">
             {isFounderFree
               ? `${refValidation?.founder_display_name}さんからの紹介で無料登録できます`
+              : isAmbassadorPaid
+              ? `${refValidation?.ambassador_display_name}さんからの紹介で有料会員登録`
               : 'アカウントを作成して全機能をご利用ください'}
           </CardDescription>
           {/* Founder free banner */}
@@ -144,6 +150,14 @@ const RegisterForm: React.FC = () => {
               <p className="font-semibold">紹介特典</p>
               <p>紹介コード: <span className="font-mono font-bold">{refCode}</span></p>
               <p>残り枠: {refValidation?.remaining}名 / {refValidation?.limit}名</p>
+            </div>
+          )}
+          {/* Ambassador paid banner */}
+          {isAmbassadorPaid && (
+            <div className="mt-3 bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-blue-700">
+              <p className="font-semibold">有料会員紹介</p>
+              <p>紹介コード: <span className="font-mono font-bold">{refCode}</span></p>
+              <p>登録後、本人確認とクレジットカード登録が必要です</p>
             </div>
           )}
           {/* Cap reached message */}
@@ -295,7 +309,7 @@ const RegisterForm: React.FC = () => {
               className="w-full bg-black text-white hover:bg-gray-800 transition-colors text-lg font-bold py-6 shadow-lg hover:shadow-xl"
               disabled={isLoading || !agreeTerms || !agreeAge}
             >
-              {isLoading ? '登録中...' : isFounderFree ? '無料で登録する' : '登録して本人確認へ'}
+              {isLoading ? '登録中...' : isFounderFree ? '無料で登録する' : '新規会員登録（有料）'}
             </Button>
           </form>
           <div className="mt-6 text-center space-y-2">

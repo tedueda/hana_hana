@@ -71,11 +71,14 @@ const LANGUAGES = [
 interface RefValidation {
   valid: boolean;
   reason?: string;
+  ref_type?: 'founder' | 'ambassador';
   founder_code?: string;
   founder_display_name?: string;
   remaining?: number;
   total?: number;
   limit?: number;
+  ambassador_code?: string;
+  ambassador_display_name?: string;
 }
 
 const SubscribePage: React.FC = () => {
@@ -99,7 +102,8 @@ const SubscribePage: React.FC = () => {
       .catch(() => setRefValidation(null));
   }, [refCode]);
 
-  const isFounderFree = !!(refCode && refValidation?.valid);
+  const isFounderFree = !!(refCode && refValidation?.valid && refValidation?.ref_type === 'founder');
+  const isAmbassadorPaid = !!(refCode && refValidation?.valid && refValidation?.ref_type === 'ambassador');
   
   const [formData, setFormData] = useState({
     email: '',
@@ -212,8 +216,17 @@ const SubscribePage: React.FC = () => {
             <p className="text-gray-500">
               {isFounderFree
                 ? t('subscribe.subtitle_founder', { defaultValue: '{{name}}さんからの紹介で無料登録できます', name: refValidation?.founder_display_name || '' })
+                : isAmbassadorPaid
+                ? `${refValidation?.ambassador_display_name || ''}さんからの紹介で有料会員登録`
                 : t('subscribe.subtitle')}
             </p>
+            {isAmbassadorPaid && (
+              <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                <p className="text-sm text-blue-700 font-semibold">有料会員紹介</p>
+                <p className="text-sm text-blue-600">紹介コード: <span className="font-mono font-bold">{refCode}</span></p>
+                <p className="text-xs text-blue-500 mt-1">登録後、本人確認とクレジットカード登録が必要です</p>
+              </div>
+            )}
             {!isFounderFree && (
               <div className="mt-4 p-4 bg-gray-100 rounded-lg border border-gray-200">
                 <p className="text-2xl font-bold text-black">
