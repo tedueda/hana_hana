@@ -1196,7 +1196,7 @@ def list_ambassadors(
             is_active=a.is_active,
             max_invites=a.max_invites,
             referral_count=count,
-            referral_url=f"{SITE_URL}/register?ref={a.ambassador_code}",
+            referral_url=f"{SITE_URL}/about?ref={a.ambassador_code}",
             created_at=a.created_at,
             updated_at=a.updated_at,
         ))
@@ -1268,7 +1268,7 @@ def get_ambassador_qr(
     ambassador = db.query(Ambassador).filter(Ambassador.id == ambassador_id).first()
     if not ambassador:
         raise HTTPException(status_code=404, detail="Ambassador not found")
-    url = f"{SITE_URL}/register?ref={ambassador.ambassador_code}"
+    url = f"{SITE_URL}/about?ref={ambassador.ambassador_code}"
     try:
         import qrcode
         qr = qrcode.QRCode(version=1, box_size=10, border=4)
