@@ -9,18 +9,17 @@
 import { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useAuth, resilientFetch } from '../contexts/AuthContext';
-import { initReferralTracking, getRefCodeFromCookie, extractRefCodeFromURL } from '../utils/referral';
+import { initReferralTracking, getRefCodeFromCookie } from '../utils/referral';
 
 const ReferralTracker: React.FC = () => {
   const { user, token } = useAuth();
   const location = useLocation();
 
-  // On mount: capture ref code from URL → cookie
-  // Note: redirect from /?ref=... to /subscribe?ref=... is handled by HomeRedirect in App.tsx
+  // On mount and URL change: capture ref code from URL → cookie
+  // Note: redirect from /?ref=... to /register?ref=... is handled by HomeRedirect in App.tsx
   useEffect(() => {
-    extractRefCodeFromURL();
     initReferralTracking();
-  }, [location.pathname]);
+  }, [location.pathname, location.search]);
 
   // After login: apply saved ref code to account (one-time)
   useEffect(() => {
