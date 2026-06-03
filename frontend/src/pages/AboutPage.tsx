@@ -520,6 +520,37 @@ const FIXED_FILTER_OPTIONS = {
         </div>
       </section>
 
+      {/* CTA: 会員登録誘導 */}
+      <section className="bg-gradient-to-br from-gray-900 to-gray-800">
+        <div className="container mx-auto px-4 sm:px-6 md:px-8 py-16 md:py-20">
+          <div className="max-w-3xl mx-auto text-center">
+            <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
+              Caratに参加しませんか？
+            </h2>
+            <p className="text-gray-300 text-lg mb-3">
+              月額770円（税込）で全機能をご利用いただけます
+            </p>
+            <p className="text-gray-400 text-sm mb-8">
+              マッチング・会員サロン・ビジネス機能が使い放題。本人確認済みの安心なコミュニティです。
+            </p>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+              <Link
+                to="/subscribe"
+                className="w-full sm:w-auto inline-flex items-center justify-center rounded-xl bg-white px-8 py-4 text-lg font-bold text-gray-900 hover:bg-gray-100 transition-colors shadow-lg"
+              >
+                会員登録する
+              </Link>
+              <Link
+                to="/about/usage"
+                className="w-full sm:w-auto inline-flex items-center justify-center rounded-xl border border-gray-500 px-8 py-4 text-lg font-medium text-white hover:bg-gray-700 transition-colors"
+              >
+                ご利用方法を見る
+              </Link>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Carat description */}
       <section className="container mx-auto px-4 sm:px-6 md:px-8 py-12 md:py-16">
         <div className="max-w-4xl mx-auto">
