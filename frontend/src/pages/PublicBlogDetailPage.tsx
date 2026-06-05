@@ -108,7 +108,9 @@ const PublicBlogDetailPage: React.FC = () => {
       canonical.rel = 'canonical';
       document.head.appendChild(canonical);
     }
-    canonical.href = window.location.href;
+    // Use clean URL without query parameters or hash
+    const cleanUrl = `${window.location.protocol}//${window.location.host}${window.location.pathname}`;
+    canonical.href = cleanUrl;
 
     const imageUrl = data.image_url ? (data.image_url.startsWith('http') ? data.image_url : `${BACKEND_URL}${data.image_url}`) : '';
     const jsonLd = {
