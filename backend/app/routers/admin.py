@@ -1579,3 +1579,66 @@ def admin_update_salon_categories(
                  target_type="salon_room", target_id=str(room_id),
                  metadata={"target_identities": body.target_identities})
     return {"id": room.id, "target_identities": room.target_identities}
+
+
+@router.post("/api/admin/blog/notify-all-to-google")
+def notify_all_blogs_to_google(
+    current_user: User = Depends(get_current_admin_user),
+    db: Session = Depends(get_db),
+    request: Request = None,
+):
+    """
+    Notify Google Indexing API about all published blog posts.
+    Use this to bulk-index existing blog posts.
+    """
+    try:
+        # Get all published blog posts
+        published_blogs = db.query(BlogPost).filter(
+            BlogPost.status == "published"
+        ).all()
+        
+        logger.info(f"Found {len(published_blogs)} published blog posts to notify")
+        
+        indexing_service = get_indexing_service()
+        success_count = 0
+        error_count = 0
+        errors = []
+        
+        for blog in published_blogs:
+            blog_url = f"https://carat-community.com/blog/{blog.slug}"
+            try:
+                result = indexing_service.notify_url_updated(blog_url)
+                if result:
+                    logger.info(f"Notified Google Indexing API: {blog_url}")
+                    success_count += 1
+                else:
+                    logger.warning(f"Failed to notify: {blog_url}")
+                    error_count += 1
+                    errors.append({"url": blog_url, "error": "API returned False"})
+            except Exception as e:
+                logger.error(f"Error notifying {blog_url}: {e}")
+                error_count += 1
+                errors.append({"url": blog_url, "error": str(e)})
+        
+        _write_audit(
+            db, 
+            current_user.id, 
+            "NOTIFY_ALL_BLOGS_TO_GOOGLE", 
+            request,
+            metadata={
+                "total": len(published_blogs),
+                "success": success_count,
+                "errors": error_count
+            }
+        )
+        
+        return {
+            "total_blogs": len(published_blogs),
+            "success_count": success_count,
+            "error_count": error_count,
+            "errors": errors[:10] if errors else []  # Return first 10 errors only
+        }
+        
+    except Exception as e:
+        logger.error(f"Failed to notify all blogs: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to notify blogs: {str(e)}")
