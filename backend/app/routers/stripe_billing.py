@@ -1086,6 +1086,18 @@ async def handle_checkout_completed(data: dict, db: Session):
         user.is_active = True
         if user.membership_type != "founder_free":
             user.membership_type = "premium"
+        
+        # Update referral status to paid for ambassador referrals
+        referral = db.query(Referral).filter(
+            Referral.user_id == user.id,
+            Referral.ambassador_code.isnot(None),
+            Referral.status == "registered"
+        ).first()
+        if referral:
+            referral.status = "paid"
+            referral.paid_at = datetime.utcnow()
+            logger.info(f"Ambassador referral marked as paid for user {user.id}, code: {referral.ambassador_code}")
+        
         db.commit()
         logger.info(f"Checkout completed for user {user.id}")
 
