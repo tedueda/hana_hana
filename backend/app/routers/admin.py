@@ -1644,6 +1644,84 @@ def notify_all_blogs_to_google(
         raise HTTPException(status_code=500, detail=f"Failed to notify blogs: {str(e)}")
 
 
+# ──────────────── All Users Including Unverified ────────────────
+
+@router.get("/api/admin/all-users-debug")
+def list_all_users_debug(
+    days: int = 14,
+    current_user: User = Depends(get_current_admin_user),
+    db: Session = Depends(get_db)
+):
+    """List ALL users including unverified, for debugging (admin only)"""
+    from datetime import datetime, timedelta
+    
+    cutoff_date = datetime.utcnow() - timedelta(days=days)
+    
+    # Query ALL users (including unverified, no deleted_at filter initially)
+    users = db.query(User).filter(
+        User.created_at >= cutoff_date
+    ).order_by(User.created_at.desc()).all()
+    
+    # Get referral info
+    user_ids = [u.id for u in users]
+    referrals = {}
+    if user_ids:
+        for ref in db.query(Referral).filter(Referral.user_id.in_(user_ids)).all():
+            referrals[ref.user_id] = ref
+    
+    result = []
+    for user in users:
+        ref = referrals.get(user.id)
+        
+        result.append({
+            "id": user.id,
+            "email": user.email,
+            "display_name": user.display_name,
+            "subscription_status": user.subscription_status,
+            "account_status": user.account_status,
+            "membership_type": user.membership_type,
+            "is_founder_free_member": user.is_founder_free_member,
+            "email_verified": user.email_verified,
+            "kyc_status": user.kyc_status,
+            "is_active": user.is_active,
+            "deleted_at": user.deleted_at.isoformat() if user.deleted_at else None,
+            "created_at": user.created_at.isoformat() if user.created_at else None,
+            "referral_code": ref.founder_code or ref.ambassador_code if ref else None,
+            "referral_type": "founder" if (ref and ref.founder_code) else ("ambassador" if (ref and ref.ambassador_code) else None),
+            "referral_status": ref.status if ref else None
+        })
+    
+    # Statistics
+    stats = {
+        "total": len(result),
+        "email_verified": sum(1 for u in result if u["email_verified"]),
+        "email_unverified": sum(1 for u in result if not u["email_verified"]),
+        "kyc_verified": sum(1 for u in result if u["kyc_status"] == "VERIFIED"),
+        "kyc_pending": sum(1 for u in result if u["kyc_status"] in ["PENDING", "REQUIRES_INPUT"]),
+        "kyc_none": sum(1 for u in result if not u["kyc_status"]),
+        "active": sum(1 for u in result if u["is_active"]),
+        "inactive": sum(1 for u in result if not u["is_active"]),
+        "deleted": sum(1 for u in result if u["deleted_at"]),
+        "founder_referrals": sum(1 for u in result if u["referral_type"] == "founder"),
+        "ambassador_referrals": sum(1 for u in result if u["referral_type"] == "ambassador"),
+        "no_referral": sum(1 for u in result if not u["referral_type"]),
+        "by_account_status": {},
+        "by_subscription_status": {}
+    }
+    
+    for user in result:
+        acc_status = user["account_status"] or "unknown"
+        sub_status = user["subscription_status"] or "unknown"
+        stats["by_account_status"][acc_status] = stats["by_account_status"].get(acc_status, 0) + 1
+        stats["by_subscription_status"][sub_status] = stats["by_subscription_status"].get(sub_status, 0) + 1
+    
+    return {
+        "cutoff_date": cutoff_date.isoformat(),
+        "statistics": stats,
+        "users": result
+    }
+
+
 # ──────────────── Recent Users List ────────────────
 
 @router.get("/api/admin/recent-users")
