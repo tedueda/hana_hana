@@ -185,6 +185,13 @@ const KycVerificationPage: React.FC = () => {
       }
 
       const data = await res.json();
+      
+      // Founder free members skip payment and go directly to profile
+      if (data.skip_payment) {
+        navigate('/matching/profile');
+        return;
+      }
+      
       if (data.checkout_url) {
         window.location.href = data.checkout_url;
       }

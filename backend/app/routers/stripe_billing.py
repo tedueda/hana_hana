@@ -608,15 +608,32 @@ async def start_checkout(
     """
     Start a Stripe Checkout session for an already-registered and authenticated user.
     Used after KYC verification in the registration flow.
+    Founder free members skip payment and are activated directly.
     """
+    if not is_user_kyc_verified(current_user):
+        raise HTTPException(status_code=403, detail="KYC verification required before payment")
+    
+    # Founder free members skip payment - activate directly after KYC
+    if current_user.is_founder_free_member or current_user.subscription_exempt:
+        if current_user.subscription_status != "active":
+            current_user.subscription_status = "active"
+            current_user.is_active = True
+            current_user.account_status = "active"
+            db.commit()
+            db.refresh(current_user)
+        
+        # Return success without Stripe checkout
+        return {
+            "status": "activated",
+            "message": "Founder free member activated",
+            "skip_payment": True
+        }
+    
     if not STRIPE_SECRET_KEY or not STRIPE_PRICE_ID:
         raise HTTPException(status_code=500, detail="Stripe not configured")
 
     if current_user.subscription_status == "active":
         raise HTTPException(status_code=400, detail="User already has an active subscription")
-
-    if not is_user_kyc_verified(current_user):
-        raise HTTPException(status_code=403, detail="KYC verification required before payment")
 
     customer_id = get_or_create_stripe_customer(db, current_user)
 
