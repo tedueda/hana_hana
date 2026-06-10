@@ -138,6 +138,17 @@ async def register_only(
     Flow: Register -> Email Verify -> KYC -> Profile (founder free, skip payment)
     """
     existing_user = db.query(User).filter(User.email == request.email).first()
+    
+    # Prevent repeated registration attempts with unverified email within 1 hour
+    if existing_user and not existing_user.email_verified:
+        if existing_user.email_verification_expires and existing_user.email_verification_expires > datetime.utcnow():
+            # If verification email was sent recently, don't allow re-registration
+            time_since_last_email = datetime.utcnow() - (existing_user.email_verification_expires - timedelta(hours=24))
+            if time_since_last_email < timedelta(hours=1):
+                raise HTTPException(
+                    status_code=429, 
+                    detail="認証メールを既に送信しました。1時間後に再度お試しください。"
+                )
 
     if request.phone_number:
         existing_phone = db.query(User).filter(User.phone_number == request.phone_number).first()
