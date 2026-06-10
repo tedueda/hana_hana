@@ -6,6 +6,10 @@ import { API_URL, DIRECT_API_URL } from '@/config';
  * 相対パス（API_URL 空）で 404 になり、絶対 URL では届くケースに備え、成功レスポンスが得られるまで複数ベースを試す。
  */
 export const resilientFetch = async (path: string, init?: RequestInit): Promise<Response> => {
+  // For POST/PUT/DELETE requests, only try once to avoid duplicate operations
+  const method = init?.method?.toUpperCase() || 'GET';
+  const isMutating = ['POST', 'PUT', 'DELETE', 'PATCH'].includes(method);
+  
   // Try: API_URL → DIRECT_API_URL → same-origin (Netlify proxy) in order.
   // '' (empty) = relative/same-origin fetch via Netlify proxy.
   const rawBases = [API_URL, DIRECT_API_URL, ''];
@@ -26,10 +30,14 @@ export const resilientFetch = async (path: string, init?: RequestInit): Promise<
       const ct = res.headers.get('content-type') || '';
       if (ct.includes('text/html') && !path.endsWith('.html')) continue;
       if (res.ok) return res;
+      // For mutating requests, return immediately even on error to prevent retries
+      if (isMutating) return res;
       if (res.status >= 500) continue;
       continue;
     } catch (e) {
       console.warn(`Fetch failed for ${base || '(relative)'}${path}`, e);
+      // For mutating requests, throw immediately to prevent retries
+      if (isMutating) throw e;
     }
   }
   if (lastRes) return lastRes;
