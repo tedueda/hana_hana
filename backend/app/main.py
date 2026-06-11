@@ -713,6 +713,25 @@ def run_migrations():
             db.rollback()
             print(f"⚠️ Failed cleaning up Ca05 test referrals: {e}")
 
+        # One-time restore: Reactivate yoshitakabuyoukai@gmail.com (TAKA)
+        try:
+            result = db.execute(text(
+                "UPDATE users SET deleted_at = NULL, is_active = TRUE, "
+                "membership_type = 'founder_free', is_founder_free_member = TRUE, "
+                "subscription_exempt = TRUE, account_status = 'active', "
+                "kyc_status = 'VERIFIED' "
+                "WHERE email = :email AND deleted_at IS NOT NULL"
+            ), {"email": "yoshitakabuyoukai@gmail.com"})
+            affected = result.rowcount
+            db.commit()
+            if affected > 0:
+                print(f"✅ Restored user yoshitakabuyoukai@gmail.com as founder_free")
+            else:
+                print("✅ yoshitakabuyoukai@gmail.com already active or not found")
+        except Exception as e:
+            db.rollback()
+            print(f"⚠️ Failed restoring yoshitakabuyoukai@gmail.com: {e}")
+
         # Migration 2: Add nationality column to matching_profiles table
         if _table_exists("matching_profiles"):
             result = db.execute(text("""

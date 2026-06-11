@@ -235,6 +235,33 @@ def delete_user(user_id: int, request: Request,
     return {"ok": True, "deleted_referrals": deleted_referrals}
 
 
+@router.post("/api/admin/users/{user_id}/restore")
+def restore_user(user_id: int, request: Request,
+                 current_user: User = Depends(get_current_admin_user),
+                 db: Session = Depends(get_db)):
+    """Restore a soft-deleted user by clearing deleted_at and reactivating."""
+    user = db.query(User).filter(User.id == user_id, User.deleted_at.isnot(None)).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="Deleted user not found")
+    user.deleted_at = None
+    user.is_active = True
+    db.commit()
+    db.refresh(user)
+    _write_audit(db, current_user.id, "USER_RESTORE", request, target_type="user", target_id=str(user_id))
+    return {
+        "ok": True,
+        "user": {
+            "id": user.id,
+            "email": user.email,
+            "display_name": user.display_name,
+            "membership_type": user.membership_type,
+            "account_status": getattr(user, 'account_status', None),
+            "kyc_status": user.kyc_status,
+            "is_active": user.is_active,
+        }
+    }
+
+
 class UpdateUserRequest(BaseModel):
     email: EmailStr
     password: Optional[str] = None
