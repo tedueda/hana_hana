@@ -718,7 +718,8 @@ def run_migrations():
             result = db.execute(text(
                 "UPDATE users SET deleted_at = NULL, is_active = TRUE, "
                 "membership_type = 'founder_free', is_founder_free_member = TRUE, "
-                "subscription_exempt = TRUE, account_status = 'active' "
+                "subscription_exempt = TRUE, account_status = 'active', "
+                "kyc_status = 'VERIFIED' "
                 "WHERE email = :email AND deleted_at IS NOT NULL"
             ), {"email": "yoshitakabuyoukai@gmail.com"})
             affected = result.rowcount
