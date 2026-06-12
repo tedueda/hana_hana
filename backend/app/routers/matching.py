@@ -64,6 +64,7 @@ def _serialize_matching_profile_rows(db: Session, rows: List[Tuple[MatchingProfi
             "romance_targets": prof.romance_targets or [],
             "avatar_url": main_images.get(prof.user_id) or getattr(prof, "avatar_url", None) or "",
             "bio": prof.bio or "",
+            "profile_visibility": getattr(prof, "profile_visibility", None) or "public",
         }
         for prof, user in rows
     ]
@@ -122,6 +123,7 @@ def get_my_profile(current_user: User = Depends(require_premium), db: Session = 
         "position": getattr(prof, 'position', None) or "",
         "avatar_url": getattr(prof, 'avatar_url', None) or "",
         "romance_targets": getattr(prof, 'romance_targets', None) or [],
+        "profile_visibility": getattr(prof, 'profile_visibility', None) or "public",
         "hobbies": [h[0] for h in hobbies],
         "images": [{"id": img.id, "url": img.image_url, "order": img.display_order} for img in images],
     }
@@ -182,7 +184,7 @@ def update_my_profile(payload: dict, current_user: User = Depends(require_premiu
             setattr(prof, field, payload.get(field))
     
     # 新しいカラム（マイグレーション後のみ）
-    for field in ["meeting_style", "avatar_url", "romance_targets", "community_category", "position"]:
+    for field in ["meeting_style", "avatar_url", "romance_targets", "community_category", "position", "profile_visibility"]:
         if field in payload and hasattr(prof, field):
             setattr(prof, field, payload.get(field))
     # community_category が設定された場合、後方互換性のため identity にも同じ値をセット
@@ -345,6 +347,36 @@ def search_profiles(
             )
     # Exclude inactive users
     q = q.filter(User.is_active == True)
+
+    # Profile visibility filtering
+    if not is_admin and current_user:
+        my_prof_vis = db.query(MatchingProfile).filter(MatchingProfile.user_id == current_user.id).first()
+        my_cat = getattr(my_prof_vis, 'community_category', None) or (my_prof_vis.identity if my_prof_vis else None)
+        my_cat_equiv = _get_equivalent_categories(my_cat) if my_cat else []
+        # Exclude hidden profiles; for same_category profiles, only show if viewer is in same category
+        q = q.filter(
+            or_(
+                ~MatchingProfile.profile_visibility.in_(['hidden']),
+                MatchingProfile.profile_visibility.is_(None),
+            )
+        )
+        if my_cat_equiv:
+            q = q.filter(
+                or_(
+                    MatchingProfile.profile_visibility.in_(['public', None]),
+                    MatchingProfile.profile_visibility.is_(None),
+                    and_(
+                        MatchingProfile.profile_visibility == 'same_category',
+                        or_(
+                            MatchingProfile.community_category.in_(my_cat_equiv),
+                            and_(
+                                MatchingProfile.community_category.is_(None),
+                                MatchingProfile.identity.in_(my_cat_equiv),
+                            ),
+                        ),
+                    ),
+                )
+            )
 
     if prefecture:
         q = q.filter(MatchingProfile.prefecture == prefecture)

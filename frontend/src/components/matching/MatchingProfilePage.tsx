@@ -29,6 +29,7 @@ type Profile = {
   position?: string;
   avatar_url?: string;
   romance_targets?: string[];
+  profile_visibility?: string;
   hobbies?: string[];
 };
 
@@ -257,6 +258,7 @@ const MatchingProfilePage: React.FC = () => {
         position: data.position || '',
         avatar_url: data.avatar_url || '',
         romance_targets: Array.isArray(data.romance_targets) ? data.romance_targets : [],
+        profile_visibility: data.profile_visibility || 'public',
         hobbies: Array.isArray(data.hobbies) ? data.hobbies : [],
       });
     } catch (e: any) {
@@ -346,6 +348,7 @@ const MatchingProfilePage: React.FC = () => {
         community_category: profile.community_category || profile.identity,
         position: profile.position || '',
         avatar_url: images[currentSlide] ? images[currentSlide].url : (images.length > 0 ? images[0].url : null),
+        profile_visibility: profile.profile_visibility || 'public',
         hobbies: profile.hobbies || [],
       };
       if (newPassword) {
@@ -830,40 +833,46 @@ const MatchingProfilePage: React.FC = () => {
             </div>
           </div>
 
-          {/* プロフィール公開設定 */}
+          {/* プロフィール表示設定 */}
           <div className="p-5 border-b bg-gray-50">
-            <div className="flex items-center justify-between">
-              <div className="flex-1">
-                <div className="font-medium text-gray-900 mb-1">プロフィール公開設定</div>
-                <div className="text-sm text-gray-600">
-                  {profile?.display_flag 
-                    ? 'プロフィールは公開されています。マッチング検索に表示されます。' 
-                    : 'プロフィールは非公開です。マッチング検索に表示されません。'}
-                </div>
-              </div>
-              <button
-                onClick={() => {
-                  if (profile) {
-                    setProfile({ ...profile, display_flag: !profile.display_flag });
-                  }
-                }}
-                className={`relative inline-flex h-8 w-14 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-gray-800 focus:ring-offset-2 ${
-                  profile?.display_flag ? 'bg-black' : 'bg-gray-300'
-                }`}
-                role="switch"
-                aria-checked={profile?.display_flag ? 'true' : 'false'}
-                aria-label="プロフィール公開設定"
-              >
-                <span
-                  className={`inline-block h-6 w-6 transform rounded-full bg-white shadow-lg transition-transform ${
-                    profile?.display_flag ? 'translate-x-7' : 'translate-x-1'
+            <div className="font-medium text-gray-900 mb-3">プロフィール表示</div>
+            <div className="space-y-2">
+              {[
+                { value: 'public', label: '全カテゴリーに公開', desc: '会員交流リストで全てのメンバーに表示されます' },
+                { value: 'same_category', label: '同じカテゴリーのみに公開', desc: '同じコミュニティカテゴリーのメンバーにのみ表示されます' },
+                { value: 'hidden', label: '非表示', desc: '会員交流リストに表示されません（既存のチャットは継続）' },
+              ].map((option) => (
+                <label
+                  key={option.value}
+                  className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
+                    (profile?.profile_visibility || 'public') === option.value
+                      ? 'border-black bg-white shadow-sm'
+                      : 'border-gray-200 bg-white hover:border-gray-300'
                   }`}
-                />
-              </button>
-            </div>
-            <div className="mt-3 text-xs text-gray-500">
-              • ONにすると、あなたのプロフィールがマッチング検索に表示されます<br/>
-              • OFFにすると、検索結果に表示されなくなります（既存のマッチやチャットは継続）
+                >
+                  <input
+                    type="radio"
+                    name="profile_visibility"
+                    value={option.value}
+                    checked={(profile?.profile_visibility || 'public') === option.value}
+                    onChange={(e) => {
+                      if (profile) {
+                        const vis = e.target.value;
+                        setProfile({
+                          ...profile,
+                          profile_visibility: vis,
+                          display_flag: vis !== 'hidden',
+                        });
+                      }
+                    }}
+                    className="mt-0.5 h-4 w-4 accent-black"
+                  />
+                  <div>
+                    <div className="text-sm font-medium text-gray-900">{option.label}</div>
+                    <div className="text-xs text-gray-500 mt-0.5">{option.desc}</div>
+                  </div>
+                </label>
+              ))}
             </div>
           </div>
 

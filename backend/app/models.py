@@ -468,6 +468,7 @@ class MatchingProfile(Base):
     position = Column(String(50))
     romance_targets = Column(JSON, default=list)
     avatar_url = Column(String(500))
+    profile_visibility = Column(String(20), nullable=False, server_default="public")  # public / same_category / hidden
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 

@@ -750,6 +750,7 @@ def run_migrations():
         if _table_exists("matching_profiles"):
             _add_column_if_missing("matching_profiles", "community_category", "VARCHAR(50)")
             _add_column_if_missing("matching_profiles", "position", "VARCHAR(50)")
+            _add_column_if_missing("matching_profiles", "profile_visibility", "VARCHAR(20) NOT NULL DEFAULT 'public'")
 
         # Data migration: Map old identity values to new community_category
         if _table_exists("matching_profiles") and _column_exists("matching_profiles", "community_category"):
