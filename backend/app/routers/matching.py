@@ -386,6 +386,7 @@ def search_profiles(
     hobbies: Optional[str] = Query(None, description="comma separated"),
     meet_pref: Optional[str] = Query(None),
     identity: Optional[str] = Query(None),
+    show_all: bool = Query(False, description="Show all categories (for homepage)"),
     page: int = Query(1, ge=1),
     size: int = Query(20, ge=1, le=50),
     current_user: User = Depends(require_premium),
@@ -398,7 +399,19 @@ def search_profiles(
 
     # Community category filtering: non-admin users only see same category
     is_admin = current_user.membership_type == "admin" if current_user else False
-    if not is_admin and current_user:
+    if show_all:
+        # Skip category filtering but still exclude hidden categories and profiles
+        q = q.filter(
+            ~MatchingProfile.community_category.in_(['非公開', '非表示'])
+            | MatchingProfile.community_category.is_(None)
+        )
+        q = q.filter(
+            or_(
+                ~MatchingProfile.profile_visibility.in_(['hidden']),
+                MatchingProfile.profile_visibility.is_(None),
+            )
+        )
+    elif not is_admin and current_user:
         my_prof = db.query(MatchingProfile).filter(MatchingProfile.user_id == current_user.id).first()
         my_category = getattr(my_prof, 'community_category', None) if my_prof else None
         if not my_category or my_category in HIDDEN_CATEGORIES:
