@@ -64,6 +64,7 @@ def _serialize_matching_profile_rows(db: Session, rows: List[Tuple[MatchingProfi
             "romance_targets": prof.romance_targets or [],
             "avatar_url": main_images.get(prof.user_id) or getattr(prof, "avatar_url", None) or "",
             "bio": prof.bio or "",
+            "profile_visibility": getattr(prof, "profile_visibility", None) or "public",
         }
         for prof, user in rows
     ]
@@ -122,6 +123,7 @@ def get_my_profile(current_user: User = Depends(require_premium), db: Session = 
         "position": getattr(prof, 'position', None) or "",
         "avatar_url": getattr(prof, 'avatar_url', None) or "",
         "romance_targets": getattr(prof, 'romance_targets', None) or [],
+        "profile_visibility": getattr(prof, 'profile_visibility', None) or "public",
         "hobbies": [h[0] for h in hobbies],
         "images": [{"id": img.id, "url": img.image_url, "order": img.display_order} for img in images],
     }
@@ -182,7 +184,7 @@ def update_my_profile(payload: dict, current_user: User = Depends(require_premiu
             setattr(prof, field, payload.get(field))
     
     # 新しいカラム（マイグレーション後のみ）
-    for field in ["meeting_style", "avatar_url", "romance_targets", "community_category", "position"]:
+    for field in ["meeting_style", "avatar_url", "romance_targets", "community_category", "position", "profile_visibility"]:
         if field in payload and hasattr(prof, field):
             setattr(prof, field, payload.get(field))
     # community_category が設定された場合、後方互換性のため identity にも同じ値をセット
@@ -278,6 +280,82 @@ def get_profile_by_id(
     }
 
 
+@router.get("/profiles/{user_id}/activity")
+def get_user_recent_activity(
+    user_id: int,
+    limit: int = Query(5, ge=1, le=20),
+    current_user: User = Depends(require_premium),
+    db: Session = Depends(get_db),
+):
+    """Return recent activity for a user: posts, salon posts, comments, business items."""
+    from app.models import Post, SalonPost, SalonComment, SalonRoom
+    activities = []
+
+    # Board/bulletin posts
+    try:
+        posts = db.query(Post).filter(Post.user_id == user_id, Post.visibility == 'public').order_by(Post.created_at.desc()).limit(limit).all()
+        for p in posts:
+            activities.append({
+                "type": "post",
+                "label": "掲示板投稿",
+                "title": p.title or "",
+                "body": (p.body or "")[:100],
+                "created_at": p.created_at.isoformat() if p.created_at else "",
+                "link": f"/category/{p.category or 'board'}",
+            })
+    except Exception:
+        pass
+
+    # Salon posts
+    try:
+        salon_posts = db.query(SalonPost, SalonRoom.theme).join(SalonRoom, SalonRoom.id == SalonPost.room_id).filter(SalonPost.user_id == user_id, SalonPost.status == 'active').order_by(SalonPost.created_at.desc()).limit(limit).all()
+        for sp, room_theme in salon_posts:
+            activities.append({
+                "type": "salon_post",
+                "label": "サロン投稿",
+                "title": room_theme or "",
+                "body": (sp.content or "")[:100],
+                "created_at": sp.created_at.isoformat() if sp.created_at else "",
+                "link": f"/salon/rooms/{sp.room_id}",
+            })
+    except Exception:
+        pass
+
+    # Salon comments
+    try:
+        salon_comments = db.query(SalonComment).filter(SalonComment.user_id == user_id, SalonComment.status == 'active').order_by(SalonComment.created_at.desc()).limit(limit).all()
+        for sc in salon_comments:
+            activities.append({
+                "type": "salon_comment",
+                "label": "サロンコメント",
+                "body": (sc.content or "")[:100],
+                "created_at": sc.created_at.isoformat() if sc.created_at else "",
+                "link": f"/salon",
+            })
+    except Exception:
+        pass
+
+    # Flea market items
+    try:
+        from app.models import FleaMarketItem
+        flea_items = db.query(FleaMarketItem).filter(FleaMarketItem.seller_id == user_id).order_by(FleaMarketItem.created_at.desc()).limit(limit).all()
+        for fi in flea_items:
+            activities.append({
+                "type": "business_post",
+                "label": "ビジネス投稿",
+                "title": fi.title or "",
+                "body": "",
+                "created_at": fi.created_at.isoformat() if fi.created_at else "",
+                "link": "/business?tab=flea-market",
+            })
+    except Exception:
+        pass
+
+    # Sort by created_at desc and return top N
+    activities.sort(key=lambda x: x.get("created_at", ""), reverse=True)
+    return activities[:limit]
+
+
 _CATEGORY_EQUIVALENCES: List[set] = [
     {'ゲイ', 'gay'},
     {'レズビアン', 'レズ', 'lesbian'},
@@ -345,6 +423,36 @@ def search_profiles(
             )
     # Exclude inactive users
     q = q.filter(User.is_active == True)
+
+    # Profile visibility filtering
+    if not is_admin and current_user:
+        my_prof_vis = db.query(MatchingProfile).filter(MatchingProfile.user_id == current_user.id).first()
+        my_cat = getattr(my_prof_vis, 'community_category', None) or (my_prof_vis.identity if my_prof_vis else None)
+        my_cat_equiv = _get_equivalent_categories(my_cat) if my_cat else []
+        # Exclude hidden profiles; for same_category profiles, only show if viewer is in same category
+        q = q.filter(
+            or_(
+                ~MatchingProfile.profile_visibility.in_(['hidden']),
+                MatchingProfile.profile_visibility.is_(None),
+            )
+        )
+        if my_cat_equiv:
+            q = q.filter(
+                or_(
+                    MatchingProfile.profile_visibility.in_(['public', None]),
+                    MatchingProfile.profile_visibility.is_(None),
+                    and_(
+                        MatchingProfile.profile_visibility == 'same_category',
+                        or_(
+                            MatchingProfile.community_category.in_(my_cat_equiv),
+                            and_(
+                                MatchingProfile.community_category.is_(None),
+                                MatchingProfile.identity.in_(my_cat_equiv),
+                            ),
+                        ),
+                    ),
+                )
+            )
 
     if prefecture:
         q = q.filter(MatchingProfile.prefecture == prefecture)

@@ -8,8 +8,8 @@ export default {
   			'3000': '3000ms',
   		},
   		fontFamily: {
-  			serif: ['Cormorant Garamond', 'serif'],
-  			sans: ['Inter', 'sans-serif'],
+  			serif: ['"Noto Serif JP"', '"Hiragino Mincho ProN"', '"Yu Mincho"', 'serif'],
+  			sans: ['"Noto Sans JP"', '"Hiragino Sans"', '"Yu Gothic"', '"Meiryo"', 'sans-serif'],
   		},
   		borderRadius: {
   			lg: 'var(--radius)',

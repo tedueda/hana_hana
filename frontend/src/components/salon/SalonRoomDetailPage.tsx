@@ -322,6 +322,7 @@ const SalonRoomDetailPage: React.FC = () => {
                 <CardContent className="p-5">
                   {/* Post header */}
                   <div className="flex items-center gap-3 mb-3">
+                    <div className="cursor-pointer" onClick={() => navigate(`/matching/users/${post.user_id}`)}>
                     {post.user_avatar_url ? (
                       <img src={post.user_avatar_url} alt="" className="w-8 h-8 rounded-full object-cover" />
                     ) : (
@@ -329,8 +330,9 @@ const SalonRoomDetailPage: React.FC = () => {
                         {(post.user_display_name || '?')[0]}
                       </div>
                     )}
+                    </div>
                     <div className="flex-1 min-w-0">
-                      <span className="text-sm font-medium text-gray-900">{post.user_display_name || '匿名'}</span>
+                      <span className="text-sm font-medium text-gray-900 hover:underline cursor-pointer" onClick={() => navigate(`/matching/users/${post.user_id}`)}>{post.user_display_name || '匿名'}</span>
                       <span className="text-xs text-gray-400 ml-2">{formatDate(post.created_at)}</span>
                     </div>
                     <button
@@ -361,6 +363,7 @@ const SalonRoomDetailPage: React.FC = () => {
                       {(commentsMap[post.id] || []).map(comment => (
                         <div key={comment.id} className="mb-3 last:mb-0">
                           <div className="flex items-center gap-2 mb-1">
+                            <div className="cursor-pointer" onClick={() => navigate(`/matching/users/${comment.user_id}`)}>
                             {comment.user_avatar_url ? (
                               <img src={comment.user_avatar_url} alt="" className="w-6 h-6 rounded-full object-cover" />
                             ) : (
@@ -368,7 +371,8 @@ const SalonRoomDetailPage: React.FC = () => {
                                 {(comment.user_display_name || '?')[0]}
                               </div>
                             )}
-                            <span className="text-xs font-medium text-gray-700">{comment.user_display_name || '匿名'}</span>
+                            </div>
+                            <span className="text-xs font-medium text-gray-700 hover:underline cursor-pointer" onClick={() => navigate(`/matching/users/${comment.user_id}`)}>{comment.user_display_name || '匿名'}</span>
                             <span className="text-[10px] text-gray-400">{formatDate(comment.created_at)}</span>
                             <button
                               onClick={() => handleReport(undefined, undefined, comment.id)}

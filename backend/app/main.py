@@ -8,7 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
-from app.routers import auth, users, profiles, posts, comments, reactions, follows, notifications, media, billing, matching, categories, ops, account, donation, salon, flea_market, jewelry, live_wedding, art_sales, courses, translations, stripe_billing, ogp, contact, admin, founder
+from app.routers import auth, users, profiles, posts, comments, reactions, follows, notifications, media, billing, matching, categories, ops, account, donation, salon, flea_market, jewelry, live_wedding, art_sales, courses, translations, stripe_billing, ogp, contact, admin, founder, moderation
 from app.database import Base, engine, get_db
 import os
 from pathlib import Path
@@ -750,6 +750,7 @@ def run_migrations():
         if _table_exists("matching_profiles"):
             _add_column_if_missing("matching_profiles", "community_category", "VARCHAR(50)")
             _add_column_if_missing("matching_profiles", "position", "VARCHAR(50)")
+            _add_column_if_missing("matching_profiles", "profile_visibility", "VARCHAR(20) NOT NULL DEFAULT 'public'")
 
         # Data migration: Map old identity values to new community_category
         if _table_exists("matching_profiles") and _column_exists("matching_profiles", "community_category"):
@@ -908,6 +909,7 @@ app.include_router(stripe_billing.router)
 app.include_router(ogp.router)
 app.include_router(contact.router)
 app.include_router(admin.router)
+app.include_router(moderation.router)
 
 # サイトマップをルートレベルで配信
 @app.get("/sitemap.xml")

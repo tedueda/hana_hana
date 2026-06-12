@@ -4,7 +4,7 @@ import { useAuth, resilientFetch } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { MatchCard } from './MatchCard';
 import { BACKEND_URL } from '@/config';
-import { SlidersHorizontal, X, UserCog } from 'lucide-react';
+import { X, UserCog } from 'lucide-react';
 
 type MatchItem = {
   user_id: number;
@@ -214,32 +214,68 @@ const MatchingSearchPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-pink-50/30">
-      <div className="mx-auto max-w-6xl px-4 py-6">
-        <h1 className="mb-2 text-2xl font-bold text-gray-900">
-          {t('matching.searchList')}
-        </h1>
-        
-        {/* Category heading */}
-        {userCategory && (
-          <p className="mb-6 text-sm text-gray-600">
-            {t('matching.categoryFilterDescription', { category: getCategoryDisplayName(userCategory) })}
-          </p>
-        )}
-        
-        {/* Mobile Filter Button */}
-        <div className="md:hidden mb-4">
-          <button
-            onClick={() => setShowFilterModal(true)}
-            className="w-full flex items-center justify-center gap-2 bg-black text-white px-4 py-3 rounded-lg hover:bg-gray-800 transition-colors"
-          >
-            <SlidersHorizontal className="h-5 w-5" />
-            <span className="font-medium">{t('matching.searchConditions')}</span>
-            {(selectedNationality || selectedAgeBand || selectedOccupation || selectedMeetPref) && (
-              <span className="ml-2 bg-white text-black text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
-                {[selectedNationality, selectedAgeBand, selectedOccupation, selectedMeetPref].filter(Boolean).length}
-              </span>
+      <div className="mx-auto max-w-6xl px-2 sm:px-4 py-3 md:py-6">
+        {/* Mobile: Title + Edit button + Inline filters */}
+        <div className="md:hidden">
+          <div className="flex items-center justify-between mb-2">
+            <h1 className="text-xl font-bold text-gray-900">
+              {t('matching.searchList')}
+            </h1>
+            <button
+              onClick={() => navigate('/matching/profile')}
+              className="text-xs border border-gray-300 px-2.5 py-1 rounded-md text-gray-600 hover:bg-gray-50"
+            >
+              編集
+            </button>
+          </div>
+          {userCategory && (
+            <p className="text-xs text-gray-500 mb-3">
+              {t('matching.categoryFilterDescription', { category: getCategoryDisplayName(userCategory) })}
+            </p>
+          )}
+          {/* Inline compact filters */}
+          <div className="flex items-center gap-2 mb-4">
+            <select
+              value={selectedAgeBand}
+              onChange={(e) => setSelectedAgeBand(e.target.value)}
+              className="text-sm border border-gray-300 rounded-lg px-2.5 py-1.5 bg-white text-gray-700 focus:outline-none focus:ring-1 focus:ring-gray-400"
+            >
+              <option value="">年代 ▼</option>
+              {AGE_BAND_KEYS.map((key, idx) => (
+                <option key={key} value={AGE_BAND_VALUES[idx]}>{t(`matching.ageBands.${key}`)}</option>
+              ))}
+            </select>
+            <select
+              value={selectedNationality}
+              onChange={(e) => setSelectedNationality(e.target.value)}
+              className="text-sm border border-gray-300 rounded-lg px-2.5 py-1.5 bg-white text-gray-700 focus:outline-none focus:ring-1 focus:ring-gray-400"
+            >
+              <option value="">出身地 ▼</option>
+              {NATIONALITY_CODES.map((code) => (
+                <option key={code} value={code}>{t(`matching.nationalities.${code}`)}</option>
+              ))}
+            </select>
+            {(selectedAgeBand || selectedNationality || selectedOccupation || selectedMeetPref) && (
+              <button
+                onClick={clearFilters}
+                className="text-xs text-gray-500 hover:text-gray-700 underline"
+              >
+                クリア
+              </button>
             )}
-          </button>
+          </div>
+        </div>
+
+        {/* Desktop: Title + Category heading */}
+        <div className="hidden md:block">
+          <h1 className="mb-2 text-2xl font-bold text-gray-900">
+            {t('matching.searchList')}
+          </h1>
+          {userCategory && (
+            <p className="mb-6 text-sm text-gray-600">
+              {t('matching.categoryFilterDescription', { category: getCategoryDisplayName(userCategory) })}
+            </p>
+          )}
         </div>
 
         {/* Mobile Filter Modal */}
