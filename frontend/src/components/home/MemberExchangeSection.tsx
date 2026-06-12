@@ -29,11 +29,11 @@ const MemberExchangeSection: React.FC = () => {
         setLoading(true);
         const headers: Record<string, string> = { 'Cache-Control': 'no-cache' };
         if (token) headers['Authorization'] = `Bearer ${token}`;
-        const res = await fetch(`${API_URL}/api/matching/search?page=1&size=9&_t=${Date.now()}`, { headers });
+        const res = await fetch(`${API_URL}/api/matching/search?page=1&size=12&show_all=true&_t=${Date.now()}`, { headers });
         if (res.ok) {
           const data = await res.json();
           const items: MemberItem[] = Array.isArray(data) ? data : data.items || [];
-          setMembers(items.slice(0, 9));
+          setMembers(items.slice(0, 12));
         }
       } catch (err) {
         console.error('Failed to fetch members:', err);
@@ -50,7 +50,7 @@ const MemberExchangeSection: React.FC = () => {
     return true;
   });
 
-  const displayMembers = filteredMembers.slice(0, 9);
+  const displayMembers = filteredMembers.slice(0, 12);
 
   const ageBands = ['10代', '20代', '30代', '40代', '50代', '60代〜'];
   const prefectures = [
@@ -118,7 +118,7 @@ const MemberExchangeSection: React.FC = () => {
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900" />
           </div>
         ) : displayMembers.length > 0 ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 md:gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 md:gap-4">
             {displayMembers.map((member) => (
               <article
                 key={member.user_id}
