@@ -497,7 +497,10 @@ const CategoryPage: React.FC = () => {
                 
                 {/* メタ情報 */}
                 <div className="flex items-center justify-between text-xs text-gray-500 mb-3">
-                  <span className="font-medium">{post.user_display_name || 'ユーザー'}</span>
+                  <span
+                    className="font-medium hover:underline cursor-pointer"
+                    onClick={(e) => { e.stopPropagation(); if (post.user_id) navigate(`/matching/users/${post.user_id}`); }}
+                  >{post.user_display_name || 'ユーザー'}</span>
                   <span>{getRelativeTime(post.created_at)}</span>
                 </div>
                 
@@ -601,7 +604,10 @@ const CategoryPage: React.FC = () => {
                     </div>
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3 text-xs text-gray-500">
-                        <span className="font-medium">{post.user_display_name || 'ユーザー'}</span>
+                        <span
+                          className="font-medium hover:underline cursor-pointer"
+                          onClick={(e) => { e.stopPropagation(); if (post.user_id) navigate(`/matching/users/${post.user_id}`); }}
+                        >{post.user_display_name || 'ユーザー'}</span>
                         <span>{getRelativeTime(post.created_at)}</span>
                       </div>
                       <div className="flex items-center gap-3 text-xs text-gray-500">
