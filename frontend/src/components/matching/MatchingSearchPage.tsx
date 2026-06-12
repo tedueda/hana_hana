@@ -4,7 +4,7 @@ import { useAuth, resilientFetch } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { MatchCard } from './MatchCard';
 import { BACKEND_URL } from '@/config';
-import { SlidersHorizontal, X, UserCog } from 'lucide-react';
+import { X, UserCog } from 'lucide-react';
 
 type MatchItem = {
   user_id: number;
