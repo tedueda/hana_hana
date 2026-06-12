@@ -325,6 +325,47 @@ const HomePage: React.FC = () => {
     );
   }
 
+  // メンテナンスモード: トップページリニューアル中
+  const MAINTENANCE_MODE = true;
+  if (MAINTENANCE_MODE) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-white via-gray-50 to-gray-100 px-4">
+        <div className="text-center max-w-lg">
+          <div className="text-6xl mb-6">🔧</div>
+          <h1 className="text-2xl md:text-3xl font-serif font-bold text-gray-900 mb-4">
+            メンテナンス中
+          </h1>
+          <p className="text-gray-600 mb-2 leading-relaxed">
+            現在、トップページをリニューアル中です。
+          </p>
+          <p className="text-gray-500 text-sm mb-8">
+            しばらくお待ちください。他のページは通常通りご利用いただけます。
+          </p>
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            <button
+              onClick={() => navigate('/matching')}
+              className="px-6 py-3 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors text-sm font-medium"
+            >
+              会員交流へ
+            </button>
+            <button
+              onClick={() => navigate('/salon')}
+              className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium"
+            >
+              サロンへ
+            </button>
+            <button
+              onClick={() => navigate('/about')}
+              className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium"
+            >
+              Caratとは
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen relative overflow-x-hidden" style={{
       background: `
