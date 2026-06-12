@@ -469,7 +469,7 @@ const HomePage: React.FC = () => {
                   const youtubeUrl = post.youtube_url || extractYouTubeUrl(post.body || '');
                   if (youtubeUrl) return `https://i.ytimg.com/vi/${extractYouTubeId(youtubeUrl)}/mqdefault.jpg`;
                   const url = post.media_url || (post.media_urls && post.media_urls[0]);
-                  if (!url) return null;
+                  if (!url || typeof url !== 'string') return null;
                   return url.startsWith('http') ? url : (url.startsWith('/assets/') || url.startsWith('/images/')) ? url : `${API_URL}${url}`;
                 };
                 const formatDate = (d: string) => {
@@ -707,7 +707,7 @@ const HomePage: React.FC = () => {
                     <img
                       src={`${(() => {
                         const imageUrl = article.media_url || (article.media_urls && article.media_urls[0]);
-                        if (!imageUrl) return '';
+                        if (!imageUrl || typeof imageUrl !== 'string') return '';
                         return imageUrl.startsWith('http') ? imageUrl : 
                                (imageUrl.startsWith('/assets/') || imageUrl.startsWith('/images/')) ? imageUrl : 
                                `${API_URL}${imageUrl}`;
@@ -810,7 +810,7 @@ const HomePage: React.FC = () => {
                 <div className="flex-shrink-0 w-20 h-20 md:w-24 md:h-24 overflow-hidden rounded-md bg-gray-100">
                   {blog.image_url ? (
                     <img
-                      src={blog.image_url.startsWith('http') ? blog.image_url : `${API_URL}${blog.image_url}`}
+                      src={typeof blog.image_url === 'string' && blog.image_url.startsWith('http') ? blog.image_url : `${API_URL}${blog.image_url}`}
                       alt={blog.title}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                     />
