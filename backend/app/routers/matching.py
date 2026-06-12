@@ -280,6 +280,82 @@ def get_profile_by_id(
     }
 
 
+@router.get("/profiles/{user_id}/activity")
+def get_user_recent_activity(
+    user_id: int,
+    limit: int = Query(5, ge=1, le=20),
+    current_user: User = Depends(require_premium),
+    db: Session = Depends(get_db),
+):
+    """Return recent activity for a user: posts, salon posts, comments, business items."""
+    from app.models import Post, SalonPost, SalonComment, SalonRoom
+    activities = []
+
+    # Board/bulletin posts
+    try:
+        posts = db.query(Post).filter(Post.user_id == user_id, Post.visibility == 'public').order_by(Post.created_at.desc()).limit(limit).all()
+        for p in posts:
+            activities.append({
+                "type": "post",
+                "label": "掲示板投稿",
+                "title": p.title or "",
+                "body": (p.body or "")[:100],
+                "created_at": p.created_at.isoformat() if p.created_at else "",
+                "link": f"/category/{p.category or 'board'}",
+            })
+    except Exception:
+        pass
+
+    # Salon posts
+    try:
+        salon_posts = db.query(SalonPost, SalonRoom.theme).join(SalonRoom, SalonRoom.id == SalonPost.room_id).filter(SalonPost.user_id == user_id, SalonPost.status == 'active').order_by(SalonPost.created_at.desc()).limit(limit).all()
+        for sp, room_theme in salon_posts:
+            activities.append({
+                "type": "salon_post",
+                "label": "サロン投稿",
+                "title": room_theme or "",
+                "body": (sp.content or "")[:100],
+                "created_at": sp.created_at.isoformat() if sp.created_at else "",
+                "link": f"/salon/rooms/{sp.room_id}",
+            })
+    except Exception:
+        pass
+
+    # Salon comments
+    try:
+        salon_comments = db.query(SalonComment).filter(SalonComment.user_id == user_id, SalonComment.status == 'active').order_by(SalonComment.created_at.desc()).limit(limit).all()
+        for sc in salon_comments:
+            activities.append({
+                "type": "salon_comment",
+                "label": "サロンコメント",
+                "body": (sc.content or "")[:100],
+                "created_at": sc.created_at.isoformat() if sc.created_at else "",
+                "link": f"/salon",
+            })
+    except Exception:
+        pass
+
+    # Flea market items
+    try:
+        from app.models import FleaMarketItem
+        flea_items = db.query(FleaMarketItem).filter(FleaMarketItem.seller_id == user_id).order_by(FleaMarketItem.created_at.desc()).limit(limit).all()
+        for fi in flea_items:
+            activities.append({
+                "type": "business_post",
+                "label": "ビジネス投稿",
+                "title": fi.title or "",
+                "body": "",
+                "created_at": fi.created_at.isoformat() if fi.created_at else "",
+                "link": "/business?tab=flea-market",
+            })
+    except Exception:
+        pass
+
+    # Sort by created_at desc and return top N
+    activities.sort(key=lambda x: x.get("created_at", ""), reverse=True)
+    return activities[:limit]
+
+
 _CATEGORY_EQUIVALENCES: List[set] = [
     {'ゲイ', 'gay'},
     {'レズビアン', 'レズ', 'lesbian'},
