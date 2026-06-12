@@ -62,13 +62,11 @@ const PopularBusiness: React.FC = () => {
   }, []);
 
   const getImageUrl = (item: BusinessItem): string | null => {
-    if (item.thumbnail_url) return item.thumbnail_url.startsWith('http') ? item.thumbnail_url : `${API_URL}${item.thumbnail_url}`;
-    if (item.image_url) return item.image_url.startsWith('http') ? item.image_url : `${API_URL}${item.image_url}`;
-    if (item.images && item.images.length > 0) {
-      const img = item.images[0];
-      return img.startsWith('http') ? img : `${API_URL}${img}`;
-    }
-    return null;
+    const resolve = (u: unknown): string | null => {
+      if (!u || typeof u !== 'string') return null;
+      return u.startsWith('http') ? u : `${API_URL}${u}`;
+    };
+    return resolve(item.thumbnail_url) || resolve(item.image_url) || resolve(item.images?.[0]) || null;
   };
 
   const getDisplayName = (item: BusinessItem): string => {
