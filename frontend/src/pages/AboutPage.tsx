@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { ShieldCheck } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { setRefCodeCookie } from '../components/ReferralTracker';
+import { saveRefCodeToCookie } from '../utils/referral';
 
 const AboutPage: React.FC = () => {
   const { t } = useTranslation();
@@ -12,7 +12,7 @@ const AboutPage: React.FC = () => {
   useEffect(() => {
     const ref = searchParams.get('ref');
     if (ref) {
-      setRefCodeCookie(ref);
+      saveRefCodeToCookie(ref);
     }
   }, [searchParams]);
 

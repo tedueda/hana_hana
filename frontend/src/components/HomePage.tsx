@@ -16,6 +16,8 @@ import { API_URL } from '../config';
 import { detectExternalEmbed } from '../utils/embedExtractors';
 import OgpThumbnail from './common/OgpThumbnail';
 import PopularSalons from './salon/PopularSalons';
+import MemberExchangeSection from './home/MemberExchangeSection';
+import PopularBusiness from './home/PopularBusiness';
 
 const boardCategories = [
   { key: "music", title: "ミュージック", desc: "あなたの好きな楽曲、作成した楽曲を投稿して共有しましょう！", emoji: "🎵", link: "/category/music" },
@@ -423,8 +425,14 @@ const HomePage: React.FC = () => {
         </section>
 
 
+        {/* 会員交流セクション */}
+        <MemberExchangeSection />
+
         {/* 人気のサロン */}
         <PopularSalons />
+
+        {/* 人気のビジネス */}
+        <PopularBusiness />
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* 掲示板セクション - 2カラムレイアウト */}
