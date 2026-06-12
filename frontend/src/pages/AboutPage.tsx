@@ -311,8 +311,8 @@ const FIXED_FILTER_OPTIONS = {
           {activeTab === 'matching' && (
             <div>
               <div className="mb-6">
-                <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">会員マッチング</h2>
-                <p className="text-gray-600">出会い・友達・恋人 - 理想のパートナーと安心して出会えます</p>
+                <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">会員交流</h2>
+                <p className="text-gray-600">Caratに参加しているメンバーを見つけて、気軽に交流できます</p>
               </div>
 
               <div className="mb-6">

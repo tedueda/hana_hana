@@ -168,7 +168,7 @@ const MatchingFilter: React.FC<MatchingFilterProps> = ({ value, onChange, option
             options={options.occupations}
           />
           <Field
-            label="マッチングの目的"
+            label="交流の目的"
             value={value.meetPref}
             onChange={(meetPref) => patch({ meetPref })}
             options={options.meetPrefs}

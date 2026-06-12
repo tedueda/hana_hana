@@ -583,7 +583,7 @@ const HomePage: React.FC = () => {
                   <div className="bg-gray-800 text-white text-xs font-bold px-3 py-2">会員専用</div>
                   <div className="divide-y divide-gray-100">
                     {[
-                      { label: '💑 会員マッチング', path: '/matching' },
+                      { label: '💑 会員交流', path: '/matching' },
                       { label: '🏠 会員サロン', path: '/salon' },
                       { label: '💼 ビジネス', path: '/business' },
                     ].map(item => (

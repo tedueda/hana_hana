@@ -11,8 +11,8 @@ interface AboutTabsProps {
 const tabs: { id: AboutTabType; label: string; description: string; icon: React.ReactNode }[] = [
   {
     id: 'matching',
-    label: '会員マッチング',
-    description: '出会い・友達・恋人',
+    label: '会員交流',
+    description: 'メンバーと気軽に交流',
     icon: <Users className="w-5 h-5" />,
   },
   {
