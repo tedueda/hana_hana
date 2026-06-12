@@ -1218,3 +1218,32 @@ class AuditLog(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     admin = relationship("User")
+
+
+class UserBlock(Base):
+    __tablename__ = "user_blocks"
+    __table_args__ = (UniqueConstraint('blocker_id', 'blocked_id'), {'extend_existing': True})
+
+    id = Column(Integer, primary_key=True, index=True)
+    blocker_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    blocked_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class Report(Base):
+    __tablename__ = "reports"
+    __table_args__ = {'extend_existing': True}
+
+    id = Column(Integer, primary_key=True, index=True)
+    reporter_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    reported_user_id = Column(Integer, nullable=True)
+    content_type = Column(String(50), nullable=True)  # post / salon_post / salon_comment / message / profile
+    content_id = Column(Integer, nullable=True)
+    reason = Column(String(100), nullable=False)  # harassment / spam / inappropriate / other
+    detail = Column(Text, nullable=True)
+    status = Column(String(20), nullable=False, server_default="open")  # open / reviewing / resolved / dismissed
+    admin_note = Column(Text, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+    reporter = relationship("User", foreign_keys=[reporter_id])

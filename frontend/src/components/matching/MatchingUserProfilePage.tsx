@@ -54,6 +54,10 @@ const MatchingUserProfilePage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [activities, setActivities] = useState<ActivityItem[]>([]);
+  const [isBlocked, setIsBlocked] = useState(false);
+  const [showReportModal, setShowReportModal] = useState(false);
+  const [reportReason, setReportReason] = useState('harassment');
+  const [reportDetail, setReportDetail] = useState('');
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -94,6 +98,21 @@ const MatchingUserProfilePage: React.FC = () => {
       } catch { /* ignore */ }
     };
     fetchActivity();
+
+    // Check block status
+    const checkBlock = async () => {
+      if (!token || !userId) return;
+      try {
+        const res = await fetch(`${API_URL}/api/moderation/block/check/${userId}`, {
+          headers: { 'Authorization': `Bearer ${token}` },
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setIsBlocked(data.is_blocked);
+        }
+      } catch { /* ignore */ }
+    };
+    checkBlock();
   }, [token, userId, isPaidUser]);
 
   // 有料会員でない場合はアップグレード画面を表示
@@ -139,6 +158,55 @@ const MatchingUserProfilePage: React.FC = () => {
       navigate('/matching/matches');
     } catch (e: any) {
       alert(`${t('matching.errorOccurred')}: ${e?.message || t('matching.likeFailed')}`);
+    }
+  };
+
+  const handleBlock = async () => {
+    if (!token || !userId) return;
+    const action = isBlocked ? 'unblock' : 'block';
+    if (!isBlocked && !confirm('このユーザーをブロックしますか？')) return;
+    try {
+      if (isBlocked) {
+        await fetch(`${API_URL}/api/moderation/block/${userId}`, {
+          method: 'DELETE',
+          headers: { 'Authorization': `Bearer ${token}` },
+        });
+      } else {
+        await fetch(`${API_URL}/api/moderation/block`, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ user_id: parseInt(userId) }),
+        });
+      }
+      setIsBlocked(!isBlocked);
+      alert(action === 'block' ? 'ブロックしました' : 'ブロックを解除しました');
+    } catch {
+      alert('操作に失敗しました');
+    }
+  };
+
+  const handleReport = async () => {
+    if (!token || !userId) return;
+    try {
+      const res = await fetch(`${API_URL}/api/moderation/report`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          reported_user_id: parseInt(userId),
+          content_type: 'profile',
+          reason: reportReason,
+          detail: reportDetail,
+        }),
+      });
+      if (res.ok) {
+        alert('通報を受け付けました。管理者が確認します。');
+        setShowReportModal(false);
+        setReportDetail('');
+      } else {
+        alert('通報の送信に失敗しました');
+      }
+    } catch {
+      alert('通報の送信に失敗しました');
     }
   };
 
@@ -363,8 +431,76 @@ const MatchingUserProfilePage: React.FC = () => {
               </div>
             </div>
           )}
+
+          {/* ブロック・通報 */}
+          <div className="pt-4 border-t border-gray-100 flex gap-3">
+            <button
+              onClick={handleBlock}
+              className={`text-xs px-3 py-1.5 rounded border transition-colors ${
+                isBlocked
+                  ? 'border-red-300 text-red-600 bg-red-50 hover:bg-red-100'
+                  : 'border-gray-200 text-gray-500 hover:text-red-600 hover:border-red-300'
+              }`}
+            >
+              {isBlocked ? 'ブロック解除' : 'ブロック'}
+            </button>
+            <button
+              onClick={() => setShowReportModal(true)}
+              className="text-xs px-3 py-1.5 rounded border border-gray-200 text-gray-500 hover:text-red-600 hover:border-red-300 transition-colors"
+            >
+              通報する
+            </button>
+          </div>
         </div>
       </div>
+
+      {/* 通報モーダル */}
+      {showReportModal && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setShowReportModal(false)}>
+          <div className="bg-white rounded-xl p-6 max-w-md w-full" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-lg font-semibold mb-4">ユーザーを通報する</h3>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">通報理由</label>
+                <select
+                  value={reportReason}
+                  onChange={(e) => setReportReason(e.target.value)}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                >
+                  <option value="harassment">嫌がらせ・ハラスメント</option>
+                  <option value="spam">スパム・迷惑行為</option>
+                  <option value="inappropriate">不適切なコンテンツ</option>
+                  <option value="other">その他</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">詳細（任意）</label>
+                <textarea
+                  value={reportDetail}
+                  onChange={(e) => setReportDetail(e.target.value)}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                  rows={3}
+                  placeholder="具体的な内容をお知らせください"
+                />
+              </div>
+              <div className="flex gap-3 justify-end">
+                <button
+                  onClick={() => setShowReportModal(false)}
+                  className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800"
+                >
+                  キャンセル
+                </button>
+                <button
+                  onClick={handleReport}
+                  className="px-4 py-2 text-sm bg-red-600 text-white rounded-lg hover:bg-red-700"
+                >
+                  通報する
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Desktop Sticky Bottom Action Bar */}
       <div className="hidden md:block fixed bottom-4 left-4 right-4 z-30">

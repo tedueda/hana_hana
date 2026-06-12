@@ -44,6 +44,7 @@ const AdminPage: React.FC = () => {
           <TabsTrigger value="ambassadors">有料会員紹介管理</TabsTrigger>
           <TabsTrigger value="referrals">紹介登録一覧</TabsTrigger>
           <TabsTrigger value="salon">サロン管理</TabsTrigger>
+          <TabsTrigger value="reports">通報管理</TabsTrigger>
           <TabsTrigger value="blog">ブログ作成</TabsTrigger>
         </TabsList>
         <TabsContent value="users">
@@ -60,6 +61,9 @@ const AdminPage: React.FC = () => {
         </TabsContent>
         <TabsContent value="salon">
           <SalonManagementTab token={adminToken} />
+        </TabsContent>
+        <TabsContent value="reports">
+          <ReportManagementTab token={adminToken} />
         </TabsContent>
         <TabsContent value="blog">
           <BlogGeneratorTab token={adminToken} />
@@ -1722,6 +1726,156 @@ const SalonManagementTab: React.FC<{ token: string }> = ({ token }) => {
             </div>
           )}
         </div>
+      )}
+    </div>
+  );
+};
+
+// 通報管理タブ
+const ReportManagementTab: React.FC<{ token: string }> = ({ token }) => {
+  const [reports, setReports] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [filterStatus, setFilterStatus] = useState('');
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editStatus, setEditStatus] = useState('');
+  const [editNote, setEditNote] = useState('');
+
+  const fetchReports = useCallback(async () => {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams({ page: '1', size: '100' });
+      if (filterStatus) params.set('status', filterStatus);
+      const res = await fetch(`${BACKEND_URL}/api/moderation/admin/reports?${params}`, {
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setReports(data.items || []);
+      }
+    } catch { /* ignore */ }
+    setLoading(false);
+  }, [token, filterStatus]);
+
+  useEffect(() => { fetchReports(); }, [fetchReports]);
+
+  const handleUpdate = async (id: number) => {
+    try {
+      await fetch(`${BACKEND_URL}/api/moderation/admin/reports/${id}`, {
+        method: 'PUT',
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: editStatus || undefined, admin_note: editNote }),
+      });
+      setEditingId(null);
+      fetchReports();
+    } catch { alert('更新に失敗しました'); }
+  };
+
+  const reasonLabels: Record<string, string> = {
+    harassment: '嫌がらせ',
+    spam: 'スパム',
+    inappropriate: '不適切',
+    other: 'その他',
+  };
+
+  const statusLabels: Record<string, string> = {
+    open: '未対応',
+    reviewing: '確認中',
+    resolved: '解決済',
+    dismissed: '却下',
+  };
+
+  const statusColors: Record<string, string> = {
+    open: 'bg-red-100 text-red-800',
+    reviewing: 'bg-yellow-100 text-yellow-800',
+    resolved: 'bg-green-100 text-green-800',
+    dismissed: 'bg-gray-100 text-gray-800',
+  };
+
+  return (
+    <div>
+      <div className="flex items-center gap-3 mb-4">
+        <h2 className="text-lg font-semibold">通報管理</h2>
+        <select
+          value={filterStatus}
+          onChange={(e) => setFilterStatus(e.target.value)}
+          className="border rounded px-2 py-1 text-sm"
+        >
+          <option value="">全て</option>
+          <option value="open">未対応</option>
+          <option value="reviewing">確認中</option>
+          <option value="resolved">解決済</option>
+          <option value="dismissed">却下</option>
+        </select>
+      </div>
+
+      {loading ? (
+        <p className="text-gray-500">読み込み中...</p>
+      ) : reports.length === 0 ? (
+        <p className="text-gray-500">通報はありません</p>
+      ) : (
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>ID</TableHead>
+              <TableHead>通報者</TableHead>
+              <TableHead>対象</TableHead>
+              <TableHead>種別</TableHead>
+              <TableHead>理由</TableHead>
+              <TableHead>詳細</TableHead>
+              <TableHead>ステータス</TableHead>
+              <TableHead>日時</TableHead>
+              <TableHead>操作</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {reports.map((r) => (
+              <TableRow key={r.id}>
+                <TableCell>{r.id}</TableCell>
+                <TableCell>{r.reporter_name}</TableCell>
+                <TableCell>{r.reported_user_name || '-'}</TableCell>
+                <TableCell>{r.content_type || '-'}</TableCell>
+                <TableCell>{reasonLabels[r.reason] || r.reason}</TableCell>
+                <TableCell className="max-w-[200px] truncate">{r.detail || '-'}</TableCell>
+                <TableCell>
+                  <span className={`px-2 py-0.5 rounded text-xs font-medium ${statusColors[r.status] || ''}`}>
+                    {statusLabels[r.status] || r.status}
+                  </span>
+                </TableCell>
+                <TableCell className="text-xs">{r.created_at ? new Date(r.created_at).toLocaleDateString('ja-JP') : ''}</TableCell>
+                <TableCell>
+                  {editingId === r.id ? (
+                    <div className="space-y-2 min-w-[200px]">
+                      <select value={editStatus} onChange={(e) => setEditStatus(e.target.value)} className="w-full border rounded px-2 py-1 text-xs">
+                        <option value="">変更なし</option>
+                        <option value="reviewing">確認中</option>
+                        <option value="resolved">解決済</option>
+                        <option value="dismissed">却下</option>
+                      </select>
+                      <Input
+                        placeholder="管理者メモ"
+                        value={editNote}
+                        onChange={(e) => setEditNote(e.target.value)}
+                        className="text-xs"
+                      />
+                      <div className="flex gap-1">
+                        <Button size="sm" onClick={() => handleUpdate(r.id)}><Check className="h-3 w-3" /></Button>
+                        <Button size="sm" variant="outline" onClick={() => setEditingId(null)}><X className="h-3 w-3" /></Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => { setEditingId(r.id); setEditStatus(r.status); setEditNote(r.admin_note || ''); }}
+                    >
+                      <Pencil className="h-3 w-3" />
+                    </Button>
+                  )}
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
       )}
     </div>
   );
