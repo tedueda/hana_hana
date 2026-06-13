@@ -444,8 +444,8 @@ def search_profiles(
     # Exclude inactive users
     q = q.filter(User.is_active == True)
 
-    # Profile visibility filtering
-    if not is_admin and current_user:
+    # Profile visibility filtering (show_allの場合は上で処理済み)
+    if not is_admin and current_user and not show_all:
         my_prof_vis = db.query(MatchingProfile).filter(MatchingProfile.user_id == current_user.id).first()
         my_cat = getattr(my_prof_vis, 'community_category', None) or (my_prof_vis.identity if my_prof_vis else None)
         my_cat_equiv = _get_equivalent_categories(my_cat) if my_cat else []
