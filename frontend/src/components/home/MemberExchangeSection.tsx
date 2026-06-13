@@ -35,7 +35,7 @@ const MemberExchangeSection: React.FC = () => {
         const allItems: MemberItem[] = [];
         let page = 1;
         const pageSize = 50;
-        while (true) {
+        while (page <= 20) {
           const res = await fetch(
             `${API_URL}/api/matching/search?page=${page}&size=${pageSize}&show_all=true&_t=${Date.now()}`,
             { headers }
