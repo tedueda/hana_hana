@@ -913,7 +913,6 @@ const HomePage: React.FC = () => {
           </div>{/* /flex */}
         </div>{/* /max-w-7xl */}
       </div>
-      </div>
       
       <UnderConstructionModal 
         isOpen={showConstructionModal}
