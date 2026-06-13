@@ -1027,15 +1027,27 @@ def send_chat_request(
     db.add(request)
     db.flush()
 
-    # Match + Chat を即座に作成
+    # Match + Chat を即座に作成（既存のMatchがあれば再利用）
     a, b = sorted([current_user.id, to_user_id])
-    match = Match(user_a_id=a, user_b_id=b, active_flag=True)
-    db.add(match)
-    db.flush()
+    existing_match = (
+        db.query(Match)
+        .filter(Match.user_a_id == a, Match.user_b_id == b)
+        .first()
+    )
+    if existing_match:
+        match = existing_match
+    else:
+        match = Match(user_a_id=a, user_b_id=b, active_flag=True)
+        db.add(match)
+        db.flush()
 
-    chat = Chat(match_id=match.id)
-    db.add(chat)
-    db.flush()
+    existing_chat = db.query(Chat).filter(Chat.match_id == match.id).first()
+    if existing_chat:
+        chat = existing_chat
+    else:
+        chat = Chat(match_id=match.id)
+        db.add(chat)
+        db.flush()
 
     # 初回メッセージがあればChatに直接追加
     if initial_message:
