@@ -732,57 +732,6 @@ def run_migrations():
             db.rollback()
             print(f"⚠️ Failed restoring yoshitakabuyoukai@gmail.com: {e}")
 
-        # One-time: Create matching profile for TAKA (user_id=130) if missing
-        try:
-            taka_user = db.execute(text(
-                "SELECT id FROM users WHERE email = :email AND deleted_at IS NULL"
-            ), {"email": "yoshitakabuyoukai@gmail.com"}).fetchone()
-            if taka_user:
-                taka_id = taka_user[0]
-                existing_prof = db.execute(text(
-                    "SELECT user_id FROM matching_profiles WHERE user_id = :uid"
-                ), {"uid": taka_id}).fetchone()
-                if not existing_prof:
-                    db.execute(text(
-                        "INSERT INTO matching_profiles "
-                        "(user_id, nickname, display_flag, prefecture, age_band, "
-                        "identity, community_category, profile_visibility, bio) "
-                        "VALUES (:uid, 'TAKA', TRUE, '', '', "
-                        "'その他', 'その他', 'public', '')"
-                    ), {"uid": taka_id})
-                    db.commit()
-                    print(f"✅ Created matching profile for TAKA (user_id={taka_id})")
-                else:
-                    print("✅ TAKA matching profile already exists")
-        except Exception as e:
-            db.rollback()
-            print(f"⚠️ Failed creating TAKA matching profile: {e}")
-
-        # One-time: Delete test users (スタジオ君, Mr.スタジオ, 上田孝久, スタジオキュー)
-        try:
-            test_user_ids = [103, 107, 127, 128]
-            # Check if any test users still exist
-            check = db.execute(text(
-                "SELECT id FROM users WHERE id IN (103,107,127,128) AND deleted_at IS NULL"
-            )).fetchall()
-            if check:
-                # Delete matching profiles first (FK constraint)
-                db.execute(text(
-                    "DELETE FROM matching_profiles WHERE user_id IN (103,107,127,128)"
-                ))
-                # Soft-delete users
-                db.execute(text(
-                    "UPDATE users SET deleted_at = NOW(), is_active = FALSE "
-                    "WHERE id IN (103,107,127,128) AND deleted_at IS NULL"
-                ))
-                db.commit()
-                print(f"✅ Deleted test users: {[r[0] for r in check]}")
-            else:
-                print("✅ Test users already deleted")
-        except Exception as e:
-            db.rollback()
-            print(f"⚠️ Failed deleting test users: {e}")
-
         # Migration 2: Add nationality column to matching_profiles table
         if _table_exists("matching_profiles"):
             result = db.execute(text("""
@@ -842,6 +791,61 @@ def run_migrations():
             except Exception as e:
                 db.rollback()
                 print(f"⚠️ Failed migrating identity to community_category: {e}")
+
+        # One-time: Create matching profile for TAKA (user_id=130) if missing
+        try:
+            taka_user = db.execute(text(
+                "SELECT id FROM users WHERE email = :email AND deleted_at IS NULL"
+            ), {"email": "yoshitakabuyoukai@gmail.com"}).fetchone()
+            if taka_user:
+                taka_id = taka_user[0]
+                existing_prof = db.execute(text(
+                    "SELECT user_id FROM matching_profiles WHERE user_id = :uid"
+                ), {"uid": taka_id}).fetchone()
+                if not existing_prof:
+                    db.execute(text(
+                        "INSERT INTO matching_profiles "
+                        "(user_id, nickname, display_flag, prefecture, age_band, "
+                        "identity, community_category, profile_visibility, bio) "
+                        "VALUES (:uid, 'TAKA', TRUE, '', '', "
+                        "'その他', 'その他', 'public', '')"
+                    ), {"uid": taka_id})
+                    db.commit()
+                    print(f"✅ Created matching profile for TAKA (user_id={taka_id})")
+                else:
+                    print("✅ TAKA matching profile already exists")
+        except Exception as e:
+            db.rollback()
+            print(f"⚠️ Failed creating TAKA matching profile: {e}")
+
+        # One-time: Delete test users (スタジオ君, Mr.スタジオ, 上田孝久, スタジオキュー)
+        try:
+            # Check if any test users still exist
+            check = db.execute(text(
+                "SELECT id FROM users WHERE id IN (103,107,127,128) AND deleted_at IS NULL"
+            )).fetchall()
+            if check:
+                # Delete related hobbies first (table may not exist)
+                if _table_exists("matching_profile_hobbies"):
+                    db.execute(text(
+                        "DELETE FROM matching_profile_hobbies WHERE user_id IN (103,107,127,128)"
+                    ))
+                # Delete matching profiles (FK constraint)
+                db.execute(text(
+                    "DELETE FROM matching_profiles WHERE user_id IN (103,107,127,128)"
+                ))
+                # Soft-delete users
+                db.execute(text(
+                    "UPDATE users SET deleted_at = NOW(), is_active = FALSE "
+                    "WHERE id IN (103,107,127,128) AND deleted_at IS NULL"
+                ))
+                db.commit()
+                print(f"✅ Deleted test users: {[r[0] for r in check]}")
+            else:
+                print("✅ Test users already deleted")
+        except Exception as e:
+            db.rollback()
+            print(f"⚠️ Failed deleting test users: {e}")
 
         # One-time cleanup: Delete "スタジオキュー" test referral data
         if _table_exists("referrals") and _table_exists("users"):
