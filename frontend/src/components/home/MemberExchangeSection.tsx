@@ -80,6 +80,7 @@ const MemberExchangeSection: React.FC = () => {
                         src={member.avatar_url}
                         alt={member.display_name || ''}
                         className="h-full w-full object-cover"
+                        loading="lazy"
                       />
                     ) : (
                       <div className="h-full w-full flex items-center justify-center bg-gradient-to-br from-gray-200 to-gray-300">

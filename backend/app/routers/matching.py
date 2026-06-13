@@ -388,7 +388,7 @@ def search_profiles(
     identity: Optional[str] = Query(None),
     show_all: bool = Query(False, description="Show all categories (for homepage)"),
     page: int = Query(1, ge=1),
-    size: int = Query(20, ge=1, le=50),
+    size: int = Query(20, ge=1, le=100),
     current_user: User = Depends(require_premium),
     db: Session = Depends(get_db),
 ):
