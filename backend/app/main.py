@@ -732,6 +732,34 @@ def run_migrations():
             db.rollback()
             print(f"⚠️ Failed restoring yoshitakabuyoukai@gmail.com: {e}")
 
+        # One-time: Create matching profile for TAKA (user_id=130) if missing
+        try:
+            taka_user = db.execute(text(
+                "SELECT id FROM users WHERE email = :email AND deleted_at IS NULL"
+            ), {"email": "yoshitakabuyoukai@gmail.com"}).fetchone()
+            if taka_user:
+                taka_id = taka_user[0]
+                existing_prof = db.execute(text(
+                    "SELECT user_id FROM matching_profiles WHERE user_id = :uid"
+                ), {"uid": taka_id}).fetchone()
+                if not existing_prof:
+                    db.execute(text(
+                        "INSERT INTO matching_profiles "
+                        "(user_id, nickname, display_flag, prefecture, age_band, "
+                        "identity, community_category, profile_visibility, bio) "
+                        "VALUES (:uid, :name, TRUE, '', '', "
+                        "'その他', 'その他', 'public', '')"
+                    ), {"uid": taka_id, "name": "TAKA"})
+                    db.commit()
+                    print(f"✅ Created matching profile for TAKA (user_id={taka_id})")
+                else:
+                    print("✅ TAKA matching profile already exists")
+            else:
+                print("✅ TAKA user not found, skipping profile creation")
+        except Exception as e:
+            db.rollback()
+            print(f"⚠️ Failed creating TAKA matching profile: {e}")
+
         # Migration 2: Add nationality column to matching_profiles table
         if _table_exists("matching_profiles"):
             result = db.execute(text("""
