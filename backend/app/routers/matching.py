@@ -399,14 +399,21 @@ def search_profiles(
 
     # Community category filtering: non-admin users only see same category
     is_admin = current_user.membership_type == "admin" if current_user else False
+    # トップページに常時表示するユーザー（フィルター除外対象外）
+    PINNED_USER_IDS = [129, 130]  # エスムラルダ, TAKA
     if show_all:
         # Skip category filtering but still exclude hidden categories and profiles
+        # ただしピン留めユーザーはフィルターから除外しない
         q = q.filter(
-            ~MatchingProfile.community_category.in_(['非公開', '非表示'])
-            | MatchingProfile.community_category.is_(None)
+            or_(
+                MatchingProfile.user_id.in_(PINNED_USER_IDS),
+                ~MatchingProfile.community_category.in_(['非公開', '非表示']),
+                MatchingProfile.community_category.is_(None),
+            )
         )
         q = q.filter(
             or_(
+                MatchingProfile.user_id.in_(PINNED_USER_IDS),
                 ~MatchingProfile.profile_visibility.in_(['hidden']),
                 MatchingProfile.profile_visibility.is_(None),
             )
@@ -437,8 +444,8 @@ def search_profiles(
     # Exclude inactive users
     q = q.filter(User.is_active == True)
 
-    # Profile visibility filtering
-    if not is_admin and current_user:
+    # Profile visibility filtering (show_allの場合は上で処理済み)
+    if not is_admin and current_user and not show_all:
         my_prof_vis = db.query(MatchingProfile).filter(MatchingProfile.user_id == current_user.id).first()
         my_cat = getattr(my_prof_vis, 'community_category', None) or (my_prof_vis.identity if my_prof_vis else None)
         my_cat_equiv = _get_equivalent_categories(my_cat) if my_cat else []
