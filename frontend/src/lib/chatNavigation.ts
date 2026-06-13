@@ -66,7 +66,9 @@ export async function navigateToChat(
       { initial_message: initialMessage }
     );
 
-    if (data.request_id) {
+    if (data.chat_id) {
+      navigate(`/matching/chats/${data.chat_id}`, { replace: true });
+    } else if (data.request_id) {
       navigate(`/matching/chats/requests/${data.request_id}`, { replace: true });
     } else {
       navigate('/matching/chats', { replace: true });
@@ -93,8 +95,8 @@ export async function navigateToChat(
 }
 
 /**
- * Navigates to compose page or existing chat
- * Use this for "メールをする" buttons
+ * Navigates directly to chat with user (creating chat if needed)
+ * Use this for "チャットをする" buttons
  */
 export async function navigateToComposeOrChat(
   apiClient: ApiClient,
@@ -102,17 +104,5 @@ export async function navigateToComposeOrChat(
   userId: number,
   currentUserId: number | null
 ): Promise<void> {
-  if (currentUserId && userId === currentUserId) {
-    alert('自分自身にはメッセージを送信できません');
-    navigate('/matching/chats');
-    return;
-  }
-
-  const existingChatId = await findExistingChat(apiClient, userId);
-  if (existingChatId) {
-    navigate(`/matching/chats/${existingChatId}`);
-    return;
-  }
-
-  navigate(`/matching/compose/${userId}`);
+  await navigateToChat(apiClient, navigate, userId, '', currentUserId);
 }
