@@ -163,7 +163,7 @@ function ProfileCompletionGuard() {
 }
 
 // メンテナンスモード: 全ページリニューアル中
-const SITE_MAINTENANCE = true;
+const SITE_MAINTENANCE = false;
 const MAINTENANCE_ALLOWED_PATHS = ['/admin', '/login', '/register', '/subscribe', '/about', '/privacy', '/contact', '/forgot-password', '/reset-password', '/email-verification', '/verify-email', '/kyc-verification'];
 
 function MaintenancePage() {

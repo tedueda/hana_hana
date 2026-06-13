@@ -326,7 +326,7 @@ const HomePage: React.FC = () => {
   }
 
   // メンテナンスモード: トップページリニューアル中
-  const MAINTENANCE_MODE = true;
+  const MAINTENANCE_MODE = false;
   if (MAINTENANCE_MODE) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-white via-gray-50 to-gray-100 px-4">
