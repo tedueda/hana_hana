@@ -466,6 +466,12 @@ const HomePage: React.FC = () => {
         </section>
 
 
+        {/* ===== 2カラムレイアウト開始（ヒーロー以下） ===== */}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex flex-col md:flex-row gap-6">
+            {/* 左カラム（メインコンテンツ） */}
+            <div className="flex-1 min-w-0">
+
         {/* 会員交流セクション */}
         <MemberExchangeSection />
 
@@ -475,8 +481,7 @@ const HomePage: React.FC = () => {
         {/* 人気のビジネス */}
         <PopularBusiness />
 
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* 掲示板セクション - 2カラムレイアウト */}
+        {/* 掲示板セクション */}
         <section className="py-8">
           {/* セクションヘッダー＋切り替えボタン */}
           <div className="flex items-center justify-between mb-4">
@@ -501,9 +506,8 @@ const HomePage: React.FC = () => {
             </div>
           </div>
 
-          <div className="flex flex-col md:flex-row gap-6">
-            {/* 左カラム（広め）: カテゴリ別投稿 */}
-            <div className="flex-1 min-w-0 space-y-10">
+          <div>
+            <div className="space-y-10">
               {boardCategories.map((cat) => {
                 const posts = (categoryPosts[cat.key] || []).slice(0, 4);
                 const getImageUrl = (post: any) => {
@@ -624,72 +628,6 @@ const HomePage: React.FC = () => {
               })}
             </div>
 
-            {/* 右カラム（狭め固定幅）: ナビゲーションサイドバー */}
-            <div className="md:w-44 flex-shrink-0">
-              <div className="sticky top-4 space-y-4">
-                {/* 会員専用グループ */}
-                <div className="border border-gray-200 rounded-lg overflow-hidden">
-                  <div className="bg-gray-800 text-white text-xs font-bold px-3 py-2">会員専用</div>
-                  <div className="divide-y divide-gray-100">
-                    {[
-                      { label: '💑 会員交流', path: '/matching' },
-                      { label: '🏠 会員サロン', path: '/salon' },
-                      { label: '💼 ビジネス', path: '/business' },
-                    ].map(item => (
-                      <button
-                        key={item.path}
-                        onClick={() => navigate(item.path)}
-                        className="w-full text-left text-xs px-3 py-2 hover:bg-gray-50 transition-colors text-slate-700 font-medium"
-                      >
-                        {item.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* 掲示板グループ */}
-                <div className="border border-gray-200 rounded-lg overflow-hidden">
-                  <div className="bg-gray-800 text-white text-xs font-bold px-3 py-2">掲示板</div>
-                  <div className="divide-y divide-gray-100">
-                    {[
-                      { label: '🎵 Music', path: '/category/music' },
-                      { label: '🎨 アート・動画', path: '/category/art' },
-                      { label: '🎭 サブカルチャー', path: '/category/comics' },
-                      { label: '🍽️ 食レポ・お店', path: '/category/food' },
-                      { label: '📍 ツーリズム', path: '/category/tourism' },
-                      { label: '💬 掲示板', path: '/category/board' },
-                    ].map(item => (
-                      <button
-                        key={item.path}
-                        onClick={() => navigate(item.path)}
-                        className="w-full text-left text-xs px-3 py-2 hover:bg-gray-50 transition-colors text-slate-700"
-                      >
-                        {item.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* ニュース・ブロググループ */}
-                <div className="border border-gray-200 rounded-lg overflow-hidden">
-                  <div className="bg-gray-800 text-white text-xs font-bold px-3 py-2">コンテンツ</div>
-                  <div className="divide-y divide-gray-100">
-                    {[
-                      { label: '📰 ニュース', path: '/news' },
-                      { label: '✍️ ブログ', path: '/blog' },
-                    ].map(item => (
-                      <button
-                        key={item.path}
-                        onClick={() => navigate(item.path)}
-                        className="w-full text-left text-xs px-3 py-2 hover:bg-gray-50 transition-colors text-slate-700"
-                      >
-                        {item.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
           </div>
         </section>
 
@@ -902,7 +840,79 @@ const HomePage: React.FC = () => {
             </div>
           </div>
         </section>
-        </div>
+
+            </div>{/* /左カラム */}
+
+            {/* 右カラム: ナビゲーションサイドバー */}
+            <div className="hidden md:block md:w-48 flex-shrink-0">
+              <div className="sticky top-36 space-y-4">
+                {/* 会員専用グループ */}
+                <div className="border border-gray-200 rounded-lg overflow-hidden">
+                  <div className="bg-gray-800 text-white text-xs font-bold px-3 py-2">会員専用</div>
+                  <div className="divide-y divide-gray-100">
+                    {[
+                      { label: '💑 会員交流', path: '/matching' },
+                      { label: '🏠 会員サロン', path: '/salon' },
+                      { label: '💼 ビジネス', path: '/business' },
+                    ].map(item => (
+                      <button
+                        key={item.path}
+                        onClick={() => navigate(item.path)}
+                        className="w-full text-left text-xs px-3 py-2 hover:bg-gray-50 transition-colors text-slate-700 font-medium"
+                      >
+                        {item.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* 掲示板グループ */}
+                <div className="border border-gray-200 rounded-lg overflow-hidden">
+                  <div className="bg-gray-800 text-white text-xs font-bold px-3 py-2">掲示板</div>
+                  <div className="divide-y divide-gray-100">
+                    {[
+                      { label: '🎵 Music', path: '/category/music' },
+                      { label: '🎨 アート・動画', path: '/category/art' },
+                      { label: '🎭 サブカルチャー', path: '/category/comics' },
+                      { label: '🍽️ 食レポ・お店', path: '/category/food' },
+                      { label: '📍 ツーリズム', path: '/category/tourism' },
+                      { label: '💬 掲示板', path: '/category/board' },
+                    ].map(item => (
+                      <button
+                        key={item.path}
+                        onClick={() => navigate(item.path)}
+                        className="w-full text-left text-xs px-3 py-2 hover:bg-gray-50 transition-colors text-slate-700"
+                      >
+                        {item.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* ニュース・ブロググループ */}
+                <div className="border border-gray-200 rounded-lg overflow-hidden">
+                  <div className="bg-gray-800 text-white text-xs font-bold px-3 py-2">コンテンツ</div>
+                  <div className="divide-y divide-gray-100">
+                    {[
+                      { label: '📰 ニュース', path: '/news' },
+                      { label: '✍️ ブログ', path: '/blog' },
+                    ].map(item => (
+                      <button
+                        key={item.path}
+                        onClick={() => navigate(item.path)}
+                        className="w-full text-left text-xs px-3 py-2 hover:bg-gray-50 transition-colors text-slate-700"
+                      >
+                        {item.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>{/* /右カラム */}
+
+          </div>{/* /flex */}
+        </div>{/* /max-w-7xl */}
+      </div>
       </div>
       
       <UnderConstructionModal 

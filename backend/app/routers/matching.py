@@ -1015,19 +1015,40 @@ def send_chat_request(
                 }
             )
     
-    # 新しいリクエストを作成
+    # チャットリクエストを作成し、即座に承諾（マッチング不要のダイレクトチャット）
     initial_message = payload.get("initial_message", "")
     request = ChatRequest(
         from_user_id=current_user.id,
         to_user_id=to_user_id,
-        status="pending",
-        initial_message=initial_message if initial_message else None
+        status="accepted",
+        initial_message=initial_message if initial_message else None,
+        responded_at=datetime.utcnow()
     )
     db.add(request)
+    db.flush()
+
+    # Match + Chat を即座に作成
+    a, b = sorted([current_user.id, to_user_id])
+    match = Match(user_a_id=a, user_b_id=b, active_flag=True)
+    db.add(match)
+    db.flush()
+
+    chat = Chat(match_id=match.id)
+    db.add(chat)
+    db.flush()
+
+    # 初回メッセージがあればChatに直接追加
+    if initial_message:
+        msg = Message(
+            chat_id=chat.id,
+            sender_id=current_user.id,
+            body=initial_message,
+        )
+        db.add(msg)
+
     db.commit()
-    db.refresh(request)
     
-    return {"request_id": request.id, "status": "pending", "message": "Chat request sent"}
+    return {"request_id": request.id, "chat_id": chat.id, "status": "accepted", "message": "Chat created"}
 
 
 @router.get("/chat_requests/incoming")
