@@ -15,6 +15,9 @@ interface MemberItem {
   bio?: string | null;
 }
 
+// エスムラルダ(129)とTAKA(130)を常にトップに表示
+const PINNED_USER_IDS = [129, 130];
+
 const MemberExchangeSection: React.FC = () => {
   const navigate = useNavigate();
   const { token } = useAuth();
@@ -27,12 +30,30 @@ const MemberExchangeSection: React.FC = () => {
         setLoading(true);
         const headers: Record<string, string> = { 'Cache-Control': 'no-cache' };
         if (token) headers['Authorization'] = `Bearer ${token}`;
-        const res = await fetch(`${API_URL}/api/matching/search?page=1&size=100&show_all=true&_t=${Date.now()}`, { headers });
-        if (res.ok) {
+
+        // ページネーションで全メンバーを取得
+        const allItems: MemberItem[] = [];
+        let page = 1;
+        const pageSize = 50;
+        while (page <= 20) {
+          const res = await fetch(
+            `${API_URL}/api/matching/search?page=${page}&size=${pageSize}&show_all=true&_t=${Date.now()}`,
+            { headers }
+          );
+          if (!res.ok) break;
           const data = await res.json();
           const items: MemberItem[] = Array.isArray(data) ? data : data.items || [];
-          setMembers(items);
+          allItems.push(...items);
+          if (items.length < pageSize) break;
+          page++;
         }
+
+        // ピン留めユーザーをトップに配置
+        const pinned = allItems.filter(m => PINNED_USER_IDS.includes(m.user_id));
+        const others = allItems.filter(m => !PINNED_USER_IDS.includes(m.user_id));
+        // ピン留めの順番を維持
+        pinned.sort((a, b) => PINNED_USER_IDS.indexOf(a.user_id) - PINNED_USER_IDS.indexOf(b.user_id));
+        setMembers([...pinned, ...others]);
       } catch (err) {
         console.error('Failed to fetch members:', err);
       } finally {
