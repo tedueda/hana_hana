@@ -1,6 +1,6 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight, ChevronLeft, ChevronRight, MapPin } from 'lucide-react';
+import { ArrowRight, MapPin } from 'lucide-react';
 import { API_URL } from '../../config';
 import { useAuth } from '../../contexts/AuthContext';
 import { IdentityBadge } from '@/components/ui/IdentityBadge';
@@ -20,7 +20,6 @@ const MemberExchangeSection: React.FC = () => {
   const { token } = useAuth();
   const [members, setMembers] = useState<MemberItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const fetchMembers = async () => {
@@ -28,7 +27,7 @@ const MemberExchangeSection: React.FC = () => {
         setLoading(true);
         const headers: Record<string, string> = { 'Cache-Control': 'no-cache' };
         if (token) headers['Authorization'] = `Bearer ${token}`;
-        const res = await fetch(`${API_URL}/api/matching/search?page=1&size=50&show_all=true&_t=${Date.now()}`, { headers });
+        const res = await fetch(`${API_URL}/api/matching/search?page=1&size=100&show_all=true&_t=${Date.now()}`, { headers });
         if (res.ok) {
           const data = await res.json();
           const items: MemberItem[] = Array.isArray(data) ? data : data.items || [];
@@ -42,15 +41,6 @@ const MemberExchangeSection: React.FC = () => {
     };
     fetchMembers();
   }, [token]);
-
-  const scroll = (direction: 'left' | 'right') => {
-    if (!scrollRef.current) return;
-    const scrollAmount = scrollRef.current.clientWidth * 0.8;
-    scrollRef.current.scrollBy({
-      left: direction === 'left' ? -scrollAmount : scrollAmount,
-      behavior: 'smooth',
-    });
-  };
 
   return (
     <section className="py-10 md:py-14">
@@ -73,27 +63,16 @@ const MemberExchangeSection: React.FC = () => {
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900" />
           </div>
         ) : members.length > 0 ? (
-          <div className="relative group/slider">
-            {/* Left arrow */}
-            <button
-              onClick={() => scroll('left')}
-              className="absolute left-0 top-1/2 -translate-y-1/2 z-10 bg-white/90 border border-gray-200 shadow-md rounded-full p-2 opacity-0 group-hover/slider:opacity-100 transition-opacity hover:bg-white -ml-3"
-            >
-              <ChevronLeft className="h-5 w-5 text-gray-700" />
-            </button>
-
-            {/* Scrollable container */}
-            <div
-              ref={scrollRef}
-              className="flex gap-3 md:gap-4 overflow-x-auto scrollbar-hide pb-2"
-              style={{ scrollSnapType: 'x mandatory' }}
-            >
+          <div
+            className="overflow-y-auto"
+            style={{ maxHeight: '900px' }}
+          >
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-4">
               {members.map((member) => (
                 <article
                   key={member.user_id}
                   onClick={() => navigate(`/matching/users/${member.user_id}`)}
-                  className="flex-shrink-0 w-36 sm:w-44 md:w-48 group relative overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition-all hover:shadow-md cursor-pointer"
-                  style={{ scrollSnapAlign: 'start' }}
+                  className="group relative overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition-all hover:shadow-md cursor-pointer"
                 >
                   <div className="relative aspect-[3/4] bg-gradient-to-br from-gray-100 to-gray-200">
                     {member.avatar_url ? (
@@ -133,14 +112,6 @@ const MemberExchangeSection: React.FC = () => {
                 </article>
               ))}
             </div>
-
-            {/* Right arrow */}
-            <button
-              onClick={() => scroll('right')}
-              className="absolute right-0 top-1/2 -translate-y-1/2 z-10 bg-white/90 border border-gray-200 shadow-md rounded-full p-2 opacity-0 group-hover/slider:opacity-100 transition-opacity hover:bg-white -mr-3"
-            >
-              <ChevronRight className="h-5 w-5 text-gray-700" />
-            </button>
           </div>
         ) : (
           <div className="flex items-center justify-center py-12 text-gray-500 text-sm">
