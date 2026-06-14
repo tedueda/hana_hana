@@ -18,6 +18,7 @@ type Item = {
   prefecture?: string | null;
   age_band?: string | null;
   avatar_url?: string | null;
+  isLiked?: boolean;
 };
 
 const getFlagImageUrl = (code: string | null | undefined): string => {
@@ -28,7 +29,7 @@ const getFlagImageUrl = (code: string | null | undefined): string => {
 
 export function MatchCard({ item }: { item: Item }) {
   const { t } = useTranslation();
-  const [liked, setLiked] = useState(false);
+  const [liked, setLiked] = useState(item.isLiked || false);
   const [loading, setLoading] = useState(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
