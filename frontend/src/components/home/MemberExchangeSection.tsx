@@ -74,7 +74,7 @@ const MemberExchangeSection: React.FC = () => {
           const pageSize = 50;
           while (page <= 20) {
             const res = await fetch(
-              `${API_URL}/api/matching/search?page=${page}&size=${pageSize}&show_all=true&_t=${Date.now()}`,
+              `${API_URL}/api/matching/search?page=${page}&size=${pageSize}&show_all=true&include_self=true&_t=${Date.now()}`,
               { headers }
             );
             if (!res.ok) break;
