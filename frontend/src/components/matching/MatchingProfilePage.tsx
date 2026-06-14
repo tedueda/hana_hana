@@ -88,7 +88,7 @@ const MatchingProfilePage: React.FC = () => {
   const IDENTITY_KEYS: Record<string, string> = {
     'ゲイ': 'gay', 'レズビアン': 'lesbian', 'バイセクシュアル': 'bisexual',
     'トランスジェンダー': 'transgender', 'クィア': 'queer',
-    'ストレート・アライ': 'ally', 'その他': 'other', '非公開': 'hidden'
+    'ストレート・アライ': 'ally', '男性': 'male', '女性': 'female', 'その他': 'other', '非公開': 'hidden'
   };
   const HOBBY_KEYS: Record<string, string> = {
     '音楽': 'music', '映画': 'movies', 'ドラマ': 'drama', 'アニメ': 'anime', '漫画': 'manga',
@@ -171,7 +171,7 @@ const MatchingProfilePage: React.FC = () => {
   const BLOOD_TYPES = ['A型','B型','O型','AB型','不明'];
   const ZODIACS = ['牡羊座','牡牛座','双子座','蟹座','獅子座','乙女座','天秤座','蠍座','射手座','山羊座','水瓶座','魚座'];
   const MEET_PREFS = ['パートナー探し','友人探し','相談相手探し','メンバー募集','その他'];
-  const IDENTITIES = ['ゲイ','レズビアン','バイセクシュアル','トランスジェンダー','クィア','ストレート・アライ','その他','非公開'];
+  const IDENTITIES = ['ゲイ','レズビアン','バイセクシュアル','トランスジェンダー','クィア','ストレート・アライ','男性','女性','その他','非公開'];
   const POSITIONS = ['タチ','ウケ（ネコ）','リバーシブル','非公開'];
   const HOBBY_CATALOG = [
     '音楽','映画','ドラマ','アニメ','漫画','読書','カフェ','料理','グルメ','お酒',

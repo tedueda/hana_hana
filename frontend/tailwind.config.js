@@ -8,8 +8,8 @@ export default {
   			'3000': '3000ms',
   		},
   		fontFamily: {
-  			serif: ['"Noto Serif JP"', '"Hiragino Mincho ProN"', '"Yu Mincho"', 'serif'],
-  			sans: ['"Noto Sans JP"', '"Hiragino Sans"', '"Yu Gothic"', '"Meiryo"', 'sans-serif'],
+  			serif: ['"Zen Old Mincho"', '"Hiragino Mincho ProN"', '"Yu Mincho"', 'serif'],
+  			sans: ['"Zen Old Mincho"', '"Hiragino Mincho ProN"', '"Yu Mincho"', 'serif'],
   		},
   		borderRadius: {
   			lg: 'var(--radius)',

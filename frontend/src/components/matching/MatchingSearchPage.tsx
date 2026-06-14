@@ -28,6 +28,8 @@ const CATEGORY_OPTIONS = [
   { value: 'トランスジェンダー', label: 'トランスジェンダー' },
   { value: 'クィア', label: 'クィア' },
   { value: 'ストレート・アライ', label: 'ストレート・アライ' },
+  { value: '男性', label: '男性' },
+  { value: '女性', label: '女性' },
   { value: 'その他', label: 'その他' },
 ];
 
@@ -395,7 +397,8 @@ const MatchingSearchPage: React.FC = () => {
                 item={{
                   ...item,
                   isLiked: likedUserIds.includes(item.user_id)
-                }} 
+                }}
+                onUnlike={(userId) => setLikedUserIds(prev => prev.filter(id => id !== userId))}
               />
             ))}
           </div>

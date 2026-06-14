@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { IdentityBadge, PositionBadge } from "@/components/ui/IdentityBadge";
@@ -27,10 +27,16 @@ const getFlagImageUrl = (code: string | null | undefined): string => {
   return `https://flagcdn.com/w40/${code.toLowerCase()}.png`;
 };
 
-export function MatchCard({ item }: { item: Item }) {
+export function MatchCard({ item, onUnlike }: { item: Item; onUnlike?: (userId: number) => void }) {
   const { t } = useTranslation();
   const [liked, setLiked] = useState(item.isLiked || false);
   const [loading, setLoading] = useState(false);
+
+  // お気に入り取得が一覧取得より遅れて解決した場合でも、
+  // isLikedプロップの変化を反映してブラックアウトを同期する
+  useEffect(() => {
+    if (item.isLiked) setLiked(true);
+  }, [item.isLiked]);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
   const navigate = useNavigate();
@@ -50,32 +56,43 @@ export function MatchCard({ item }: { item: Item }) {
       setShowUpgradeModal(true);
       return;
     }
-    if (loading || liked) return;
-    
+    if (loading) return;
+
     setLoading(true);
     const token = localStorage.getItem('token');
-    
+
     try {
-      const res = await fetch(`${API_URL}/api/matching/likes/${item.user_id}`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
-      
-      if (!res.ok) throw new Error('Like failed');
-      const data = await res.json();
-      setLiked(true);
-      
-      if (data.matched) {
-        alert(`✨ ${t('matching.matched')}`);
-        navigate('/matching/matches');
+      if (liked) {
+        // お気に入り解除
+        const res = await fetch(`${API_URL}/api/matching/likes/${item.user_id}`, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        });
+        if (!res.ok) throw new Error('Unlike failed');
+        setLiked(false);
+        onUnlike?.(item.user_id);
       } else {
-        navigate('/matching/likes');
+        // お気に入り追加
+        const res = await fetch(`${API_URL}/api/matching/likes/${item.user_id}`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        });
+        if (!res.ok) throw new Error('Like failed');
+        const data = await res.json();
+        setLiked(true);
+        if (data.matched) {
+          alert(`✨ ${t('matching.matched')}`);
+          navigate('/matching/matches');
+        }
       }
     } catch (err) {
-      console.error("Like failed:", err);
+      console.error("Like toggle failed:", err);
       alert(t('matching.likeFailed'));
     } finally {
       setLoading(false);
@@ -251,18 +268,18 @@ export function MatchCard({ item }: { item: Item }) {
         <div className="flex gap-1">
           <button
             onClick={handleLike}
-            disabled={loading || liked}
-            aria-label={`${item.display_name || "このユーザー"}をお気に入りに追加`}
+            disabled={loading}
+            aria-label={liked ? `${item.display_name || "このユーザー"}のお気に入りを解除` : `${item.display_name || "このユーザー"}をお気に入りに追加`}
             className={`
               flex-1 rounded-md px-2 py-1.5 text-xs font-medium transition-all
               ${liked 
-                ? "bg-gray-100 text-gray-500 cursor-not-allowed" 
+                ? "bg-gray-100 text-gray-500 hover:bg-red-50 hover:text-red-400" 
                 : "bg-black text-white hover:bg-gray-800 active:scale-95"
               }
               ${loading ? "opacity-50 cursor-wait" : ""}
             `}
           >
-            💎 {t('matching.favorite')}
+            {liked ? `💎 ${t('matching.favorite')}済み` : `💎 ${t('matching.favorite')}`}
           </button>
           <button
             onClick={handleMessage}
