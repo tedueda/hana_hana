@@ -381,11 +381,11 @@ const HomePage: React.FC = () => {
         <section ref={heroSectionRef} className="relative w-full overflow-hidden" style={{height: '860px'}}>
           <div className="absolute inset-0">
             {[
-              { desktop: '/images/slide1N.jpg', mobile: '/images/m01N.jpg' },
-              { desktop: '/images/slide2N.jpg', mobile: '/images/m02N.jpg' },
-              { desktop: '/images/slide3N.jpg', mobile: '/images/m03N.jpg' },
-              { desktop: '/images/slide4N.jpg', mobile: '/images/m04N.jpg' },
-              { desktop: '/images/slide5N.jpg', mobile: '/images/m05N.jpg' },
+              { desktop: '/images/slide5N.jpg', mobile: '/images/m01N.jpg' },
+              { desktop: '/images/slide4N.jpg', mobile: '/images/m03N.jpg' },
+              { desktop: '/images/slide2N.jpg', mobile: '/images/m04N.jpg' },
+              { desktop: '/images/slide3N.jpg', mobile: '/images/m02N.jpg' },
+              { desktop: '/images/slide1N.jpg', mobile: '/images/m05N.jpg' },
             ].map((slide, idx) => (
               <div
                 key={idx}

@@ -145,7 +145,7 @@ const CreatePost: React.FC = () => {
       return;
     }
 
-    if (category === 'music' && youtubeUrl && !extractYouTubeVideoId(youtubeUrl)) {
+    if ((category === 'music' || category === 'art') && youtubeUrl && !extractYouTubeVideoId(youtubeUrl)) {
       setError('有効なYouTube URLを入力してください');
       setIsLoading(false);
       return;
@@ -639,7 +639,7 @@ const CreatePost: React.FC = () => {
               )}
             </div>
 
-            {category === 'music' && (
+            {(category === 'music' || category === 'art') && (
               <div className="space-y-2">
                 <Label htmlFor="youtube" className="text-gray-800">YouTube URL（任意）</Label>
                 <Input
