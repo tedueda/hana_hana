@@ -386,6 +386,7 @@ def search_profiles(
     hobbies: Optional[str] = Query(None, description="comma separated"),
     meet_pref: Optional[str] = Query(None),
     identity: Optional[str] = Query(None),
+    community_category: Optional[str] = Query(None, description="Filter by community category"),
     show_all: bool = Query(False, description="Show all categories (for homepage)"),
     page: int = Query(1, ge=1),
     size: int = Query(20, ge=1, le=100),
@@ -441,8 +442,9 @@ def search_profiles(
                 ~MatchingProfile.community_category.in_(['非公開', '非表示'])
                 | MatchingProfile.community_category.is_(None)
             )
-    # Exclude inactive users
+    # Exclude inactive/deleted users
     q = q.filter(User.is_active == True)
+    q = q.filter(User.deleted_at.is_(None))
 
     # Profile visibility filtering (show_allの場合は上で処理済み)
     if not is_admin and current_user and not show_all:
@@ -486,6 +488,17 @@ def search_profiles(
         q = q.filter(MatchingProfile.meet_pref == meet_pref)
     if identity:
         q = q.filter(MatchingProfile.identity == identity)
+    if community_category:
+        equiv = _get_equivalent_categories(community_category)
+        q = q.filter(
+            or_(
+                MatchingProfile.community_category.in_(equiv),
+                and_(
+                    MatchingProfile.community_category.is_(None),
+                    MatchingProfile.identity.in_(equiv),
+                ),
+            )
+        )
     if hobbies:
         names = [s.strip() for s in hobbies.split(",") if s.strip()]
         if names:
