@@ -4,7 +4,7 @@ import { useAuth, resilientFetch } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { MatchCard } from './MatchCard';
 import { BACKEND_URL } from '@/config';
-import { UserCog } from 'lucide-react';
+import { UserCog, Heart } from 'lucide-react';
 
 type MatchItem = {
   user_id: number;
@@ -45,9 +45,12 @@ const AGE_BAND_OPTIONS = [
   { value: '60代以上', label: '60代以上' },
 ];
 
+// 名誉会員: エスムラルダ(129)とTAKA(130)を常にトップに表示
+const PINNED_USER_IDS = [129, 130];
+
 const MatchingSearchPage: React.FC = () => {
   const { t } = useTranslation();
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const navigate = useNavigate();
   
   const [loading, setLoading] = useState(false);
@@ -59,6 +62,10 @@ const MatchingSearchPage: React.FC = () => {
   
   const [selectedCategory, setSelectedCategory] = useState<string>("");
   const [selectedAgeBand, setSelectedAgeBand] = useState<string>("");
+  const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
+  const [likedUserIds, setLikedUserIds] = useState<number[]>([]);
+  
+  const isPaidUser = user?.membership_type === 'premium' || user?.membership_type === 'admin' || user?.membership_type === 'founder_free';
 
   const fetchSearch = async () => {
     setLoading(true);
@@ -74,7 +81,7 @@ const MatchingSearchPage: React.FC = () => {
       let page = 1;
       const size = 50;
       while (page <= 10) {
-        const params = new URLSearchParams({ page: String(page), size: String(size) });
+        const params = new URLSearchParams({ page: String(page), size: String(size), show_all: 'true', include_self: 'true' });
         const res = await resilientFetch(
           `/api/matching/search?${params.toString()}&_t=${Date.now()}`,
           { headers },
@@ -118,8 +125,14 @@ const MatchingSearchPage: React.FC = () => {
         return { ...it, avatar_url: avatar };
       });
       
-      setAllItems(fetchedItems);
-      setItems(fetchedItems);
+      // 名誉会員をトップに固定
+      const pinned = fetchedItems.filter(it => PINNED_USER_IDS.includes(it.user_id));
+      const others = fetchedItems.filter(it => !PINNED_USER_IDS.includes(it.user_id));
+      pinned.sort((a, b) => PINNED_USER_IDS.indexOf(a.user_id) - PINNED_USER_IDS.indexOf(b.user_id));
+      const sorted = [...pinned, ...others];
+      
+      setAllItems(sorted);
+      setItems(sorted);
     } catch (e: any) {
       setError(e?.message || '検索に失敗しました');
     } finally {
@@ -129,8 +142,24 @@ const MatchingSearchPage: React.FC = () => {
 
   useEffect(() => {
     fetchSearch();
+    fetchLikes();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
+
+  const fetchLikes = async () => {
+    if (!token) return;
+    try {
+      const res = await resilientFetch('/api/matching/likes', {
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const likeItems = data.items || data || [];
+        const ids = likeItems.map((item: { user_id?: number }) => item.user_id).filter(Boolean);
+        setLikedUserIds(ids);
+      }
+    } catch { /* ignore */ }
+  };
 
   useEffect(() => {
     let filtered = [...allItems];
@@ -144,13 +173,22 @@ const MatchingSearchPage: React.FC = () => {
     if (selectedAgeBand) {
       filtered = filtered.filter(it => it.age_band === selectedAgeBand);
     }
+    if (showFavoritesOnly && likedUserIds.length > 0) {
+      filtered = filtered.filter(it => likedUserIds.includes(it.user_id));
+    }
     
-    setItems(filtered);
-  }, [allItems, selectedCategory, selectedAgeBand]);
+    // フィルター後も名誉会員を常にトップに表示
+    const pinned = filtered.filter(it => PINNED_USER_IDS.includes(it.user_id));
+    const others = filtered.filter(it => !PINNED_USER_IDS.includes(it.user_id));
+    pinned.sort((a, b) => PINNED_USER_IDS.indexOf(a.user_id) - PINNED_USER_IDS.indexOf(b.user_id));
+    
+    setItems([...pinned, ...others]);
+  }, [allItems, selectedCategory, selectedAgeBand, showFavoritesOnly, likedUserIds]);
 
   const clearFilters = () => {
     setSelectedCategory("");
     setSelectedAgeBand("");
+    setShowFavoritesOnly(false);
   };
 
   // Category display name mapping
@@ -244,7 +282,20 @@ const MatchingSearchPage: React.FC = () => {
                 <option key={opt.value} value={opt.value}>{opt.label}</option>
               ))}
             </select>
-            {(selectedCategory || selectedAgeBand) && (
+            {isPaidUser && (
+              <button
+                onClick={() => setShowFavoritesOnly(!showFavoritesOnly)}
+                className={`flex items-center gap-1 text-sm border rounded-lg px-2.5 py-1.5 transition-colors ${
+                  showFavoritesOnly
+                    ? 'bg-pink-50 border-pink-300 text-pink-600'
+                    : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
+                }`}
+              >
+                <Heart className={`h-3.5 w-3.5 ${showFavoritesOnly ? 'fill-pink-500 text-pink-500' : ''}`} />
+                お気に入り
+              </button>
+            )}
+            {(selectedCategory || selectedAgeBand || showFavoritesOnly) && (
               <button
                 onClick={clearFilters}
                 className="text-xs text-gray-500 hover:text-gray-700 underline"
@@ -271,7 +322,7 @@ const MatchingSearchPage: React.FC = () => {
         <div className="hidden md:block mb-6 bg-white rounded-lg border border-gray-200 p-4">
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-sm font-semibold text-gray-700">検索条件</h3>
-            {(selectedCategory || selectedAgeBand) && (
+            {(selectedCategory || selectedAgeBand || showFavoritesOnly) && (
               <button
                 onClick={clearFilters}
                 className="text-xs text-gray-500 hover:text-gray-700 underline"
@@ -280,7 +331,7 @@ const MatchingSearchPage: React.FC = () => {
               </button>
             )}
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">カテゴリー</label>
               <select
@@ -305,6 +356,22 @@ const MatchingSearchPage: React.FC = () => {
                 ))}
               </select>
             </div>
+            {isPaidUser && (
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">お気に入り</label>
+                <button
+                  onClick={() => setShowFavoritesOnly(!showFavoritesOnly)}
+                  className={`w-full flex items-center justify-center gap-2 px-3 py-2 text-sm border rounded-md transition-colors ${
+                    showFavoritesOnly
+                      ? 'bg-pink-50 border-pink-300 text-pink-600'
+                      : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
+                  }`}
+                >
+                  <Heart className={`h-4 w-4 ${showFavoritesOnly ? 'fill-pink-500 text-pink-500' : ''}`} />
+                  {showFavoritesOnly ? 'お気に入りのみ' : 'すべて表示'}
+                </button>
+              </div>
+            )}
           </div>
         </div>
         

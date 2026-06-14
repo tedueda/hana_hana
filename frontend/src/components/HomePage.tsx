@@ -16,7 +16,7 @@ import { API_URL } from '../config';
 import { detectExternalEmbed } from '../utils/embedExtractors';
 import OgpThumbnail from './common/OgpThumbnail';
 import PopularSalons from './salon/PopularSalons';
-import MemberExchangeSection from './home/MemberExchangeSection';
+import MatchingSearchPage from './matching/MatchingSearchPage';
 import PopularBusiness from './home/PopularBusiness';
 
 const boardCategories = [
@@ -473,7 +473,7 @@ const HomePage: React.FC = () => {
             <div className="flex-1 min-w-0">
 
         {/* 会員交流セクション */}
-        <MemberExchangeSection />
+        <MatchingSearchPage />
 
         {/* 会員サロン */}
         <PopularSalons />
