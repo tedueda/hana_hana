@@ -6,7 +6,7 @@
   :root {
     /* ===== Cartier 風カラーパレット ===== */
     /* ベースカラー（白・シルバー・ゴールド） */
-    --background: 0 0% 100%;           /* 純白 */
+    --background: 0 0% 92%;            /* ライトグレー */
     --foreground: 222.2 84% 4.9%;      /* ダークグレー */
     
     /* アクセント（ゴールド） */
@@ -17,7 +17,7 @@
     --secondary-foreground: 222.2 47.4% 11.2%;
     
     /* カード・境界線 */
-    --card: 0 0% 100%;
+    --card: 0 0% 100%;                  /* カードは白のまま */
     --card-foreground: 222.2 84% 4.9%;
     --border: 214.3 31.8% 91.4%;       /* 繊細なボーダー */
     --radius: 0.75rem;                  /* 角丸を大きめに */
@@ -117,6 +117,7 @@
 
 /* ===== タイポグラフィ ===== */
 body {
+  background-color: #ebebeb;
   font-family: 'Zen Old Mincho', 'Hiragino Mincho ProN', 'Yu Mincho', serif;
   font-weight: 500;
   line-height: 1.7;
