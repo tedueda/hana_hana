@@ -301,7 +301,7 @@ def get_user_recent_activity(
                 "title": p.title or "",
                 "body": (p.body or "")[:100],
                 "created_at": p.created_at.isoformat() if p.created_at else "",
-                "link": f"/category/{p.category or 'board'}",
+                "link": f"/posts/{p.id}",
             })
     except Exception:
         pass
@@ -572,6 +572,24 @@ def like_user(
         like.status = "active"
     db.commit()
     return {"status": "liked", "like_id": like.id}
+
+
+@router.delete("/likes/{to_user_id}", status_code=200)
+def unlike_user(
+    to_user_id: int,
+    current_user: User = Depends(require_premium),
+    db: Session = Depends(get_db),
+):
+    like = (
+        db.query(Like)
+        .filter(Like.from_user_id == current_user.id, Like.to_user_id == to_user_id, Like.status == "active")
+        .first()
+    )
+    if not like:
+        raise HTTPException(status_code=404, detail="like not found")
+    like.status = "withdrawn"
+    db.commit()
+    return {"status": "withdrawn"}
 
 
 @router.get("/likes")
