@@ -390,7 +390,13 @@ const MatchingSearchPage: React.FC = () => {
         {!loading && !error && items.length > 0 && (
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4">
             {items.map((item) => (
-              <MatchCard key={item.user_id} item={item} />
+              <MatchCard 
+                key={item.user_id} 
+                item={{
+                  ...item,
+                  isLiked: likedUserIds.includes(item.user_id)
+                }} 
+              />
             ))}
           </div>
         )}
