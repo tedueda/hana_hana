@@ -475,10 +475,10 @@ const HomePage: React.FC = () => {
         {/* 会員交流セクション */}
         <MemberExchangeSection />
 
-        {/* 人気のサロン */}
+        {/* 会員サロン */}
         <PopularSalons />
 
-        {/* 人気のビジネス */}
+        {/* 会員ビジネス */}
         <PopularBusiness />
 
         {/* 掲示板セクション */}
@@ -853,13 +853,35 @@ const HomePage: React.FC = () => {
                     {[
                       { label: '💑 会員交流', path: '/matching' },
                       { label: '🏠 会員サロン', path: '/salon' },
-                      { label: '💼 ビジネス', path: '/business' },
+                      { label: '💼 会員ビジネス', path: '/business' },
                       { label: '💒 ライブウェディング', path: '/live-wedding' },
                     ].map(item => (
                       <button
                         key={item.path}
                         onClick={() => navigate(item.path)}
                         className="w-full text-left text-sm px-4 py-2.5 hover:bg-gray-50 transition-colors text-slate-700 font-medium"
+                      >
+                        {item.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* サイトについてグループ */}
+                <div className="border border-gray-200 rounded-lg overflow-hidden">
+                  <div className="bg-gray-800 text-white text-sm font-bold px-4 py-2.5">サイトについて</div>
+                  <div className="divide-y divide-gray-100">
+                    {[
+                      { label: '📖 Caratとは', path: '/about' },
+                      { label: '📋 ご利用方法', path: '/about/usage' },
+                      { label: '📜 利用規約', path: '/about/terms' },
+                      { label: '🔒 プライバシーポリシー', path: '/privacy' },
+                      { label: '📑 特定商取引法', path: '/about/tokushoho' },
+                    ].map(item => (
+                      <button
+                        key={item.path}
+                        onClick={() => navigate(item.path)}
+                        className="w-full text-left text-sm px-4 py-2.5 hover:bg-gray-50 transition-colors text-slate-700"
                       >
                         {item.label}
                       </button>
@@ -891,11 +913,31 @@ const HomePage: React.FC = () => {
                   </div>
                 </div>
 
-                {/* ニュース・ブロググループ */}
+                {/* アカウントグループ */}
                 <div className="border border-gray-200 rounded-lg overflow-hidden">
-                  <div className="bg-gray-800 text-white text-sm font-bold px-4 py-2.5">コンテンツ</div>
+                  <div className="bg-gray-800 text-white text-sm font-bold px-4 py-2.5">アカウント</div>
                   <div className="divide-y divide-gray-100">
                     {[
+                      { label: '👤 アカウント情報', path: '/account' },
+                      { label: '✏️ プロフィール編集', path: '/matching/profile' },
+                    ].map(item => (
+                      <button
+                        key={item.path}
+                        onClick={() => navigate(item.path)}
+                        className="w-full text-left text-sm px-4 py-2.5 hover:bg-gray-50 transition-colors text-slate-700"
+                      >
+                        {item.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* その他 */}
+                <div className="border border-gray-200 rounded-lg overflow-hidden">
+                  <div className="bg-gray-800 text-white text-sm font-bold px-4 py-2.5">その他</div>
+                  <div className="divide-y divide-gray-100">
+                    {[
+                      { label: '✉️ お問い合わせ', path: '/contact' },
                       { label: '✍️ ブログ', path: '/blog' },
                     ].map(item => (
                       <button

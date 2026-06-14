@@ -9,7 +9,7 @@ interface BusinessItem {
   price?: number;
   image_url?: string | null;
   thumbnail_url?: string | null;
-  images?: string[];
+  images?: (string | { image_url?: string })[];
   created_at: string;
   category: 'flea-market' | 'courses' | 'art-sales';
   seller_name?: string;
@@ -66,7 +66,9 @@ const PopularBusiness: React.FC = () => {
       if (!u || typeof u !== 'string') return null;
       return u.startsWith('http') ? u : `${API_URL}${u}`;
     };
-    return resolve(item.thumbnail_url) || resolve(item.image_url) || resolve(item.images?.[0]) || null;
+    const firstImage = item.images?.[0];
+    const firstImageUrl = typeof firstImage === 'string' ? firstImage : firstImage?.image_url;
+    return resolve(item.thumbnail_url) || resolve(item.image_url) || resolve(firstImageUrl) || null;
   };
 
   const getDisplayName = (item: BusinessItem): string => {
@@ -84,7 +86,7 @@ const PopularBusiness: React.FC = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex flex-col md:flex-row md:items-baseline md:justify-between mb-6 gap-2">
           <div>
-            <h2 className="text-2xl md:text-3xl font-serif font-bold text-slate-900">人気のビジネス</h2>
+            <h2 className="text-2xl md:text-3xl font-serif font-bold text-slate-900">会員ビジネス</h2>
             <p className="text-sm text-gray-500 mt-1">フリマ・作品販売・講座 ── 手数料無料で直接やり取り</p>
           </div>
           <button
