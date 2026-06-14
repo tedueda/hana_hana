@@ -18,6 +18,8 @@ interface MemberItem {
 
 // エスムラルダ(129)とTAKA(130)を常にトップに表示
 const PINNED_USER_IDS = [129, 130];
+// テストユーザーを除外
+const EXCLUDED_USER_IDS = [103, 107, 127, 128];
 
 const CATEGORY_OPTIONS = [
   { value: '', label: 'カテゴリー ▼' },
@@ -46,40 +48,65 @@ const AGE_BAND_OPTIONS = [
 
 const MemberExchangeSection: React.FC = () => {
   const navigate = useNavigate();
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const [members, setMembers] = useState<MemberItem[]>([]);
   const [allMembers, setAllMembers] = useState<MemberItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState('');
   const [selectedAgeBand, setSelectedAgeBand] = useState('');
 
+  // 有料会員かどうか
+  const isPaidUser = user?.membership_type === 'premium' || user?.membership_type === 'admin' || user?.membership_type === 'founder_free';
+
   useEffect(() => {
     const fetchMembers = async () => {
       try {
         setLoading(true);
-        const headers: Record<string, string> = { 'Cache-Control': 'no-cache' };
-        if (token) headers['Authorization'] = `Bearer ${token}`;
-
-        // ページネーションで全メンバーを取得
         const allItems: MemberItem[] = [];
-        let page = 1;
-        const pageSize = 50;
-        while (page <= 20) {
-          const res = await fetch(
-            `${API_URL}/api/matching/search?page=${page}&size=${pageSize}&show_all=true&_t=${Date.now()}`,
-            { headers }
-          );
-          if (!res.ok) break;
-          const data = await res.json();
-          const items: MemberItem[] = Array.isArray(data) ? data : data.items || [];
-          allItems.push(...items);
-          if (items.length < pageSize) break;
-          page++;
+
+        if (token) {
+          // ログイン済み: 認証付きAPIで取得
+          const headers: Record<string, string> = {
+            'Cache-Control': 'no-cache',
+            'Authorization': `Bearer ${token}`,
+          };
+          let page = 1;
+          const pageSize = 50;
+          while (page <= 20) {
+            const res = await fetch(
+              `${API_URL}/api/matching/search?page=${page}&size=${pageSize}&show_all=true&_t=${Date.now()}`,
+              { headers }
+            );
+            if (!res.ok) break;
+            const data = await res.json();
+            const items: MemberItem[] = Array.isArray(data) ? data : data.items || [];
+            allItems.push(...items);
+            if (items.length < pageSize) break;
+            page++;
+          }
+        } else {
+          // 未ログイン: 公開プレビューAPIで取得
+          let page = 1;
+          const pageSize = 50;
+          while (page <= 20) {
+            const res = await fetch(
+              `${API_URL}/api/matching/public-preview?page=${page}&size=${pageSize}&_t=${Date.now()}`
+            );
+            if (!res.ok) break;
+            const data = await res.json();
+            const items: MemberItem[] = Array.isArray(data) ? data : data.items || [];
+            allItems.push(...items);
+            if (items.length < pageSize) break;
+            page++;
+          }
         }
 
+        // テストユーザーを除外
+        const filtered = allItems.filter(m => !EXCLUDED_USER_IDS.includes(m.user_id));
+
         // ピン留めユーザーをトップに配置
-        const pinned = allItems.filter(m => PINNED_USER_IDS.includes(m.user_id));
-        const others = allItems.filter(m => !PINNED_USER_IDS.includes(m.user_id));
+        const pinned = filtered.filter(m => PINNED_USER_IDS.includes(m.user_id));
+        const others = filtered.filter(m => !PINNED_USER_IDS.includes(m.user_id));
         pinned.sort((a, b) => PINNED_USER_IDS.indexOf(a.user_id) - PINNED_USER_IDS.indexOf(b.user_id));
         const sorted = [...pinned, ...others];
         setAllMembers(sorted);
@@ -171,7 +198,13 @@ const MemberExchangeSection: React.FC = () => {
               {members.map((member) => (
                 <article
                   key={member.user_id}
-                  onClick={() => navigate(`/matching/users/${member.user_id}`)}
+                  onClick={() => {
+                    if (isPaidUser) {
+                      navigate(`/matching/users/${member.user_id}`);
+                    } else {
+                      navigate('/register');
+                    }
+                  }}
                   className="group relative overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition-all hover:shadow-md cursor-pointer"
                 >
                   <div className="relative aspect-[3/4] bg-gradient-to-br from-gray-100 to-gray-200">
@@ -179,24 +212,29 @@ const MemberExchangeSection: React.FC = () => {
                       <img
                         src={member.avatar_url}
                         alt={member.display_name || ''}
-                        className="h-full w-full object-cover"
+                        className={`h-full w-full object-cover ${!isPaidUser ? 'blur-lg' : ''}`}
                         loading="lazy"
                       />
                     ) : (
-                      <div className="h-full w-full flex items-center justify-center bg-gradient-to-br from-gray-200 to-gray-300">
+                      <div className={`h-full w-full flex items-center justify-center bg-gradient-to-br from-gray-200 to-gray-300 ${!isPaidUser ? 'blur-lg' : ''}`}>
                         <div className="w-16 h-16 bg-gray-400 rounded-full flex items-center justify-center">
                           <span className="text-white text-2xl">👤</span>
                         </div>
                       </div>
                     )}
-                    {member.identity && (
+                    {!isPaidUser && (
+                      <div className="absolute inset-0 flex items-center justify-center bg-black/10">
+                        <span className="text-white text-xs font-medium bg-black/50 px-2 py-1 rounded">会員登録で表示</span>
+                      </div>
+                    )}
+                    {isPaidUser && member.identity && (
                       <div className="absolute top-2 left-2">
                         <IdentityBadge value={member.identity} />
                       </div>
                     )}
                   </div>
                   <div className="p-2.5">
-                    <p className="text-sm font-semibold text-gray-900 truncate">
+                    <p className={`text-sm font-semibold text-gray-900 truncate ${!isPaidUser ? 'blur-sm' : ''}`}>
                       {member.display_name || 'メンバー'}
                     </p>
                     <div className="flex items-center gap-1 mt-0.5">
