@@ -118,21 +118,20 @@
 /* ===== タイポグラフィ ===== */
 body {
   font-family: 'Zen Old Mincho', 'Hiragino Mincho ProN', 'Yu Mincho', serif;
-  font-weight: 400;
+  font-weight: 500;
   line-height: 1.7;
   letter-spacing: 0.04em;
 }
 
 h1, h2, h3, h4, h5, h6 {
   font-family: 'Zen Old Mincho', 'Hiragino Mincho ProN', 'Yu Mincho', serif;
-  font-weight: 700;
+  font-weight: 900;
   line-height: 1.4;
   letter-spacing: 0.06em;
 }
 
 h1 {
   font-size: 2.5rem;
-  font-weight: 700;
 }
 
 h2 {
