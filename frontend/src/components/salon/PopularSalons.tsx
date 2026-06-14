@@ -84,9 +84,9 @@ const PopularSalons: React.FC = () => {
           <div className="bg-white rounded-xl border border-gray-200 p-8 text-center"
             style={{ boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}
           >
-            <h2 className="text-xl font-serif font-bold text-gray-900 mb-2">人気のサロン</h2>
+            <h2 className="text-xl font-serif font-bold text-gray-900 mb-2">会員サロン</h2>
             <p className="text-gray-500 text-sm mb-4">
-              人気のサロンはまだありません。<br />
+              会員サロンはまだありません。<br />
               最初のサロンを作成して、Caratの交流を始めましょう。
             </p>
             <Button onClick={() => navigate('/salon/create')} className="bg-black hover:bg-gray-800 text-white">
@@ -111,7 +111,7 @@ const PopularSalons: React.FC = () => {
           <div className="flex flex-col md:flex-row">
             {/* Left: heading + CTA */}
             <div className="p-6 md:p-8 md:w-[300px] flex-shrink-0 flex flex-col justify-center">
-              <h2 className="text-2xl font-serif font-bold text-gray-900 mb-3">人気のサロン</h2>
+              <h2 className="text-2xl font-serif font-bold text-gray-900 mb-3">会員サロン</h2>
               <p className="text-sm text-gray-500 leading-relaxed mb-6">
                 投稿が多く盛り上がっているサロンをチェックできます。
                 興味のあるテーマから、Caratの交流に参加してみましょう。

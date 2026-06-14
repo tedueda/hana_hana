@@ -20,7 +20,7 @@
         "specialMenuItems": {
           "matching": "会員交流",
           "salon": "会員サロン",
-          "business": "ビジネス",
+          "business": "会員ビジネス",
           "liveWedding": "Live Wedding"
         },
         "memberMenu": "会員メニュー",
@@ -132,7 +132,7 @@
         "description": "会員限定の専門チャットサロン"
       },
       "business": {
-        "title": "ビジネス",
+        "title": "会員ビジネス",
         "description": "フリマ・作品販売・講座・Live配信"
       }
     },
@@ -871,7 +871,7 @@
     }
   },
   "business": {
-    "title": "ビジネス",
+    "title": "会員ビジネス",
     "subtitle": "フリマ・作品販売・講座・Live配信",
     "backToHome": "ホームに戻る",
     "tabs": {
