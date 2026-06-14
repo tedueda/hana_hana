@@ -91,7 +91,7 @@ const MatchingUserProfilePage: React.FC = () => {
     const fetchActivity = async () => {
       if (!token || !userId) return;
       try {
-        const res = await fetch(`${API_URL}/api/matching/profiles/${userId}/activity?limit=5`, {
+        const res = await fetch(`${API_URL}/api/matching/profiles/${userId}/activity?limit=50`, {
           headers: { 'Authorization': `Bearer ${token}` },
         });
         if (res.ok) setActivities(await res.json());
@@ -405,29 +405,31 @@ const MatchingUserProfilePage: React.FC = () => {
           {activities.length > 0 && (
             <div className="mb-6">
               <h3 className="text-lg font-semibold text-black mb-3">最近のアクティビティ</h3>
-              <div className="space-y-3">
-                {activities.map((act, idx) => (
-                  <div
-                    key={idx}
-                    onClick={() => act.link && navigate(act.link)}
-                    className="flex items-start gap-3 p-3 rounded-lg border border-gray-100 bg-gray-50 hover:bg-gray-100 cursor-pointer transition-colors"
-                  >
-                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-200 text-gray-700 whitespace-nowrap mt-0.5">
-                      {act.label}
-                    </span>
-                    <div className="flex-1 min-w-0">
-                      {act.title && (
-                        <p className="text-sm font-medium text-gray-900 truncate">{act.title}</p>
-                      )}
-                      {act.body && (
-                        <p className="text-xs text-gray-600 line-clamp-2">{act.body}</p>
-                      )}
-                      <p className="text-xs text-gray-400 mt-1">
-                        {act.created_at ? new Date(act.created_at).toLocaleDateString('ja-JP') : ''}
-                      </p>
+              <div className="overflow-y-auto border border-gray-200 rounded-lg" style={{ maxHeight: '400px' }}>
+                <div className="space-y-0 divide-y divide-gray-100">
+                  {activities.map((act, idx) => (
+                    <div
+                      key={idx}
+                      onClick={() => act.link && navigate(act.link)}
+                      className="flex items-start gap-3 p-3 bg-gray-50 hover:bg-gray-100 cursor-pointer transition-colors"
+                    >
+                      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-200 text-gray-700 whitespace-nowrap mt-0.5">
+                        {act.label}
+                      </span>
+                      <div className="flex-1 min-w-0">
+                        {act.title && (
+                          <p className="text-sm font-medium text-gray-900 truncate">{act.title}</p>
+                        )}
+                        {act.body && (
+                          <p className="text-xs text-gray-600 line-clamp-2">{act.body}</p>
+                        )}
+                        <p className="text-xs text-gray-400 mt-1">
+                          {act.created_at ? new Date(act.created_at).toLocaleDateString('ja-JP') : ''}
+                        </p>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
             </div>
           )}

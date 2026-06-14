@@ -283,7 +283,7 @@ def get_profile_by_id(
 @router.get("/profiles/{user_id}/activity")
 def get_user_recent_activity(
     user_id: int,
-    limit: int = Query(5, ge=1, le=20),
+    limit: int = Query(50, ge=1, le=200),
     current_user: User = Depends(require_premium),
     db: Session = Depends(get_db),
 ):
