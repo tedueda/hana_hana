@@ -847,6 +847,32 @@ def run_migrations():
             db.rollback()
             print(f"⚠️ Failed deleting test users: {e}")
 
+        # One-time: Delete dummy test users (けんた, りょう, みか, あや, とも, なお, ひろ, さき, ゆき)
+        DUMMY_USER_IDS = [49, 50, 51, 52, 53, 54, 55, 56, 57]
+        try:
+            check = db.execute(text(
+                "SELECT id, display_name FROM users WHERE id IN :ids AND deleted_at IS NULL"
+            ), {"ids": tuple(DUMMY_USER_IDS)}).fetchall()
+            if check:
+                if _table_exists("matching_profile_hobbies"):
+                    db.execute(text(
+                        "DELETE FROM matching_profile_hobbies WHERE user_id IN :ids"
+                    ), {"ids": tuple(DUMMY_USER_IDS)})
+                db.execute(text(
+                    "DELETE FROM matching_profiles WHERE user_id IN :ids"
+                ), {"ids": tuple(DUMMY_USER_IDS)})
+                db.execute(text(
+                    "UPDATE users SET deleted_at = NOW(), is_active = FALSE "
+                    "WHERE id IN :ids AND deleted_at IS NULL"
+                ), {"ids": tuple(DUMMY_USER_IDS)})
+                db.commit()
+                print(f"✅ Deleted dummy users: {[r[0] for r in check]}")
+            else:
+                print("✅ Dummy users already deleted")
+        except Exception as e:
+            db.rollback()
+            print(f"⚠️ Failed deleting dummy users: {e}")
+
         # One-time cleanup: Delete "スタジオキュー" test referral data
         if _table_exists("referrals") and _table_exists("users"):
             try:

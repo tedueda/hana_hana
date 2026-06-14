@@ -18,8 +18,8 @@ interface MemberItem {
 
 // エスムラルダ(129)とTAKA(130)を常にトップに表示
 const PINNED_USER_IDS = [129, 130];
-// テストユーザーを除外
-const EXCLUDED_USER_IDS = [103, 107, 127, 128];
+// テスト/ダミーユーザーを除外
+const EXCLUDED_USER_IDS = [49, 50, 51, 52, 53, 54, 55, 56, 57, 103, 107, 127, 128];
 
 const CATEGORY_OPTIONS = [
   { value: '', label: 'カテゴリー ▼' },
