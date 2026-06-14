@@ -388,6 +388,7 @@ def search_profiles(
     identity: Optional[str] = Query(None),
     community_category: Optional[str] = Query(None, description="Filter by community category"),
     show_all: bool = Query(False, description="Show all categories (for homepage)"),
+    include_self: bool = Query(False, description="Include current user in results"),
     page: int = Query(1, ge=1),
     size: int = Query(20, ge=1, le=100),
     current_user: User = Depends(require_premium),
@@ -398,7 +399,7 @@ def search_profiles(
     q = db.query(MatchingProfile, User).join(User, User.id == MatchingProfile.user_id)
     q = q.filter(MatchingProfile.display_flag == True)
     q = q.filter(~MatchingProfile.user_id.in_(EXCLUDED_USER_IDS))
-    if current_user:
+    if current_user and not include_self:
         q = q.filter(MatchingProfile.user_id != current_user.id)
 
     # Community category filtering: non-admin users only see same category
