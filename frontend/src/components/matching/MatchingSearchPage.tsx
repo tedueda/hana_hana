@@ -254,7 +254,7 @@ const MatchingSearchPage: React.FC = () => {
             </h1>
             <button
               onClick={() => navigate('/matching/profile')}
-              className="text-xs border border-gray-300 px-2.5 py-1 rounded-md text-gray-600 hover:bg-gray-50"
+              className="text-sm font-medium bg-black text-white px-4 py-1.5 rounded-md hover:bg-gray-800 active:scale-95 transition-all"
             >
               編集
             </button>
@@ -265,45 +265,51 @@ const MatchingSearchPage: React.FC = () => {
             </p>
           )}
           {/* Inline compact filters */}
-          <div className="flex items-center gap-2 mb-4">
-            <select
-              value={selectedCategory}
-              onChange={(e) => setSelectedCategory(e.target.value)}
-              className="text-sm border border-gray-300 rounded-lg px-2.5 py-1.5 bg-white text-gray-700 focus:outline-none focus:ring-1 focus:ring-gray-400"
-            >
-              {CATEGORY_OPTIONS.map((opt) => (
-                <option key={opt.value} value={opt.value}>{opt.label}</option>
-              ))}
-            </select>
-            <select
-              value={selectedAgeBand}
-              onChange={(e) => setSelectedAgeBand(e.target.value)}
-              className="text-sm border border-gray-300 rounded-lg px-2.5 py-1.5 bg-white text-gray-700 focus:outline-none focus:ring-1 focus:ring-gray-400"
-            >
-              {AGE_BAND_OPTIONS.map((opt) => (
-                <option key={opt.value} value={opt.value}>{opt.label}</option>
-              ))}
-            </select>
+          <div className="flex flex-col gap-2 mb-4">
+            {/* 1段目: カテゴリー・年代・クリア */}
+            <div className="flex items-center gap-2">
+              <select
+                value={selectedCategory}
+                onChange={(e) => setSelectedCategory(e.target.value)}
+                className="text-sm border border-gray-300 rounded-lg px-2.5 py-1.5 bg-white text-gray-700 focus:outline-none focus:ring-1 focus:ring-gray-400"
+              >
+                {CATEGORY_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
+              </select>
+              <select
+                value={selectedAgeBand}
+                onChange={(e) => setSelectedAgeBand(e.target.value)}
+                className="text-sm border border-gray-300 rounded-lg px-2.5 py-1.5 bg-white text-gray-700 focus:outline-none focus:ring-1 focus:ring-gray-400"
+              >
+                {AGE_BAND_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
+              </select>
+              {(selectedCategory || selectedAgeBand || showFavoritesOnly) && (
+                <button
+                  onClick={clearFilters}
+                  className="text-xs text-gray-500 hover:text-gray-700 underline"
+                >
+                  クリア
+                </button>
+              )}
+            </div>
+            {/* 2段目: お気に入りボタン */}
             {isPaidUser && (
-              <button
-                onClick={() => setShowFavoritesOnly(!showFavoritesOnly)}
-                className={`flex items-center gap-1 text-sm border rounded-lg px-2.5 py-1.5 transition-colors ${
-                  showFavoritesOnly
-                    ? 'bg-pink-50 border-pink-300 text-pink-600'
-                    : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
-                }`}
-              >
-                <Heart className={`h-3.5 w-3.5 ${showFavoritesOnly ? 'fill-pink-500 text-pink-500' : ''}`} />
-                お気に入り
-              </button>
-            )}
-            {(selectedCategory || selectedAgeBand || showFavoritesOnly) && (
-              <button
-                onClick={clearFilters}
-                className="text-xs text-gray-500 hover:text-gray-700 underline"
-              >
-                クリア
-              </button>
+              <div className="flex items-center">
+                <button
+                  onClick={() => setShowFavoritesOnly(!showFavoritesOnly)}
+                  className={`flex items-center gap-1.5 text-sm border rounded-lg px-3 py-1.5 transition-colors ${
+                    showFavoritesOnly
+                      ? 'bg-pink-50 border-pink-300 text-pink-600'
+                      : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
+                  }`}
+                >
+                  <Heart className={`h-3.5 w-3.5 ${showFavoritesOnly ? 'fill-pink-500 text-pink-500' : ''}`} />
+                  お気に入り絞り込み
+                </button>
+              </div>
             )}
           </div>
         </div>
