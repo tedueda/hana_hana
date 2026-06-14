@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight, MapPin } from 'lucide-react';
+import { ArrowRight, MapPin, Heart } from 'lucide-react';
 import { API_URL } from '../../config';
 import { useAuth } from '../../contexts/AuthContext';
 import { IdentityBadge } from '@/components/ui/IdentityBadge';
@@ -54,6 +54,8 @@ const MemberExchangeSection: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState('');
   const [selectedAgeBand, setSelectedAgeBand] = useState('');
+  const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
+  const [likedUserIds, setLikedUserIds] = useState<number[]>([]);
 
   // 有料会員かどうか
   const isPaidUser = user?.membership_type === 'premium' || user?.membership_type === 'admin' || user?.membership_type === 'founder_free';
@@ -118,6 +120,23 @@ const MemberExchangeSection: React.FC = () => {
       }
     };
     fetchMembers();
+
+    // お気に入り（いいね）ユーザーIDを取得
+    const fetchLikes = async () => {
+      if (!token) return;
+      try {
+        const res = await fetch(`${API_URL}/api/matching/likes`, {
+          headers: { 'Authorization': `Bearer ${token}` },
+        });
+        if (res.ok) {
+          const data = await res.json();
+          const likeItems = data.items || data || [];
+          const ids = likeItems.map((item: { user_id?: number }) => item.user_id).filter(Boolean);
+          setLikedUserIds(ids);
+        }
+      } catch { /* ignore */ }
+    };
+    fetchLikes();
   }, [token]);
 
   // フィルター適用
@@ -132,12 +151,15 @@ const MemberExchangeSection: React.FC = () => {
     if (selectedAgeBand) {
       filtered = filtered.filter(m => m.age_band === selectedAgeBand);
     }
+    if (showFavoritesOnly && likedUserIds.length > 0) {
+      filtered = filtered.filter(m => likedUserIds.includes(m.user_id));
+    }
     // ピン留めユーザーは常にトップに
     const pinned = filtered.filter(m => PINNED_USER_IDS.includes(m.user_id));
     const others = filtered.filter(m => !PINNED_USER_IDS.includes(m.user_id));
     pinned.sort((a, b) => PINNED_USER_IDS.indexOf(a.user_id) - PINNED_USER_IDS.indexOf(b.user_id));
     setMembers([...pinned, ...others]);
-  }, [allMembers, selectedCategory, selectedAgeBand]);
+  }, [allMembers, selectedCategory, selectedAgeBand, showFavoritesOnly, likedUserIds]);
 
   return (
     <section className="py-10 md:py-14">
@@ -175,9 +197,22 @@ const MemberExchangeSection: React.FC = () => {
               <option key={opt.value} value={opt.value}>{opt.label}</option>
             ))}
           </select>
-          {(selectedCategory || selectedAgeBand) && (
+          {isPaidUser && (
             <button
-              onClick={() => { setSelectedCategory(''); setSelectedAgeBand(''); }}
+              onClick={() => setShowFavoritesOnly(!showFavoritesOnly)}
+              className={`flex items-center gap-1 text-sm border rounded-lg px-2.5 py-1.5 transition-colors ${
+                showFavoritesOnly
+                  ? 'bg-pink-50 border-pink-300 text-pink-600'
+                  : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
+              }`}
+            >
+              <Heart className={`h-3.5 w-3.5 ${showFavoritesOnly ? 'fill-pink-500 text-pink-500' : ''}`} />
+              お気に入り
+            </button>
+          )}
+          {(selectedCategory || selectedAgeBand || showFavoritesOnly) && (
+            <button
+              onClick={() => { setSelectedCategory(''); setSelectedAgeBand(''); setShowFavoritesOnly(false); }}
               className="text-xs text-gray-500 hover:text-gray-700 underline"
             >
               クリア

@@ -844,21 +844,22 @@ const HomePage: React.FC = () => {
             </div>{/* /左カラム */}
 
             {/* 右カラム: ナビゲーションサイドバー */}
-            <div className="hidden md:block md:w-48 flex-shrink-0">
+            <div className="hidden md:block md:w-60 flex-shrink-0">
               <div className="sticky top-36 space-y-4">
                 {/* 会員専用グループ */}
                 <div className="border border-gray-200 rounded-lg overflow-hidden">
-                  <div className="bg-gray-800 text-white text-xs font-bold px-3 py-2">会員専用</div>
+                  <div className="bg-gray-800 text-white text-sm font-bold px-4 py-2.5">会員専用</div>
                   <div className="divide-y divide-gray-100">
                     {[
                       { label: '💑 会員交流', path: '/matching' },
                       { label: '🏠 会員サロン', path: '/salon' },
                       { label: '💼 ビジネス', path: '/business' },
+                      { label: '💒 ライブウェディング', path: '/live-wedding' },
                     ].map(item => (
                       <button
                         key={item.path}
                         onClick={() => navigate(item.path)}
-                        className="w-full text-left text-xs px-3 py-2 hover:bg-gray-50 transition-colors text-slate-700 font-medium"
+                        className="w-full text-left text-sm px-4 py-2.5 hover:bg-gray-50 transition-colors text-slate-700 font-medium"
                       >
                         {item.label}
                       </button>
@@ -868,7 +869,7 @@ const HomePage: React.FC = () => {
 
                 {/* 掲示板グループ */}
                 <div className="border border-gray-200 rounded-lg overflow-hidden">
-                  <div className="bg-gray-800 text-white text-xs font-bold px-3 py-2">掲示板</div>
+                  <div className="bg-gray-800 text-white text-sm font-bold px-4 py-2.5">掲示板</div>
                   <div className="divide-y divide-gray-100">
                     {[
                       { label: '🎵 Music', path: '/category/music' },
@@ -877,11 +878,12 @@ const HomePage: React.FC = () => {
                       { label: '🍽️ 食レポ・お店', path: '/category/food' },
                       { label: '📍 ツーリズム', path: '/category/tourism' },
                       { label: '💬 掲示板', path: '/category/board' },
+                      { label: '📰 ニュース', path: '/news' },
                     ].map(item => (
                       <button
                         key={item.path}
                         onClick={() => navigate(item.path)}
-                        className="w-full text-left text-xs px-3 py-2 hover:bg-gray-50 transition-colors text-slate-700"
+                        className="w-full text-left text-sm px-4 py-2.5 hover:bg-gray-50 transition-colors text-slate-700"
                       >
                         {item.label}
                       </button>
@@ -891,16 +893,15 @@ const HomePage: React.FC = () => {
 
                 {/* ニュース・ブロググループ */}
                 <div className="border border-gray-200 rounded-lg overflow-hidden">
-                  <div className="bg-gray-800 text-white text-xs font-bold px-3 py-2">コンテンツ</div>
+                  <div className="bg-gray-800 text-white text-sm font-bold px-4 py-2.5">コンテンツ</div>
                   <div className="divide-y divide-gray-100">
                     {[
-                      { label: '📰 ニュース', path: '/news' },
                       { label: '✍️ ブログ', path: '/blog' },
                     ].map(item => (
                       <button
                         key={item.path}
                         onClick={() => navigate(item.path)}
-                        className="w-full text-left text-xs px-3 py-2 hover:bg-gray-50 transition-colors text-slate-700"
+                        className="w-full text-left text-sm px-4 py-2.5 hover:bg-gray-50 transition-colors text-slate-700"
                       >
                         {item.label}
                       </button>
