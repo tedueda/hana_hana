@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight, MapPin, Heart } from 'lucide-react';
+import { ArrowRight, Heart } from 'lucide-react';
 import { API_URL } from '../../config';
 import { useAuth } from '../../contexts/AuthContext';
-import { IdentityBadge } from '@/components/ui/IdentityBadge';
+import { MatchCard } from '@/components/matching/MatchCard';
 
 interface MemberItem {
   user_id: number;
@@ -231,59 +231,7 @@ const MemberExchangeSection: React.FC = () => {
           >
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-4">
               {members.map((member) => (
-                <article
-                  key={member.user_id}
-                  onClick={() => {
-                    if (isPaidUser) {
-                      navigate(`/matching/users/${member.user_id}`);
-                    } else {
-                      navigate('/register');
-                    }
-                  }}
-                  className="group relative overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition-all hover:shadow-md cursor-pointer"
-                >
-                  <div className="relative aspect-[3/4] bg-gradient-to-br from-gray-100 to-gray-200">
-                    {member.avatar_url ? (
-                      <img
-                        src={member.avatar_url}
-                        alt={member.display_name || ''}
-                        className={`h-full w-full object-cover ${!isPaidUser ? 'blur-lg' : ''}`}
-                        loading="lazy"
-                      />
-                    ) : (
-                      <div className={`h-full w-full flex items-center justify-center bg-gradient-to-br from-gray-200 to-gray-300 ${!isPaidUser ? 'blur-lg' : ''}`}>
-                        <div className="w-16 h-16 bg-gray-400 rounded-full flex items-center justify-center">
-                          <span className="text-white text-2xl">👤</span>
-                        </div>
-                      </div>
-                    )}
-                    {!isPaidUser && (
-                      <div className="absolute inset-0 flex items-center justify-center bg-black/10">
-                        <span className="text-white text-xs font-medium bg-black/50 px-2 py-1 rounded">会員登録で表示</span>
-                      </div>
-                    )}
-                    {isPaidUser && member.identity && (
-                      <div className="absolute top-2 left-2">
-                        <IdentityBadge value={member.identity} />
-                      </div>
-                    )}
-                  </div>
-                  <div className="p-2.5">
-                    <p className={`text-sm font-semibold text-gray-900 truncate ${!isPaidUser ? 'blur-sm' : ''}`}>
-                      {member.display_name || 'メンバー'}
-                    </p>
-                    <div className="flex items-center gap-1 mt-0.5">
-                      {member.age_band && (
-                        <span className="text-xs text-gray-500">{member.age_band}</span>
-                      )}
-                      {member.prefecture && (
-                        <span className="text-xs text-gray-500 flex items-center gap-0.5">
-                          <MapPin className="h-3 w-3" />{member.prefecture}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </article>
+                <MatchCard key={member.user_id} item={member} />
               ))}
             </div>
           </div>
