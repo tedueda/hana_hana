@@ -376,9 +376,9 @@ const MatchingProfilePage: React.FC = () => {
       await fetchProfile();
       setNewPassword('');
       
-      // プロフィール保存後、マッチングページへリダイレクト
+      // プロフィール保存後、会員一覧（会員交流の検索画面）へリダイレクト
       alert('プロフィールを保存しました。あなたにおすすめの会員を表示します。');
-      navigate('/about?tab=matching');
+      navigate('/matching');
     } catch (e: any) {
       console.error('Profile save error:', e);
       const errorMessage = e?.message || '保存に失敗しました';
