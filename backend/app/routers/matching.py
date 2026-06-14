@@ -393,8 +393,11 @@ def search_profiles(
     current_user: User = Depends(require_premium),
     db: Session = Depends(get_db),
 ):
+    # テストユーザーを除外（マイグレーション未実行でも確実に除外）
+    EXCLUDED_USER_IDS = [103, 107, 127, 128]
     q = db.query(MatchingProfile, User).join(User, User.id == MatchingProfile.user_id)
     q = q.filter(MatchingProfile.display_flag == True)
+    q = q.filter(~MatchingProfile.user_id.in_(EXCLUDED_USER_IDS))
     if current_user:
         q = q.filter(MatchingProfile.user_id != current_user.id)
 
@@ -532,8 +535,12 @@ def public_matching_preview(
     About ページの会員マッチング等で、未ログイン・非有料でも本番DBのプレビューを表示するための公開エンドポイント。
     ログイン時は自分自身を一覧から除外する。
     """
+    EXCLUDED_USER_IDS = [103, 107, 127, 128]
     q = db.query(MatchingProfile, User).join(User, User.id == MatchingProfile.user_id)
     q = q.filter(MatchingProfile.display_flag == True)
+    q = q.filter(User.is_active == True)
+    q = q.filter(User.deleted_at.is_(None))
+    q = q.filter(~MatchingProfile.user_id.in_(EXCLUDED_USER_IDS))
     if current_user is not None:
         q = q.filter(MatchingProfile.user_id != current_user.id)
     total = q.count()
