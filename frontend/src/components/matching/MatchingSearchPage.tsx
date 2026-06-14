@@ -4,7 +4,7 @@ import { useAuth, resilientFetch } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { MatchCard } from './MatchCard';
 import { BACKEND_URL } from '@/config';
-import { X, UserCog } from 'lucide-react';
+import { UserCog } from 'lucide-react';
 
 type MatchItem = {
   user_id: number;
@@ -17,7 +17,33 @@ type MatchItem = {
   avatar_url?: string | null;
   occupation?: string | null;
   meet_pref?: string | null;
+  community_category?: string | null;
 };
+
+const CATEGORY_OPTIONS = [
+  { value: '', label: 'カテゴリー ▼' },
+  { value: 'ゲイ', label: 'ゲイ' },
+  { value: 'レズビアン', label: 'レズビアン' },
+  { value: 'バイセクシュアル', label: 'バイセクシュアル' },
+  { value: 'トランスジェンダー', label: 'トランスジェンダー' },
+  { value: 'クィア', label: 'クィア' },
+  { value: 'ストレート・アライ', label: 'ストレート・アライ' },
+  { value: 'その他', label: 'その他' },
+];
+
+const AGE_BAND_OPTIONS = [
+  { value: '', label: '年代 ▼' },
+  { value: '10代', label: '10代' },
+  { value: '20代前半', label: '20代前半' },
+  { value: '20代後半', label: '20代後半' },
+  { value: '30代前半', label: '30代前半' },
+  { value: '30代後半', label: '30代後半' },
+  { value: '40代前半', label: '40代前半' },
+  { value: '40代後半', label: '40代後半' },
+  { value: '50代前半', label: '50代前半' },
+  { value: '50代後半', label: '50代後半' },
+  { value: '60代以上', label: '60代以上' },
+];
 
 const MatchingSearchPage: React.FC = () => {
   const { t } = useTranslation();
@@ -31,11 +57,8 @@ const MatchingSearchPage: React.FC = () => {
   const [categoryRequired, setCategoryRequired] = useState(false);
   const [userCategory, setUserCategory] = useState<string | null>(null);
   
-  const [selectedNationality, setSelectedNationality] = useState<string>("");
+  const [selectedCategory, setSelectedCategory] = useState<string>("");
   const [selectedAgeBand, setSelectedAgeBand] = useState<string>("");
-  const [selectedOccupation, setSelectedOccupation] = useState<string>("");
-  const [selectedMeetPref, setSelectedMeetPref] = useState<string>("");
-  const [showFilterModal, setShowFilterModal] = useState(false);
 
   const fetchSearch = async () => {
     setLoading(true);
@@ -47,7 +70,6 @@ const MatchingSearchPage: React.FC = () => {
         headers['Authorization'] = `Bearer ${token}`;
       }
 
-      // AWS 本番 API へ接続（resilientFetch: API_URL → DIRECT_API_URL の順で試行）
       const merged: MatchItem[] = [];
       let page = 1;
       const size = 50;
@@ -63,7 +85,6 @@ const MatchingSearchPage: React.FC = () => {
         }
         const data = await res.json();
 
-        // Check for category_required flag from backend
         if (data.category_required) {
           setCategoryRequired(true);
           setUserCategory(null);
@@ -86,7 +107,6 @@ const MatchingSearchPage: React.FC = () => {
       setCategoryRequired(false);
       let fetchedItems = merged;
 
-      // 画像URLを整形（相対パスは BACKEND_URL＝本番直 or 解決済み API 基準）
       fetchedItems = fetchedItems.map((it) => {
         let avatar = it.avatar_url || '';
         if (avatar && !avatar.startsWith('http')) {
@@ -97,9 +117,6 @@ const MatchingSearchPage: React.FC = () => {
         }
         return { ...it, avatar_url: avatar };
       });
-      
-      // Category filtering is now done server-side based on user's community_category
-      // No client-side segment filtering needed
       
       setAllItems(fetchedItems);
       setItems(fetchedItems);
@@ -118,47 +135,22 @@ const MatchingSearchPage: React.FC = () => {
   useEffect(() => {
     let filtered = [...allItems];
     
-    if (selectedNationality) {
-      filtered = filtered.filter(it => it.nationality === selectedNationality);
+    if (selectedCategory) {
+      filtered = filtered.filter(it => {
+        const cat = it.community_category || it.identity || '';
+        return cat === selectedCategory;
+      });
     }
     if (selectedAgeBand) {
       filtered = filtered.filter(it => it.age_band === selectedAgeBand);
     }
-    if (selectedOccupation) {
-      filtered = filtered.filter(it => it.occupation === selectedOccupation);
-    }
-    if (selectedMeetPref) {
-      filtered = filtered.filter(it => it.meet_pref === selectedMeetPref);
-    }
     
     setItems(filtered);
-  }, [allItems, selectedNationality, selectedAgeBand, selectedOccupation, selectedMeetPref]);
-
-  // Nationality codes for filtering
-  const NATIONALITY_CODES = [
-    'JP', 'US', 'KR', 'CN', 'TW', 'HK', 'TH', 'VN', 'PH', 'ID', 'MY', 'SG', 'IN',
-    'AU', 'NZ', 'GB', 'DE', 'FR', 'IT', 'ES', 'PT', 'NL', 'BE', 'CH', 'AT',
-    'SE', 'NO', 'DK', 'FI', 'RU', 'CA', 'MX', 'BR', 'AR', 'CL', 'CO', 'PE',
-    'ZA', 'EG', 'IL', 'AE', 'SA', 'TR', 'OTHER'
-  ];
-  // Age band keys for i18n
-  const AGE_BAND_KEYS = ['10s', '20sEarly', '20sLate', '30sEarly', '30sLate', '40sEarly', '40sLate', '50sEarly', '50sLate', '60sPlus'];
-  // Age band values (stored in DB)
-  const AGE_BAND_VALUES = ['10代', '20代前半', '20代後半', '30代前半', '30代後半', '40代前半', '40代後半', '50代前半', '50代後半', '60代以上'];
-  // Occupation keys for i18n
-  const OCCUPATION_KEYS = ['employee', 'selfEmployed', 'freelance', 'student', 'professional', 'publicServant', 'partTime', 'other'];
-  // Occupation values (stored in DB)
-  const OCCUPATION_VALUES = ['会社員', '自営業', 'フリーランス', '学生', '専門職', '公務員', 'パート・アルバイト', 'その他'];
-  // Meet pref keys for i18n
-  const MEET_PREF_KEYS = ['partner', 'friend', 'counselor', 'member', 'other'];
-  // Meet pref values (stored in DB)
-  const MEET_PREF_VALUES = ['パートナー探し', '友人探し', '相談相手探し', 'メンバー募集', 'その他'];
+  }, [allItems, selectedCategory, selectedAgeBand]);
 
   const clearFilters = () => {
-    setSelectedNationality("");
+    setSelectedCategory("");
     setSelectedAgeBand("");
-    setSelectedOccupation("");
-    setSelectedMeetPref("");
   };
 
   // Category display name mapping
@@ -184,7 +176,6 @@ const MatchingSearchPage: React.FC = () => {
     return map[category] || category;
   };
 
-  // If user's category is not set, show profile edit prompt
   if (!loading && categoryRequired) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-50 to-pink-50/30">
@@ -219,7 +210,7 @@ const MatchingSearchPage: React.FC = () => {
         <div className="md:hidden">
           <div className="flex items-center justify-between mb-2">
             <h1 className="text-xl font-bold text-gray-900">
-              {t('matching.searchList')}
+              会員交流
             </h1>
             <button
               onClick={() => navigate('/matching/profile')}
@@ -236,26 +227,24 @@ const MatchingSearchPage: React.FC = () => {
           {/* Inline compact filters */}
           <div className="flex items-center gap-2 mb-4">
             <select
+              value={selectedCategory}
+              onChange={(e) => setSelectedCategory(e.target.value)}
+              className="text-sm border border-gray-300 rounded-lg px-2.5 py-1.5 bg-white text-gray-700 focus:outline-none focus:ring-1 focus:ring-gray-400"
+            >
+              {CATEGORY_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
+              ))}
+            </select>
+            <select
               value={selectedAgeBand}
               onChange={(e) => setSelectedAgeBand(e.target.value)}
               className="text-sm border border-gray-300 rounded-lg px-2.5 py-1.5 bg-white text-gray-700 focus:outline-none focus:ring-1 focus:ring-gray-400"
             >
-              <option value="">年代 ▼</option>
-              {AGE_BAND_KEYS.map((key, idx) => (
-                <option key={key} value={AGE_BAND_VALUES[idx]}>{t(`matching.ageBands.${key}`)}</option>
+              {AGE_BAND_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
               ))}
             </select>
-            <select
-              value={selectedNationality}
-              onChange={(e) => setSelectedNationality(e.target.value)}
-              className="text-sm border border-gray-300 rounded-lg px-2.5 py-1.5 bg-white text-gray-700 focus:outline-none focus:ring-1 focus:ring-gray-400"
-            >
-              <option value="">出身地 ▼</option>
-              {NATIONALITY_CODES.map((code) => (
-                <option key={code} value={code}>{t(`matching.nationalities.${code}`)}</option>
-              ))}
-            </select>
-            {(selectedAgeBand || selectedNationality || selectedOccupation || selectedMeetPref) && (
+            {(selectedCategory || selectedAgeBand) && (
               <button
                 onClick={clearFilters}
                 className="text-xs text-gray-500 hover:text-gray-700 underline"
@@ -269,7 +258,7 @@ const MatchingSearchPage: React.FC = () => {
         {/* Desktop: Title + Category heading */}
         <div className="hidden md:block">
           <h1 className="mb-2 text-2xl font-bold text-gray-900">
-            {t('matching.searchList')}
+            会員交流
           </h1>
           {userCategory && (
             <p className="mb-6 text-sm text-gray-600">
@@ -278,162 +267,41 @@ const MatchingSearchPage: React.FC = () => {
           )}
         </div>
 
-        {/* Mobile Filter Modal */}
-        {showFilterModal && (
-          <div className="md:hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-end">
-            <div className="bg-white w-full rounded-t-2xl max-h-[80vh] overflow-y-auto">
-              <div className="sticky top-0 bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
-                <h3 className="text-lg font-semibold text-gray-900">{t('matching.searchConditions')}</h3>
-                <button
-                  onClick={() => setShowFilterModal(false)}
-                  className="p-2 hover:bg-gray-100 rounded-full transition-colors"
-                >
-                  <X className="h-6 w-6" />
-                </button>
-              </div>
-              
-              <div className="p-4 space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">{t('matching.nationality')}</label>
-                  <select
-                    value={selectedNationality}
-                    onChange={(e) => setSelectedNationality(e.target.value)}
-                    className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
-                  >
-                    <option value="">{t('matching.all')}</option>
-                    {NATIONALITY_CODES.map((code) => (
-                      <option key={code} value={code}>{t(`matching.nationalities.${code}`)}</option>
-                    ))}
-                  </select>
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">{t('matching.ageGroup')}</label>
-                  <select
-                    value={selectedAgeBand}
-                    onChange={(e) => setSelectedAgeBand(e.target.value)}
-                    className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
-                  >
-                    <option value="">{t('matching.all')}</option>
-                    {AGE_BAND_KEYS.map((key, idx) => (
-                      <option key={key} value={AGE_BAND_VALUES[idx]}>{t(`matching.ageBands.${key}`)}</option>
-                    ))}
-                  </select>
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">{t('matching.occupation')}</label>
-                  <select
-                    value={selectedOccupation}
-                    onChange={(e) => setSelectedOccupation(e.target.value)}
-                    className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
-                  >
-                    <option value="">{t('matching.all')}</option>
-                    {OCCUPATION_KEYS.map((key, idx) => (
-                      <option key={key} value={OCCUPATION_VALUES[idx]}>{t(`matching.occupations.${key}`)}</option>
-                    ))}
-                  </select>
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">{t('matching.matchingPurpose')}</label>
-                  <select
-                    value={selectedMeetPref}
-                    onChange={(e) => setSelectedMeetPref(e.target.value)}
-                    className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
-                  >
-                    <option value="">{t('matching.all')}</option>
-                    {MEET_PREF_KEYS.map((key, idx) => (
-                      <option key={key} value={MEET_PREF_VALUES[idx]}>{t(`matching.meetPrefs.${key}`)}</option>
-                    ))}
-                  </select>
-                </div>
-                
-                <div className="flex gap-3 pt-4">
-                  <button
-                    onClick={() => {
-                      clearFilters();
-                      setShowFilterModal(false);
-                    }}
-                    className="flex-1 px-4 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
-                  >
-                    {t('matching.clear')}
-                  </button>
-                  <button
-                    onClick={() => setShowFilterModal(false)}
-                    className="flex-1 px-4 py-3 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors font-medium"
-                  >
-                    {t('matching.apply')}
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-        
         {/* Desktop Filter Section */}
         <div className="hidden md:block mb-6 bg-white rounded-lg border border-gray-200 p-4">
           <div className="flex items-center justify-between mb-3">
-            <h3 className="text-sm font-semibold text-gray-700">{t('matching.conditionalSearch')}</h3>
-            {(selectedNationality || selectedAgeBand || selectedOccupation || selectedMeetPref) && (
+            <h3 className="text-sm font-semibold text-gray-700">検索条件</h3>
+            {(selectedCategory || selectedAgeBand) && (
               <button
                 onClick={clearFilters}
                 className="text-xs text-gray-500 hover:text-gray-700 underline"
               >
-                {t('matching.clear')}
+                クリア
               </button>
             )}
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">{t('matching.nationality')}</label>
+              <label className="block text-xs font-medium text-gray-600 mb-1">カテゴリー</label>
               <select
-                value={selectedNationality}
-                onChange={(e) => setSelectedNationality(e.target.value)}
+                value={selectedCategory}
+                onChange={(e) => setSelectedCategory(e.target.value)}
                 className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
               >
-                <option value="">{t('matching.all')}</option>
-                {NATIONALITY_CODES.map((code) => (
-                  <option key={code} value={code}>{t(`matching.nationalities.${code}`)}</option>
+                {CATEGORY_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>{opt.value === '' ? 'すべて' : opt.label}</option>
                 ))}
               </select>
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">{t('matching.ageGroup')}</label>
+              <label className="block text-xs font-medium text-gray-600 mb-1">年代</label>
               <select
                 value={selectedAgeBand}
                 onChange={(e) => setSelectedAgeBand(e.target.value)}
                 className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
               >
-                <option value="">{t('matching.all')}</option>
-                {AGE_BAND_KEYS.map((key, idx) => (
-                  <option key={key} value={AGE_BAND_VALUES[idx]}>{t(`matching.ageBands.${key}`)}</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">{t('matching.occupation')}</label>
-              <select
-                value={selectedOccupation}
-                onChange={(e) => setSelectedOccupation(e.target.value)}
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
-              >
-                <option value="">{t('matching.all')}</option>
-                {OCCUPATION_KEYS.map((key, idx) => (
-                  <option key={key} value={OCCUPATION_VALUES[idx]}>{t(`matching.occupations.${key}`)}</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">{t('matching.matchingPurpose')}</label>
-              <select
-                value={selectedMeetPref}
-                onChange={(e) => setSelectedMeetPref(e.target.value)}
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
-              >
-                <option value="">{t('matching.all')}</option>
-                {MEET_PREF_KEYS.map((key, idx) => (
-                  <option key={key} value={MEET_PREF_VALUES[idx]}>{t(`matching.meetPrefs.${key}`)}</option>
+                {AGE_BAND_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>{opt.value === '' ? 'すべて' : opt.label}</option>
                 ))}
               </select>
             </div>

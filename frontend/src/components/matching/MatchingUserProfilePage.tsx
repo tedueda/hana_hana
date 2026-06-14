@@ -242,7 +242,7 @@ const MatchingUserProfilePage: React.FC = () => {
       {/* Profile Content */}
       <div className="max-w-2xl mx-auto">
         {/* Image Gallery */}
-        <div className="relative mx-auto max-w-xl md:max-w-2xl max-h-[420px] md:max-h-[480px] aspect-[4/3] rounded-lg overflow-hidden bg-gray-100 mb-4 md:mb-0">
+        <div className="relative mx-auto max-w-xl md:max-w-2xl rounded-lg overflow-hidden bg-gray-100 mb-4 md:mb-0">
           {/* 国旗バッジ（左上） */}
           {profile.nationality && (
             <div className="absolute left-3 top-3 bg-white/90 rounded-full px-2 py-1.5 shadow-md z-20 flex items-center gap-1.5">
@@ -265,7 +265,7 @@ const MatchingUserProfilePage: React.FC = () => {
                     ? `${API_URL}${profile.images[currentImageIndex].image_url}`
                     : ''}
                 alt={`${profile.display_name} - ${currentImageIndex + 1}`}
-                className="w-full h-full object-cover"
+                className="w-full object-contain max-h-[600px]"
                 onError={(e) => {
                   const target = e.currentTarget as HTMLImageElement;
                   target.style.display = 'none';
@@ -301,7 +301,7 @@ const MatchingUserProfilePage: React.FC = () => {
             <img
               src={profile.avatar_url.startsWith('http') ? profile.avatar_url : `${API_URL}${profile.avatar_url}`}
               alt={profile.display_name}
-              className="w-full h-full object-cover"
+              className="w-full object-contain max-h-[600px]"
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center text-gray-400">

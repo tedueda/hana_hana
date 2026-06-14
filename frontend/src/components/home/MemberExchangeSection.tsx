@@ -13,16 +13,45 @@ interface MemberItem {
   age_band?: string | null;
   avatar_url?: string | null;
   bio?: string | null;
+  community_category?: string | null;
 }
 
 // エスムラルダ(129)とTAKA(130)を常にトップに表示
 const PINNED_USER_IDS = [129, 130];
 
+const CATEGORY_OPTIONS = [
+  { value: '', label: 'カテゴリー ▼' },
+  { value: 'ゲイ', label: 'ゲイ' },
+  { value: 'レズビアン', label: 'レズビアン' },
+  { value: 'バイセクシュアル', label: 'バイセクシュアル' },
+  { value: 'トランスジェンダー', label: 'トランスジェンダー' },
+  { value: 'クィア', label: 'クィア' },
+  { value: 'ストレート・アライ', label: 'ストレート・アライ' },
+  { value: 'その他', label: 'その他' },
+];
+
+const AGE_BAND_OPTIONS = [
+  { value: '', label: '年代 ▼' },
+  { value: '10代', label: '10代' },
+  { value: '20代前半', label: '20代前半' },
+  { value: '20代後半', label: '20代後半' },
+  { value: '30代前半', label: '30代前半' },
+  { value: '30代後半', label: '30代後半' },
+  { value: '40代前半', label: '40代前半' },
+  { value: '40代後半', label: '40代後半' },
+  { value: '50代前半', label: '50代前半' },
+  { value: '50代後半', label: '50代後半' },
+  { value: '60代以上', label: '60代以上' },
+];
+
 const MemberExchangeSection: React.FC = () => {
   const navigate = useNavigate();
   const { token } = useAuth();
   const [members, setMembers] = useState<MemberItem[]>([]);
+  const [allMembers, setAllMembers] = useState<MemberItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedCategory, setSelectedCategory] = useState('');
+  const [selectedAgeBand, setSelectedAgeBand] = useState('');
 
   useEffect(() => {
     const fetchMembers = async () => {
@@ -51,9 +80,10 @@ const MemberExchangeSection: React.FC = () => {
         // ピン留めユーザーをトップに配置
         const pinned = allItems.filter(m => PINNED_USER_IDS.includes(m.user_id));
         const others = allItems.filter(m => !PINNED_USER_IDS.includes(m.user_id));
-        // ピン留めの順番を維持
         pinned.sort((a, b) => PINNED_USER_IDS.indexOf(a.user_id) - PINNED_USER_IDS.indexOf(b.user_id));
-        setMembers([...pinned, ...others]);
+        const sorted = [...pinned, ...others];
+        setAllMembers(sorted);
+        setMembers(sorted);
       } catch (err) {
         console.error('Failed to fetch members:', err);
       } finally {
@@ -63,10 +93,29 @@ const MemberExchangeSection: React.FC = () => {
     fetchMembers();
   }, [token]);
 
+  // フィルター適用
+  useEffect(() => {
+    let filtered = [...allMembers];
+    if (selectedCategory) {
+      filtered = filtered.filter(m => {
+        const cat = m.community_category || m.identity || '';
+        return cat === selectedCategory;
+      });
+    }
+    if (selectedAgeBand) {
+      filtered = filtered.filter(m => m.age_band === selectedAgeBand);
+    }
+    // ピン留めユーザーは常にトップに
+    const pinned = filtered.filter(m => PINNED_USER_IDS.includes(m.user_id));
+    const others = filtered.filter(m => !PINNED_USER_IDS.includes(m.user_id));
+    pinned.sort((a, b) => PINNED_USER_IDS.indexOf(a.user_id) - PINNED_USER_IDS.indexOf(b.user_id));
+    setMembers([...pinned, ...others]);
+  }, [allMembers, selectedCategory, selectedAgeBand]);
+
   return (
     <section className="py-10 md:py-14">
       <div>
-        <div className="flex flex-col md:flex-row md:items-baseline md:justify-between mb-6 gap-2">
+        <div className="flex flex-col md:flex-row md:items-baseline md:justify-between mb-4 gap-2">
           <div>
             <h2 className="text-2xl md:text-3xl font-serif font-bold text-slate-900">会員交流</h2>
             <p className="text-sm text-gray-500 mt-1">Caratに参加しているメンバーと気軽に交流できます</p>
@@ -77,6 +126,36 @@ const MemberExchangeSection: React.FC = () => {
           >
             全て見る <ArrowRight className="h-4 w-4" />
           </button>
+        </div>
+
+        {/* フィルター */}
+        <div className="flex items-center gap-2 mb-4">
+          <select
+            value={selectedCategory}
+            onChange={(e) => setSelectedCategory(e.target.value)}
+            className="text-sm border border-gray-300 rounded-lg px-2.5 py-1.5 bg-white text-gray-700 focus:outline-none focus:ring-1 focus:ring-gray-400"
+          >
+            {CATEGORY_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>{opt.label}</option>
+            ))}
+          </select>
+          <select
+            value={selectedAgeBand}
+            onChange={(e) => setSelectedAgeBand(e.target.value)}
+            className="text-sm border border-gray-300 rounded-lg px-2.5 py-1.5 bg-white text-gray-700 focus:outline-none focus:ring-1 focus:ring-gray-400"
+          >
+            {AGE_BAND_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>{opt.label}</option>
+            ))}
+          </select>
+          {(selectedCategory || selectedAgeBand) && (
+            <button
+              onClick={() => { setSelectedCategory(''); setSelectedAgeBand(''); }}
+              className="text-xs text-gray-500 hover:text-gray-700 underline"
+            >
+              クリア
+            </button>
+          )}
         </div>
 
         {loading ? (
@@ -141,7 +220,7 @@ const MemberExchangeSection: React.FC = () => {
           </div>
         )}
 
-        {members.length > 0 && (
+        {allMembers.length > 0 && (
           <div className="mt-6 text-center">
             <button
               onClick={() => navigate('/matching')}
