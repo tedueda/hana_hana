@@ -70,14 +70,17 @@ const MatchingSearchPage: React.FC = () => {
   const isPaidUser = user?.membership_type === 'premium' || user?.membership_type === 'admin' || user?.membership_type === 'founder_free';
 
   const fetchSearch = async () => {
+    if (!token) {
+      setLoading(false);
+      setError('__auth_required__');
+      return;
+    }
     setLoading(true);
     setError(null);
     
     try {
       const headers: Record<string, string> = { 'Cache-Control': 'no-cache' };
-      if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-      }
+      headers['Authorization'] = `Bearer ${token}`;
 
       const merged: MatchItem[] = [];
       let page = 1;
@@ -89,8 +92,13 @@ const MatchingSearchPage: React.FC = () => {
           { headers },
         );
         if (!res.ok) {
+          if (res.status === 401) {
+            throw new Error('__auth_required__');
+          }
           const text = await res.text();
-          throw new Error(text || `HTTP ${res.status}`);
+          let message = `HTTP ${res.status}`;
+          try { message = JSON.parse(text).detail || message; } catch { message = text || message; }
+          throw new Error(message);
         }
         const data = await res.json();
 
@@ -389,7 +397,20 @@ const MatchingSearchPage: React.FC = () => {
           </div>
         )}
         
-        {error && (
+        {error === '__auth_required__' && (
+          <div className="flex min-h-[400px] items-center justify-center rounded-2xl border-2 border-dashed border-gray-300 bg-white">
+            <div className="text-center">
+              <p className="text-lg font-medium text-gray-700 mb-4">会員交流を利用するにはログインが必要です</p>
+              <button
+                onClick={() => navigate('/login')}
+                className="px-6 py-3 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors font-medium"
+              >
+                ログイン
+              </button>
+            </div>
+          </div>
+        )}
+        {error && error !== '__auth_required__' && (
           <div className="rounded-lg bg-red-50 border border-red-200 p-4 text-red-600">
             {error}
           </div>
