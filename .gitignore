@@ -1,6 +1,9 @@
 # Environment files with secrets
 backend/.env
 frontend/.env
+.DS_Store
+**/.DS_Store
+/carat_community/
 
 backend/app/__pycache__/
 backend/__pycache__/
@@ -23,6 +26,7 @@ backend/debug_*.py
 
 # Local Netlify folder
 .netlify
+frontend/.netlify
 node_modules
 
 # Frontend build artifacts / local deploy zips
