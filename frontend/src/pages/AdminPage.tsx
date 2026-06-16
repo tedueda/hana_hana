@@ -1464,6 +1464,10 @@ const SalonManagementTab: React.FC<{ token: string }> = ({ token }) => {
   const [loading, setLoading] = useState(true);
   const [editingCatId, setEditingCatId] = useState<number | null>(null);
   const [editCatData, setEditCatData] = useState<Partial<SalonCategoryAdmin>>({});
+  const [newCatName, setNewCatName] = useState('');
+  const [newCatIcon, setNewCatIcon] = useState('');
+  const [createCatError, setCreateCatError] = useState<string | null>(null);
+  const [createCatLoading, setCreateCatLoading] = useState(false);
 
   const fetchCategories = useCallback(async () => {
     try {
@@ -1539,6 +1543,29 @@ const SalonManagementTab: React.FC<{ token: string }> = ({ token }) => {
     }
   };
 
+  const handleCreateCategory = async () => {
+    const name = newCatName.trim();
+    if (!name) { setCreateCatError('カテゴリー名を入力してください'); return; }
+    setCreateCatLoading(true);
+    setCreateCatError(null);
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/salon/admin/categories`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ display_name: name, icon: newCatIcon || undefined }),
+      });
+      if (res.ok) {
+        setNewCatName('');
+        setNewCatIcon('');
+        fetchCategories();
+      } else {
+        const data = await res.json().catch(() => ({}));
+        setCreateCatError(data.detail || '作成に失敗しました');
+      }
+    } catch { setCreateCatError('ネットワークエラーが発生しました'); }
+    finally { setCreateCatLoading(false); }
+  };
+
   const resolveReport = async (reportId: number, status: string) => {
     try {
       await fetch(`${BACKEND_URL}/api/salon/admin/reports/${reportId}`, {
@@ -1573,6 +1600,30 @@ const SalonManagementTab: React.FC<{ token: string }> = ({ token }) => {
       {subTab === 'categories' && (
         <div>
           <h2 className="text-lg font-semibold mb-4">サロンカテゴリー管理</h2>
+
+          {/* Create new category */}
+          <div className="mb-6 p-4 border border-gray-200 rounded-lg bg-gray-50">
+            <h3 className="text-sm font-semibold mb-3">新規カテゴリーを作成</h3>
+            <div className="flex gap-2 flex-wrap">
+              <Input
+                placeholder="カテゴリー名（例: 映画、音楽、AI）"
+                value={newCatName}
+                onChange={e => setNewCatName(e.target.value)}
+                className="w-48"
+                onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleCreateCategory(); } }}
+              />
+              <Input
+                placeholder="アイコン（絵文字・省略可）"
+                value={newCatIcon}
+                onChange={e => setNewCatIcon(e.target.value)}
+                className="w-32"
+              />
+              <Button size="sm" onClick={handleCreateCategory} disabled={createCatLoading}>
+                {createCatLoading ? '作成中...' : '作成'}
+              </Button>
+            </div>
+            {createCatError && <p className="text-red-600 text-xs mt-2">{createCatError}</p>}
+          </div>
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>

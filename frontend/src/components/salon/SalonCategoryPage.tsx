@@ -155,7 +155,7 @@ const SalonCategoryPage: React.FC = () => {
               </h1>
             </div>
             <p className="text-gray-600 mb-1">{category.description}</p>
-            <p className="text-sm text-gray-400">{category.group_name} ・ サロン室 {rooms.length}件</p>
+            <p className="text-sm text-gray-400">サロン室 {rooms.length}件</p>
 
             {/* Warning text for sensitive categories */}
             {category.warning_text && (

@@ -1,18 +1,24 @@
 redirectsOrigin = "config"
-plugins = []
 
 [functions]
 
 [functions."*"]
 
+[[plugins]]
+origin = "config"
+package = "@netlify/plugin-sitemap"
+
+[plugins.inputs]
+
 [build]
-publish = "/Users/tedueda/carat_community/frontend/dist"
+publish = "/Users/tedueda/CascadeProjects/carat_community/frontend/dist"
 publishOrigin = "config"
 commandOrigin = "config"
-base = "/Users/tedueda/carat_community/frontend"
+base = "/Users/tedueda/CascadeProjects/carat_community/frontend"
 command = "npm run build"
 
 [build.environment]
+PRERENDER = "true"
 
 [build.processing]
 
@@ -60,11 +66,44 @@ for = "/audio/*"
 [headers.values]
 Cache-Control = "public, max-age=31536000, immutable"
 
+[[headers]]
+for = "/sitemap.xml"
+
+[headers.values]
+Content-Type = "application/xml"
+Cache-Control = "no-cache, no-store, must-revalidate"
+
+[[headers]]
+for = "/sitemap-blog.xml"
+
+[headers.values]
+Content-Type = "application/xml"
+Cache-Control = "no-cache, no-store, must-revalidate"
+
+[[headers]]
+for = "/robots.txt"
+
+[headers.values]
+Content-Type = "text/plain"
+Cache-Control = "public, max-age=3600"
+
 [[redirects]]
 from = "/api/*"
 to = "https://ddxdewgmen.ap-northeast-1.awsapprunner.com/api/:splat"
 status = 200.0
 force = false
+
+[redirects.query]
+
+[redirects.conditions]
+
+[redirects.headers]
+
+[[redirects]]
+from = "/sitemap-blog.xml"
+to = "https://ddxdewgmen.ap-northeast-1.awsapprunner.com/sitemap-blog.xml"
+status = 200.0
+force = true
 
 [redirects.query]
 

@@ -1048,7 +1048,87 @@ def create_report(
     }
 
 
+# ── User category creation ──
+
+@router.post("/user-categories", status_code=201)
+def user_create_category(
+    body: dict,
+    current_user: User = Depends(require_premium),
+    db: Session = Depends(get_db),
+):
+    """Premium users can create new categories. Returns existing if duplicate found."""
+    import re
+    display_name = (body.get("display_name") or "").strip()
+    if not display_name:
+        raise HTTPException(status_code=422, detail="カテゴリー名を入力してください")
+    if len(display_name) > 30:
+        raise HTTPException(status_code=422, detail="カテゴリー名は30文字以内にしてください")
+    if len(display_name) < 2:
+        raise HTTPException(status_code=422, detail="カテゴリー名は2文字以上にしてください")
+    if not re.search(r'[\w\u3040-\u9fff]', display_name):
+        raise HTTPException(status_code=422, detail="記号のみのカテゴリー名は使用できません")
+
+    existing = db.query(SalonCategory).filter(
+        func.lower(func.trim(SalonCategory.display_name)) == display_name.lower()
+    ).first()
+    if existing:
+        return {"id": existing.id, "display_name": existing.display_name, "is_new": False}
+
+    name_key = re.sub(r'[^\w]', '_', display_name.lower())
+    max_sort = db.query(func.max(SalonCategory.sort_order)).scalar() or 0
+    cat = SalonCategory(
+        name=name_key[:50],
+        display_name=display_name,
+        description=None,
+        group_name="ユーザー作成",
+        icon=None,
+        sort_order=max_sort + 10,
+        is_active=True,
+    )
+    db.add(cat)
+    db.commit()
+    db.refresh(cat)
+    return {"id": cat.id, "display_name": cat.display_name, "is_new": True}
+
+
 # ── Admin endpoints for new salon features ──
+
+@router.post("/admin/categories", status_code=201)
+def admin_create_category(
+    body: dict,
+    current_user: User = Depends(require_premium),
+    db: Session = Depends(get_db),
+):
+    import re
+    if current_user.membership_type != "admin":
+        raise HTTPException(status_code=403, detail="Admin only")
+    display_name = (body.get("display_name") or "").strip()
+    if not display_name:
+        raise HTTPException(status_code=422, detail="display_name is required")
+    existing = db.query(SalonCategory).filter(
+        func.lower(func.trim(SalonCategory.display_name)) == display_name.lower()
+    ).first()
+    if existing:
+        raise HTTPException(status_code=409, detail="同名のカテゴリーが既に存在します")
+    name_key = re.sub(r'[^\w]', '_', display_name.lower())
+    max_sort = db.query(func.max(SalonCategory.sort_order)).scalar() or 0
+    cat = SalonCategory(
+        name=name_key[:50],
+        display_name=display_name,
+        description=body.get("description"),
+        group_name=body.get("group_name", "管理者作成"),
+        icon=body.get("icon"),
+        sort_order=max_sort + 10,
+        is_active=True,
+    )
+    db.add(cat)
+    db.commit()
+    db.refresh(cat)
+    return {
+        "id": cat.id, "name": cat.name, "display_name": cat.display_name,
+        "group_name": cat.group_name, "is_active": cat.is_active,
+    }
+
 
 @router.get("/admin/categories")
 def admin_list_categories(

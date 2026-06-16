@@ -33,6 +33,8 @@ const CreateSalonRoomPage: React.FC = () => {
 
   const [categories, setCategories] = useState<SalonCategory[]>([]);
   const [categoryId, setCategoryId] = useState<number | null>(preselectedCategory ? Number(preselectedCategory) : null);
+  const [newCategoryMode, setNewCategoryMode] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState('');
   const [theme, setTheme] = useState('');
   const [description, setDescription] = useState('');
   const [targetAudiences, setTargetAudiences] = useState<string[]>(['全員']);
@@ -114,13 +116,38 @@ const CreateSalonRoomPage: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!categoryId || !theme.trim() || !description.trim()) {
-      setError('カテゴリー、タイトル、説明文は必須です。');
+    if (!theme.trim() || !description.trim()) {
+      setError('タイトルと説明文は必須です。');
+      return;
+    }
+    if (newCategoryMode && !newCategoryName.trim()) {
+      setError('新しいカテゴリー名を入力してください。');
+      return;
+    }
+    if (!newCategoryMode && !categoryId) {
+      setError('カテゴリーを選択してください。');
       return;
     }
     setSubmitting(true);
     setError(null);
     try {
+      let resolvedCategoryId = categoryId;
+      if (newCategoryMode) {
+        const catRes = await fetch(`${API_URL}/api/salon/user-categories`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+          body: JSON.stringify({ display_name: newCategoryName.trim() }),
+        });
+        if (!catRes.ok) {
+          const data = await catRes.json();
+          setError(data.detail || 'カテゴリーの作成に失敗しました。');
+          setSubmitting(false);
+          return;
+        }
+        const catData = await catRes.json();
+        resolvedCategoryId = catData.id;
+      }
+
       let thumbnailUrl: string | null = null;
       if (thumbnailFile) {
         thumbnailUrl = await uploadImage();
@@ -140,7 +167,7 @@ const CreateSalonRoomPage: React.FC = () => {
         body: JSON.stringify({
           theme: theme.trim(),
           description: description.trim(),
-          category_id: categoryId,
+          category_id: resolvedCategoryId,
           target_audiences: targetAudiences,
           visibility: targetAudiences.includes('全員') ? 'public' : 'restricted',
           tags: tags.length > 0 ? tags : null,
@@ -183,18 +210,54 @@ const CreateSalonRoomPage: React.FC = () => {
           {/* Category */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">カテゴリー *</label>
-            <select
-              value={categoryId || ''}
-              onChange={e => setCategoryId(Number(e.target.value) || null)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-gray-800 focus:border-transparent"
-            >
-              <option value="">カテゴリーを選択</option>
-              {categories.map(cat => (
-                <option key={cat.id} value={cat.id}>
-                  {cat.icon} {cat.display_name}（{cat.group_name}）
-                </option>
-              ))}
-            </select>
+            <div className="flex gap-2 mb-3">
+              <button
+                type="button"
+                onClick={() => setNewCategoryMode(false)}
+                className={`px-3 py-1.5 text-sm rounded-lg border transition-colors ${
+                  !newCategoryMode
+                    ? 'bg-gray-900 text-white border-gray-900'
+                    : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'
+                }`}
+              >
+                既存から選択
+              </button>
+              <button
+                type="button"
+                onClick={() => setNewCategoryMode(true)}
+                className={`px-3 py-1.5 text-sm rounded-lg border transition-colors ${
+                  newCategoryMode
+                    ? 'bg-gray-900 text-white border-gray-900'
+                    : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'
+                }`}
+              >
+                ＋ 新しいカテゴリーを作成
+              </button>
+            </div>
+            {!newCategoryMode ? (
+              <select
+                value={categoryId || ''}
+                onChange={e => setCategoryId(Number(e.target.value) || null)}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-gray-800 focus:border-transparent"
+              >
+                <option value="">カテゴリーを選択</option>
+                {categories.map(cat => (
+                  <option key={cat.id} value={cat.id}>
+                    {cat.icon} {cat.display_name}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <div>
+                <Input
+                  value={newCategoryName}
+                  onChange={e => setNewCategoryName(e.target.value)}
+                  placeholder="例: 昭和歌謡、韓国ドラマ、大阪グルメ（2〜30文字）"
+                  maxLength={30}
+                />
+                <p className="text-xs text-gray-400 mt-1">{newCategoryName.length}/30文字　※既存カテゴリーと同名の場合は自動的に統合されます</p>
+              </div>
+            )}
           </div>
 
           {/* Title */}
