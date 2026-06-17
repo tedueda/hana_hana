@@ -981,7 +981,7 @@ def create_comment(
 
 @router.get("/popular-rooms", response_model=List[SalonRoomExtended])
 def list_popular_rooms(
-    limit: int = Query(10, ge=1, le=20),
+    limit: int = Query(10, ge=1, le=200),
     db: Session = Depends(get_db),
 ):
     try:

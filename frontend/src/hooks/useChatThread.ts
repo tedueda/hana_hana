@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { API_URL } from '@/config';
+import { API_URL, DIRECT_API_URL } from '@/config';
 
 export type Message = {
   id: number;
@@ -123,8 +123,9 @@ export function useChatThread(chatId: number | null, token: string | null, _curr
     };
     markAsRead();
 
-    const proto = API_URL.startsWith('https') ? 'wss' : 'ws';
-    const wsUrl = `${proto}://${new URL(API_URL).host}/ws/matching/chat?chat_id=${chatId}&token=${encodeURIComponent(token)}`;
+    const websocketBaseUrl = API_URL || DIRECT_API_URL;
+    const proto = websocketBaseUrl.startsWith('https') ? 'wss' : 'ws';
+    const wsUrl = `${proto}://${new URL(websocketBaseUrl).host}/ws/matching/chat?chat_id=${chatId}&token=${encodeURIComponent(token)}`;
     const ws = new WebSocket(wsUrl);
     wsRef.current = ws;
 

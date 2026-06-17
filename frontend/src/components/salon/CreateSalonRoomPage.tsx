@@ -181,7 +181,7 @@ const CreateSalonRoomPage: React.FC = () => {
         const data = await res.json();
         setError(data.detail || '作成に失敗しました。');
       }
-    } catch (err) {
+    } catch {
       setError('ネットワークエラーが発生しました。');
     } finally {
       setSubmitting(false);
@@ -255,7 +255,7 @@ const CreateSalonRoomPage: React.FC = () => {
                   placeholder="例: 昭和歌謡、韓国ドラマ、大阪グルメ（2〜30文字）"
                   maxLength={30}
                 />
-                <p className="text-xs text-gray-400 mt-1">{newCategoryName.length}/30文字　※既存カテゴリーと同名の場合は自動的に統合されます</p>
+                <p className="text-xs text-gray-400 mt-1">{newCategoryName.length}/30文字 ※既存カテゴリーと同名の場合は自動的に統合されます</p>
               </div>
             )}
           </div>
@@ -266,7 +266,7 @@ const CreateSalonRoomPage: React.FC = () => {
             <Input
               value={theme}
               onChange={e => setTheme(e.target.value)}
-              placeholder="例: 読売ジャイアンツを応援する部屋"
+              placeholder="例: LGBTQ+当事者の恋愛や暮らしを語る部屋"
               maxLength={200}
             />
           </div>
