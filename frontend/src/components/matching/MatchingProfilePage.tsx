@@ -376,7 +376,7 @@ const MatchingProfilePage: React.FC = () => {
       await fetchProfile();
       setNewPassword('');
       
-      // プロフィール保存後、会員一覧（会員交流の検索画面）へリダイレクト
+      // プロフィール保存後、会員一覧（会員マッチングの検索画面）へリダイレクト
       alert('プロフィールを保存しました。あなたにおすすめの会員を表示します。');
       navigate('/matching');
     } catch (e: any) {
@@ -838,9 +838,9 @@ const MatchingProfilePage: React.FC = () => {
             <div className="font-medium text-gray-900 mb-3">プロフィール表示</div>
             <div className="space-y-2">
               {[
-                { value: 'public', label: '全カテゴリーに公開', desc: '会員交流リストで全てのメンバーに表示されます' },
+                { value: 'public', label: '全カテゴリーに公開', desc: '会員マッチングリストで全てのメンバーに表示されます' },
                 { value: 'same_category', label: '同じカテゴリーのみに公開', desc: '同じコミュニティカテゴリーのメンバーにのみ表示されます' },
-                { value: 'hidden', label: '非表示', desc: '会員交流リストに表示されません（既存のチャットは継続）' },
+                { value: 'hidden', label: '非表示', desc: '会員マッチングリストに表示されません（既存のチャットは継続）' },
               ].map((option) => (
                 <label
                   key={option.value}

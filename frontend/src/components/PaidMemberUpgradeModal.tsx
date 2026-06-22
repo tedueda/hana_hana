@@ -53,7 +53,7 @@ const PaidMemberUpgradeModal: React.FC<PaidMemberUpgradeModalProps> = ({
             </li>
             <li className="flex items-center gap-2">
               <span className="text-green-500">✓</span>
-              会員交流機能
+              会員マッチング機能
             </li>
             <li className="flex items-center gap-2">
               <span className="text-green-500">✓</span>
