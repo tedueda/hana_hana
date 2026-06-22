@@ -95,6 +95,18 @@ const NewPostForm: React.FC<NewPostFormProps> = ({
     setFormData({ ...formData, images: newImages });
   };
 
+  const extractYouTubeVideoId = (url: string): string | null => {
+    const patterns = [
+      /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/,
+      /youtube\.com\/watch\?.*v=([^&\n?#]+)/
+    ];
+    for (const pattern of patterns) {
+      const match = url.match(pattern);
+      if (match) return match[1];
+    }
+    return null;
+  };
+
   const validateForm = () => {
     const newErrors: { [key: string]: string } = {};
 
@@ -109,8 +121,7 @@ const NewPostForm: React.FC<NewPostFormProps> = ({
     }
 
     if ((categoryKey === 'music' || categoryKey === 'comics' || categoryKey === 'art') && formData.youtubeUrl) {
-      const youtubeRegex = /^(https?:\/\/)?(www\.)?(youtube\.com\/watch\?v=|youtu\.be\/)[\w-]+/;
-      if (!youtubeRegex.test(formData.youtubeUrl)) {
+      if (!extractYouTubeVideoId(formData.youtubeUrl)) {
         newErrors.youtubeUrl = '有効なYouTube URLを入力してください';
       }
     }
@@ -423,11 +434,11 @@ const NewPostForm: React.FC<NewPostFormProps> = ({
                   className="pl-10 border-red-200 focus:border-red-400 focus:ring-red-400"
                 />
               </div>
-              {formData.youtubeUrl && /(?:youtube\.com\/watch\?v=|youtu\.be\/)([\w-]+)/.test(formData.youtubeUrl) && (
+              {formData.youtubeUrl && extractYouTubeVideoId(formData.youtubeUrl) && (
                 <div className="rounded-lg overflow-hidden border border-gray-200">
                   <div className="aspect-video">
                     <iframe
-                      src={`https://www.youtube.com/embed/${formData.youtubeUrl.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([\w-]+)/)?.[1]}`}
+                      src={`https://www.youtube.com/embed/${extractYouTubeVideoId(formData.youtubeUrl)}`}
                       title="YouTube video preview"
                       frameBorder="0"
                       allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
@@ -437,7 +448,7 @@ const NewPostForm: React.FC<NewPostFormProps> = ({
                   </div>
                 </div>
               )}
-              {formData.youtubeUrl && !/(?:youtube\.com\/watch\?v=|youtu\.be\/)([\w-]+)/.test(formData.youtubeUrl) && (
+              {formData.youtubeUrl && !extractYouTubeVideoId(formData.youtubeUrl) && (
                 <p className="text-sm text-red-600 flex items-center gap-1">
                   <AlertCircle className="h-3 w-3" />
                   有効なYouTube URLを入力してください
