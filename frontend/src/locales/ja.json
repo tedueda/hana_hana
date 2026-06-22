@@ -18,7 +18,7 @@
       "news": "LGBTQ＋ニュース"
     },
         "specialMenuItems": {
-          "matching": "会員交流",
+          "matching": "会員マッチング",
           "salon": "会員サロン",
           "business": "会員ビジネス",
           "liveWedding": "Live Wedding"
@@ -73,7 +73,7 @@
       },
       "growTogether": {
         "title": "仲間として育つ",
-        "body": "会員交流、サロン、掲示板などの仕組みで、理解と連携が深まります。"
+        "body": "会員マッチング、サロン、掲示板などの仕組みで、理解と連携が深まります。"
       },
       "respectEmpathy": {
         "title": "尊重と共感",
@@ -82,7 +82,7 @@
     },
     "canDo": {
       "title": "Caratでできること",
-      "body": "Caratには、会員交流やコミュニティサロン、掲示板など、会員同士が出会い、理解し合い、仲間として連携を深めていくための仕組みが揃っています。\n気軽に話せる一方で、人生経験、働き方、恋愛、悩みなどのリアルな声に触れ、共感し、前に進む力を得られる場所でもあります。",
+      "body": "Caratには、会員マッチングやコミュニティサロン、掲示板など、会員同士が出会い、理解し合い、仲間として連携を深めていくための仕組みが揃っています。\n気軽に話せる一方で、人生経験、働き方、恋愛、悩みなどのリアルな声に触れ、共感し、前に進む力を得られる場所でもあります。",
       "cards": {
         "everyday": {
           "title": "日常の情報交換から、未来の挑戦まで",
@@ -124,7 +124,7 @@
       "viewDetails": "詳細を見る",
       "premiumOnly": "有料会員限定",
       "matching": {
-        "title": "会員交流",
+        "title": "会員マッチング",
         "description": "Caratの会員と気軽に交流できます"
       },
       "salon": {
@@ -503,7 +503,7 @@
     "postRequiresPremium": "投稿を作成するには有料会員への登録が必要です。",
     "premiumBenefits": "有料会員特典",
     "benefitPostAll": "すべてのカテゴリへの投稿",
-    "benefitMatching": "会員交流機能",
+    "benefitMatching": "会員マッチング機能",
     "benefitSalon": "会員サロン（チャットルーム）",
     "benefitDonation": "寄付金募集・商品販売",
     "monthlyPrice": "月額770円 ・ いつでも解約可能",
@@ -524,7 +524,7 @@
     "noUsersFound": "該当するユーザーがいません",
     "tryOtherTab": "別のタブを試してみてください",
     "categoryRequired": "コミュニティカテゴリーを設定してください",
-    "categoryRequiredMessage": "会員交流機能を利用するには、プロフィールでコミュニティカテゴリーを設定する必要があります。",
+    "categoryRequiredMessage": "会員マッチング機能を利用するには、プロフィールでコミュニティカテゴリーを設定する必要があります。",
     "goToProfileEdit": "プロフィール編集へ",
     "categoryFilterDescription": "{{category}}のコミュニティカテゴリーに属する会員が表示されています",
     "noUsersInCategory": "このカテゴリーに該当する会員がいません",
@@ -569,7 +569,7 @@
     "open": "開く",
     "noChatsYet": "チャットはまだありません。",
     "registerPrompt": "会員登録してください",
-    "matchingMemberOnly": "会員交流は会員限定サービスです。",
+    "matchingMemberOnly": "会員マッチングは会員限定サービスです。",
     "findGreatEncounters": "会員登録して、素敵な出会いを見つけましょう。",
     "newMemberRegistration": "新規会員登録",
     "paidMemberChatAccess": "有料会員になると、チャット機能をご利用いただけます。",
@@ -608,7 +608,7 @@
       "editProfile": "プロフィール編集",
       "edit": "編集"
     },
-    "pageTitle": "会員交流",
+    "pageTitle": "会員マッチング",
     "nationality": "国籍",
     "nationalities": {
       "JP": "日本",
@@ -702,9 +702,9 @@
       },
       "visibility": {
         "title": "プロフィール公開設定",
-        "public": "プロフィールは公開されています。会員交流リストに表示されます。",
-        "private": "プロフィールは非公開です。会員交流リストに表示されません。",
-        "tipOn": "ONにすると、あなたのプロフィールが会員交流リストに表示されます",
+        "public": "プロフィールは公開されています。会員マッチングリストに表示されます。",
+        "private": "プロフィールは非公開です。会員マッチングリストに表示されません。",
+        "tipOn": "ONにすると、あなたのプロフィールが会員マッチングリストに表示されます",
         "tipOff": "OFFにすると、検索結果に表示されなくなります（既存のマッチやチャットは継続）"
       },
       "account": {
@@ -730,7 +730,7 @@
         "identity": "性自認",
         "identityTip": "プロフィール画像にバッジとして表示されます。",
         "romanceTarget": "恋愛対象（検索分類）",
-        "romanceTargetTip": "複数選択可能。会員交流の検索で使用されます。"
+        "romanceTargetTip": "複数選択可能。会員マッチングの検索で使用されます。"
       },
       "hobbies": {
         "title": "興味・趣味",

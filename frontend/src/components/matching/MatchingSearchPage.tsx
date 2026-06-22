@@ -258,7 +258,7 @@ const MatchingSearchPage: React.FC = () => {
         <div className="md:hidden">
           <div className="flex items-center justify-between mb-2">
             <h1 className="text-xl font-bold text-gray-900">
-              会員交流
+              会員マッチング
             </h1>
             <button
               onClick={() => navigate('/matching/profile')}
@@ -325,7 +325,7 @@ const MatchingSearchPage: React.FC = () => {
         {/* Desktop: Title + Category heading */}
         <div className="hidden md:block">
           <h1 className="mb-2 text-2xl font-bold text-gray-900">
-            会員交流
+            会員マッチング
           </h1>
           {userCategory && (
             <p className="mb-6 text-sm text-gray-600">
@@ -400,7 +400,7 @@ const MatchingSearchPage: React.FC = () => {
         {error === '__auth_required__' && (
           <div className="flex min-h-[400px] items-center justify-center rounded-2xl border-2 border-dashed border-gray-300 bg-white">
             <div className="text-center">
-              <p className="text-lg font-medium text-gray-700 mb-4">会員交流を利用するにはログインが必要です</p>
+              <p className="text-lg font-medium text-gray-700 mb-4">会員マッチングを利用するにはログインが必要です</p>
               <button
                 onClick={() => navigate('/login')}
                 className="px-6 py-3 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors font-medium"

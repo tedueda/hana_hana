@@ -166,7 +166,7 @@ const MemberExchangeSection: React.FC = () => {
       <div>
         <div className="flex flex-col md:flex-row md:items-baseline md:justify-between mb-4 gap-2">
           <div>
-            <h2 className="text-2xl md:text-3xl font-serif font-bold text-slate-900">会員交流</h2>
+            <h2 className="text-2xl md:text-3xl font-serif font-bold text-slate-900">会員マッチング</h2>
             <p className="text-sm text-gray-500 mt-1">Caratに参加しているメンバーと気軽に交流できます</p>
           </div>
           <button

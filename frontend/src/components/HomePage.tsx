@@ -346,7 +346,7 @@ const HomePage: React.FC = () => {
               onClick={() => navigate('/matching')}
               className="px-6 py-3 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors text-sm font-medium"
             >
-              会員交流へ
+              会員マッチングへ
             </button>
             <button
               onClick={() => navigate('/salon')}
@@ -472,7 +472,7 @@ const HomePage: React.FC = () => {
             {/* 左カラム（メインコンテンツ） */}
             <div className="flex-1 min-w-0">
 
-        {/* 会員交流セクション */}
+        {/* 会員マッチングセクション */}
         <MatchingSearchPage />
 
         {/* 会員サロン */}
@@ -851,7 +851,7 @@ const HomePage: React.FC = () => {
                   <div className="bg-gray-800 text-white text-sm font-bold px-4 py-2.5">会員専用</div>
                   <div className="divide-y divide-gray-100">
                     {[
-                      { label: '💑 会員交流', path: '/matching' },
+                      { label: '💑 会員マッチング', path: '/matching' },
                       { label: '🏠 会員サロン', path: '/salon' },
                       { label: '💼 会員ビジネス', path: '/business' },
                       { label: '💒 ライブウェディング', path: '/live-wedding' },

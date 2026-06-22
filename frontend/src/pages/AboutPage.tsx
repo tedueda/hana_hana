@@ -44,7 +44,7 @@ const AboutPage: React.FC = () => {
             <div className="rounded-3xl border border-gray-200 bg-white shadow-sm p-8 md:p-10">
               <div className="text-gray-800 leading-relaxed">
                 <p>Caratは</p>
-                <p className="mt-1">・会員交流</p>
+                <p className="mt-1">・会員マッチング</p>
                 <p>・会員サロン</p>
                 <p>・ビジネス</p>
                 <p className="mt-4 text-gray-700">
@@ -72,7 +72,7 @@ const AboutPage: React.FC = () => {
               月額770円（税込）で全機能をご利用いただけます
             </p>
             <p className="text-gray-400 text-sm mb-8">
-              会員交流・会員サロン・ビジネス機能が使い放題。本人確認済みの安心なコミュニティです。
+              会員マッチング・会員サロン・ビジネス機能が使い放題。本人確認済みの安心なコミュニティです。
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <Link
