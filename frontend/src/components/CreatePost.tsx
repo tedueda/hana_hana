@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { PlusCircle, Music, MessageSquare, Store, MapPin, Film, FileText, Palette, Upload, X, Lock, UtensilsCrossed, Newspaper, Sparkles, HeartHandshake } from 'lucide-react';
+import { PlusCircle, Music, MessageSquare, Store, MapPin, Film, FileText, Palette, Upload, X, Lock, UtensilsCrossed, Newspaper, Sparkles, HeartHandshake, Youtube } from 'lucide-react';
 import { API_URL } from '../config';
 
 const CreatePost: React.FC = () => {
@@ -553,6 +553,44 @@ const CreatePost: React.FC = () => {
               </>
             )}
 
+            {(category === 'music' || category === 'art') && (
+              <div className="space-y-3">
+                <Label className="text-gray-800 flex items-center gap-2">
+                  <Youtube className="h-5 w-5 text-red-500" />
+                  YouTube動画URL（任意）
+                </Label>
+                <p className="text-xs text-gray-500 -mt-1">YouTubeのURLを貼り付けると、動画が再生できるようになります</p>
+                <div className="relative">
+                  <Youtube className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-red-500" />
+                  <Input
+                    id="youtube"
+                    type="url"
+                    value={youtubeUrl}
+                    onChange={(e) => setYoutubeUrl(e.target.value)}
+                    placeholder="https://www.youtube.com/watch?v=..."
+                    className="pl-10 border-red-200 focus:border-red-400 focus:ring-red-400"
+                  />
+                </div>
+                {youtubeUrl && extractYouTubeVideoId(youtubeUrl) && (
+                  <div className="mt-2 rounded-lg overflow-hidden border border-gray-200">
+                    <div className="aspect-video">
+                      <iframe
+                        src={`https://www.youtube.com/embed/${extractYouTubeVideoId(youtubeUrl)}`}
+                        title="YouTube video preview"
+                        frameBorder="0"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allowFullScreen
+                        className="w-full h-full"
+                      ></iframe>
+                    </div>
+                  </div>
+                )}
+                {youtubeUrl && !extractYouTubeVideoId(youtubeUrl) && (
+                  <p className="text-sm text-red-600">有効なYouTube URLを入力してください</p>
+                )}
+              </div>
+            )}
+
             {(category === 'board' || category === 'tourism' || category === 'shops' || category === 'comics' || category === 'art' || category === 'food' || category === 'news' || category === 'beauty' || category === 'funding') && (
               <div className="space-y-2">
                 <Label className="text-gray-800">画像をアップロード（最大5枚、任意）</Label>
@@ -639,34 +677,7 @@ const CreatePost: React.FC = () => {
               )}
             </div>
 
-            {(category === 'music' || category === 'art') && (
-              <div className="space-y-2">
-                <Label htmlFor="youtube" className="text-gray-800">YouTube URL（任意）</Label>
-                <Input
-                  id="youtube"
-                  type="url"
-                  value={youtubeUrl}
-                  onChange={(e) => setYoutubeUrl(e.target.value)}
-                  placeholder="https://www.youtube.com/watch?v=..."
-                  className="border-orange-200 focus:border-orange-400 focus:ring-orange-400"
-                />
-                {youtubeUrl && extractYouTubeVideoId(youtubeUrl) && (
-                  <div className="mt-2">
-                    <p className="text-sm text-gray-600 mb-2">プレビュー:</p>
-                    <div className="aspect-video">
-                      <iframe
-                        src={`https://www.youtube.com/embed/${extractYouTubeVideoId(youtubeUrl)}`}
-                        title="YouTube video preview"
-                        frameBorder="0"
-                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                        allowFullScreen
-                        className="w-full h-full rounded"
-                      ></iframe>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
+
 
             <div className="space-y-2">
               <Label htmlFor="body" className="text-gray-800">内容 *</Label>
