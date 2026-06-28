@@ -95,6 +95,18 @@ const NewPostForm: React.FC<NewPostFormProps> = ({
     setFormData({ ...formData, images: newImages });
   };
 
+  const extractYouTubeVideoId = (url: string): string | null => {
+    const patterns = [
+      /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/,
+      /youtube\.com\/watch\?.*v=([^&\n?#]+)/
+    ];
+    for (const pattern of patterns) {
+      const match = url.match(pattern);
+      if (match) return match[1];
+    }
+    return null;
+  };
+
   const validateForm = () => {
     const newErrors: { [key: string]: string } = {};
 
@@ -109,8 +121,7 @@ const NewPostForm: React.FC<NewPostFormProps> = ({
     }
 
     if ((categoryKey === 'music' || categoryKey === 'comics' || categoryKey === 'art') && formData.youtubeUrl) {
-      const youtubeRegex = /^(https?:\/\/)?(www\.)?(youtube\.com\/watch\?v=|youtu\.be\/)[\w-]+/;
-      if (!youtubeRegex.test(formData.youtubeUrl)) {
+      if (!extractYouTubeVideoId(formData.youtubeUrl)) {
         newErrors.youtubeUrl = '有効なYouTube URLを入力してください';
       }
     }
@@ -407,6 +418,51 @@ const NewPostForm: React.FC<NewPostFormProps> = ({
             </div>
           </div>
 
+          {(categoryKey === 'music' || categoryKey === 'comics' || categoryKey === 'art') && (
+            <div className="space-y-3">
+              <label className="block text-sm font-medium text-gray-800 mb-1 flex items-center gap-2">
+                <Youtube className="h-5 w-5 text-red-500" />
+                YouTube動画URL（任意）
+              </label>
+              <p className="text-xs text-gray-500 -mt-2">YouTubeのURLを貼り付けると、動画が再生できるようになります</p>
+              <div className="relative">
+                <Youtube className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-red-500" />
+                <Input
+                  placeholder="https://www.youtube.com/watch?v=..."
+                  value={formData.youtubeUrl}
+                  onChange={(e) => setFormData({ ...formData, youtubeUrl: e.target.value })}
+                  className="pl-10 border-red-200 focus:border-red-400 focus:ring-red-400"
+                />
+              </div>
+              {formData.youtubeUrl && extractYouTubeVideoId(formData.youtubeUrl) && (
+                <div className="rounded-lg overflow-hidden border border-gray-200">
+                  <div className="aspect-video">
+                    <iframe
+                      src={`https://www.youtube.com/embed/${extractYouTubeVideoId(formData.youtubeUrl)}`}
+                      title="YouTube video preview"
+                      frameBorder="0"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                      className="w-full h-full"
+                    ></iframe>
+                  </div>
+                </div>
+              )}
+              {formData.youtubeUrl && !extractYouTubeVideoId(formData.youtubeUrl) && (
+                <p className="text-sm text-red-600 flex items-center gap-1">
+                  <AlertCircle className="h-3 w-3" />
+                  有効なYouTube URLを入力してください
+                </p>
+              )}
+              {errors.youtubeUrl && (
+                <p className="text-sm text-red-600 mt-1 flex items-center gap-1">
+                  <AlertCircle className="h-3 w-3" />
+                  {errors.youtubeUrl}
+                </p>
+              )}
+            </div>
+          )}
+
           {(categoryKey === 'board' || categoryKey === 'shops' || categoryKey === 'tourism' || categoryKey === 'comics' || categoryKey === 'news' || categoryKey === 'food' || categoryKey === 'beauty' || categoryKey === 'art') && (
             <div>
               <label className="block text-sm font-medium text-gray-800 mb-2">
@@ -503,28 +559,7 @@ const NewPostForm: React.FC<NewPostFormProps> = ({
             )}
           </div>
 
-          {(categoryKey === 'music' || categoryKey === 'comics' || categoryKey === 'art') && (
-            <div>
-              <label className="block text-sm font-medium text-gray-800 mb-2">
-                YouTube URL（任意）
-              </label>
-              <div className="relative">
-                <Youtube className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-red-500" />
-                <Input
-                  placeholder="https://www.youtube.com/watch?v=..."
-                  value={formData.youtubeUrl}
-                  onChange={(e) => setFormData({ ...formData, youtubeUrl: e.target.value })}
-                  className="pl-10 border-gray-300 focus:border-gray-500 focus:ring-gray-500"
-                />
-              </div>
-              {errors.youtubeUrl && (
-                <p className="text-sm text-red-600 mt-1 flex items-center gap-1">
-                  <AlertCircle className="h-3 w-3" />
-                  {errors.youtubeUrl}
-                </p>
-              )}
-            </div>
-          )}
+
 
           <div>
             <label className="block text-sm font-medium text-gray-800 mb-2">
