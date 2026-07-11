@@ -162,39 +162,17 @@ function ProfileCompletionGuard() {
   return null;
 }
 
-// メンテナンスモード: 全ページリニューアル中
-const SITE_MAINTENANCE = false;
-const MAINTENANCE_ALLOWED_PATHS = ['/admin', '/login', '/register', '/subscribe', '/about', '/privacy', '/contact', '/forgot-password', '/reset-password', '/email-verification', '/verify-email', '/kyc-verification'];
+// サイト閉鎖モード: 管理・ログイン以外の全ページを閉鎖表示
+const SITE_MAINTENANCE = true;
+const MAINTENANCE_ALLOWED_PATHS = ['/admin', '/login', '/forgot-password', '/reset-password'];
 
 function MaintenancePage() {
-  const navigate = useNavigate();
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-white via-gray-50 to-gray-100 px-4">
       <div className="text-center max-w-lg">
-        <div className="text-6xl mb-6">🔧</div>
-        <h1 className="text-2xl md:text-3xl font-serif font-bold text-gray-900 mb-4">
-          メンテナンス中
+        <h1 className="text-2xl md:text-3xl font-serif font-bold text-gray-900">
+          このサイトは閉鎖されました
         </h1>
-        <p className="text-gray-600 mb-2 leading-relaxed">
-          現在、サイトをリニューアル中です。
-        </p>
-        <p className="text-gray-500 text-sm mb-8">
-          しばらくお待ちください。
-        </p>
-        <div className="flex flex-col sm:flex-row gap-3 justify-center">
-          <button
-            onClick={() => navigate('/about')}
-            className="px-6 py-3 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors text-sm font-medium"
-          >
-            Caratとは
-          </button>
-          <button
-            onClick={() => navigate('/contact')}
-            className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium"
-          >
-            お問い合わせ
-          </button>
-        </div>
       </div>
     </div>
   );
@@ -204,16 +182,12 @@ function AppContent() {
   const location = useLocation();
   const isHome = location.pathname === '/' || location.pathname === '/feed';
 
-  // メンテナンスモード: 許可されたパス以外はメンテナンスページを表示
+  // サイト閉鎖モード: 許可されたパス以外は閉鎖ページを表示（他ページへのリンクなし）
   if (SITE_MAINTENANCE && !MAINTENANCE_ALLOWED_PATHS.some(p => location.pathname.startsWith(p))) {
     return (
       <div className="min-h-screen bg-white">
-        <Header />
         <ScrollToTop />
-        <main className="bg-white pt-40 md:pt-32">
-          <MaintenancePage />
-        </main>
-        <Footer />
+        <MaintenancePage />
       </div>
     );
   }
