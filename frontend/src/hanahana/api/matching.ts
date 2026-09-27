@@ -96,6 +96,7 @@ export async function fetchMatches(userId: string): Promise<MatchWithPeer[]> {
     .from('matches')
     .select('*, conversations(*)')
     .eq('is_active', true)
+    .or(`user_low_id.eq.${userId},user_high_id.eq.${userId}`)
     .order('matched_at', { ascending: false });
   if (error) throw error;
   const rows = data ?? [];
