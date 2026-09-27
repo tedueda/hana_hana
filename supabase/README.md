@@ -75,6 +75,15 @@ supabase/scripts/run_sql.sh supabase/tests/rls_smoke_test.sql
 
 テストユーザーを作成して RLS 越境アクセス・相互いいね・ブロック・admin RPC を検証し、最後に `rollback` するため DB にデータは残らない。
 
+## デモ用ダミー会員 (開発・確認用)
+
+```bash
+SUPABASE_PROJECT_REF=... supabase/scripts/run_sql.sh supabase/tests/seed_demo_users.sql   # 会員 4 名 (JP2/KR2)
+SUPABASE_PROJECT_REF=... python3 supabase/scripts/upload_demo_photos.py                     # 写真を profile-photos へ
+```
+
+`demo-jp1/jp2/kr1/kr2@hanahana.test`（パスワード `Hanahana-Test1`）。おすすめ・探すに表示される。本番運用開始前に削除する。
+
 ## 主要な設計ポイント
 
 - `auth.users` INSERT 時に `profiles` / `verifications` を自動作成
