@@ -166,6 +166,7 @@ function ProfileCompletionGuard() {
 
 // サイト閉鎖モード: 管理・ログイン以外の全ページを閉鎖表示
 const SITE_MAINTENANCE = true;
+const HANAHANA_STANDALONE = import.meta.env.VITE_HANAHANA_STANDALONE === 'true';
 const MAINTENANCE_ALLOWED_PATHS = ['/admin', '/login', '/forgot-password', '/reset-password'];
 
 function MaintenancePage() {
@@ -185,12 +186,14 @@ function AppContent() {
   const isHome = location.pathname === '/' || location.pathname === '/feed';
 
   // 新サービス (Supabase ベース) は /app 配下に段階的に構築する
-  if (location.pathname === '/app' || location.pathname.startsWith('/app/')) {
+  // 専用サイト (VITE_HANAHANA_STANDALONE=true) では旧 Carat 画面を一切出さず全パスを新サービスに割り当てる
+  if (HANAHANA_STANDALONE || location.pathname === '/app' || location.pathname.startsWith('/app/')) {
     return (
       <>
         <ScrollToTop />
         <Routes>
           <Route path="/app/*" element={<HanaHanaApp />} />
+          <Route path="*" element={<Navigate to="/app" replace />} />
         </Routes>
         <Toaster />
       </>
