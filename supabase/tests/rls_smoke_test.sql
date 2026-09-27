@@ -226,6 +226,69 @@ begin
     perform pg_temp.check('R15c non-admin cannot call admin RPC', true);
   end;
 
+  -- ---------- A01-A14: STEP7 admin RPC ----------
+  perform pg_temp.as_user(adm);
+  perform pg_temp.check('A01 admin_stats returns counts',
+    (admin_stats()->>'users_total')::int >= 4 and (admin_stats()->>'users_jp')::int >= 2);
+  perform pg_temp.check('A02 admin_list_users search by email',
+    (select count(*) from admin_list_users(p_query => 'b@test.local')) = 1
+    and (select email from admin_list_users(p_query => 'b@test.local')) = 'b@test.local');
+  perform pg_temp.check('A03 admin_list_users filter by status suspended',
+    (select count(*) from admin_list_users(p_status => 'suspended')) >= 1);
+  perform pg_temp.check('A04 admin_get_user returns email/stats/audit',
+    (admin_get_user(b)->>'email') = 'b@test.local'
+    and (admin_get_user(b)->'stats') is not null);
+  perform pg_temp.check('A05 admin_list_reports joins nicknames',
+    (select count(*) from admin_list_reports()) = 1
+    and (select reported_nickname from admin_list_reports()) is not null);
+  perform pg_temp.check('A06 admin_list_admins',
+    (select count(*) from admin_list_admins() where user_id = adm and role = 'super_admin') = 1);
+  perform admin_upsert_admin('c@test.local', 'moderator');
+  perform pg_temp.check('A07 admin_upsert_admin adds moderator + audit',
+    (select role from admin_users where user_id = c) = 'moderator'
+    and (select count(*) from admin_audit_logs where action = 'upsert_admin') = 1);
+
+  -- moderator は管理者追加不可
+  perform pg_temp.as_user(c);
+  begin
+    perform admin_upsert_admin('a@test.local', 'support');
+    perform pg_temp.check('A08 moderator cannot upsert admin', false);
+  exception when insufficient_privilege then
+    perform pg_temp.check('A08 moderator cannot upsert admin', true);
+  end;
+  perform pg_temp.check('A09 moderator can call admin_stats', (admin_stats()->>'users_total')::int >= 4);
+
+  -- 非 admin は list/stats/get 不可
+  perform pg_temp.as_user(a);
+  begin
+    perform admin_stats();
+    perform pg_temp.check('A10 non-admin cannot call admin_stats', false);
+  exception when insufficient_privilege then
+    perform pg_temp.check('A10 non-admin cannot call admin_stats', true);
+  end;
+  begin
+    perform count(*) from admin_list_users();
+    perform pg_temp.check('A11 non-admin cannot call admin_list_users', false);
+  exception when insufficient_privilege then
+    perform pg_temp.check('A11 non-admin cannot call admin_list_users', true);
+  end;
+  begin
+    perform admin_get_user(b);
+    perform pg_temp.check('A12 non-admin cannot call admin_get_user', false);
+  exception when insufficient_privilege then
+    perform pg_temp.check('A12 non-admin cannot call admin_get_user', true);
+  end;
+
+  perform pg_temp.as_user(adm);
+  perform admin_remove_admin(c);
+  perform pg_temp.check('A13 admin_remove_admin', (select count(*) from admin_users where user_id = c) = 0);
+  begin
+    perform admin_remove_admin(adm);
+    perform pg_temp.check('A14 cannot remove self', false);
+  exception when others then
+    perform pg_temp.check('A14 cannot remove self', true);
+  end;
+
   perform pg_temp.as_super();
 end $$;
 

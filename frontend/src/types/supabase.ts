@@ -1334,6 +1334,72 @@ export type Database = {
       }
     }
     Functions: {
+      admin_get_user: { Args: { p_user_id: string }; Returns: Json }
+      admin_list_admins: {
+        Args: never
+        Returns: {
+          created_at: string
+          email: string
+          nickname: string
+          role: Database["public"]["Enums"]["admin_role_t"]
+          user_id: string
+        }[]
+      }
+      admin_list_reports: {
+        Args: {
+          p_page?: number
+          p_size?: number
+          p_status?: Database["public"]["Enums"]["report_status_t"]
+        }
+        Returns: {
+          admin_note: string
+          created_at: string
+          detail: string
+          handled_by: string
+          id: string
+          message_body: string
+          message_id: string
+          reason: Database["public"]["Enums"]["report_reason_t"]
+          reported_nickname: string
+          reported_status: Database["public"]["Enums"]["account_status_t"]
+          reported_user_id: string
+          reporter_id: string
+          reporter_nickname: string
+          resolved_at: string
+          status: Database["public"]["Enums"]["report_status_t"]
+          total_count: number
+        }[]
+      }
+      admin_list_users: {
+        Args: {
+          p_nationality?: Database["public"]["Enums"]["nationality_t"]
+          p_page?: number
+          p_query?: string
+          p_size?: number
+          p_status?: Database["public"]["Enums"]["account_status_t"]
+          p_verification?: Database["public"]["Enums"]["verification_status_t"]
+        }
+        Returns: {
+          birthdate: string
+          created_at: string
+          email: string
+          gender: Database["public"]["Enums"]["gender_t"]
+          id: string
+          is_public: boolean
+          last_active_at: string
+          member_tier: Database["public"]["Enums"]["member_tier_t"]
+          nationality: Database["public"]["Enums"]["nationality_t"]
+          nickname: string
+          onboarding_completed: boolean
+          report_count: number
+          residence_country: Database["public"]["Enums"]["country_t"]
+          status: Database["public"]["Enums"]["account_status_t"]
+          status_reason: string
+          suspended_until: string
+          total_count: number
+          verification_status: Database["public"]["Enums"]["verification_status_t"]
+        }[]
+      }
       admin_log: {
         Args: {
           p_action: string
@@ -1343,6 +1409,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      admin_remove_admin: { Args: { p_user_id: string }; Returns: undefined }
       admin_resolve_report: {
         Args: {
           p_note?: string
@@ -1371,6 +1438,14 @@ export type Database = {
           p_user_id: string
         }
         Returns: undefined
+      }
+      admin_stats: { Args: never; Returns: Json }
+      admin_upsert_admin: {
+        Args: {
+          p_email: string
+          p_role: Database["public"]["Enums"]["admin_role_t"]
+        }
+        Returns: string
       }
       apply_invite_code: {
         Args: { p_code: string }
