@@ -73,7 +73,7 @@ Supabase (hana-hana)
 ```
 
 - **Frontend**: React 18 + TypeScript + Vite + Tailwind CSS + React Router v6。新サービスのコードは `frontend/src/hanahana/` に集約。
-  - `api/` Supabase 呼び出し層（auth / profile / matching / chat / safety / admin）
+  - `api/` Supabase 呼び出し層（profile / discovery / matching / messages / master / admin）
   - `pages/` 会員画面、`admin/` 管理画面、`auth/` 認証コンテキスト、`labels.ts` 表示ラベル・エラーメッセージ（日本語）
 - **Standalone モード**: `VITE_HANAHANA_STANDALONE=true` のビルドでは全パスを `/app` に割り当て、`index.html` の title / meta を Hana-Hana 用に差し替える（`frontend/vite.config.ts`）。Carat 画面は一切表示されない。
 - **サーバー不要**: FastAPI などの独自 API サーバーは持たない。権限制御はすべて RLS と `security definer` RPC で担保。
