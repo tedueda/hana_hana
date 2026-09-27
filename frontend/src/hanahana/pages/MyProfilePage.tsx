@@ -5,10 +5,10 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useSupabaseAuth } from '../auth/useSupabaseAuth';
 import { fetchAdminRole } from '../api/admin';
-import { fetchMyVerification, fetchProfileDetails } from '../api/profile';
+import { fetchMyPublishStatus, fetchMyVerification, fetchProfileDetails, type PublishStatus } from '../api/profile';
 import type { VerificationStatus } from '../api/admin';
 import { Avatar } from '../components/ProfileCard';
-import { useI18n } from '../i18n';
+import { formatDate, useI18n } from '../i18n';
 import { useLabels, useRegionNames } from '../hooks';
 import type { Profile, ProfilePhoto } from '../types';
 import type { MessageKey } from '../i18n/ja';
@@ -48,7 +48,7 @@ const VERIFY_KEY: Record<string, MessageKey> = {
 
 const MyProfilePage: React.FC = () => {
   const { user, profile, signOut } = useSupabaseAuth();
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const labels = useLabels();
   const regionName = useRegionNames();
   const navigate = useNavigate();
@@ -56,6 +56,7 @@ const MyProfilePage: React.FC = () => {
   const [photos, setPhotos] = useState<ProfilePhoto[]>([]);
   const [counts, setCounts] = useState({ langs: 0, purposes: 0 });
   const [verifyStatus, setVerifyStatus] = useState<VerificationStatus>('unverified');
+  const [publish, setPublish] = useState<PublishStatus | null>(null);
 
   useEffect(() => {
     fetchAdminRole().then((r) => setIsAdmin(r !== null)).catch(() => setIsAdmin(false));
@@ -72,6 +73,7 @@ const MyProfilePage: React.FC = () => {
     fetchMyVerification()
       .then((v) => setVerifyStatus(v?.status ?? 'unverified'))
       .catch(() => undefined);
+    fetchMyPublishStatus().then(setPublish).catch(() => undefined);
   }, [user]);
 
   const logout = async () => {
@@ -131,9 +133,14 @@ const MyProfilePage: React.FC = () => {
       {!profile.onboarding_completed && (
         <p className="text-sm text-amber-800 bg-amber-50 rounded-xl p-3">{t('my.incomplete')}</p>
       )}
-      {profile.onboarding_completed && photos.length === 0 && (
+      {profile.onboarding_completed && publish && publish.photo_required && publish.photo_count === 0 && (
         <div className="text-sm text-amber-800 bg-amber-50 rounded-xl p-3 flex items-center justify-between gap-3">
-          <span>{t('my.noPhoto')}</span>
+          <span>
+            <span className="font-medium block">{t('publish.noPhotoTitle')}</span>
+            {publish.in_grace && publish.photo_grace_until
+              ? t('publish.noPhotoGrace', { date: formatDate(publish.photo_grace_until, locale) })
+              : t('publish.noPhotoHidden')}
+          </span>
           <Button asChild size="sm" variant="outline"><Link to="/app/profile/edit">{t('my.addPhoto')}</Link></Button>
         </div>
       )}

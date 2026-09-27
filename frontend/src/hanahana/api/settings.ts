@@ -25,6 +25,7 @@ export interface PublicSettings {
   photo_required: boolean;
   photo_grace_until: string | null;
   verification_provider: string;
+  verification_doc_retention_days: number;
   translation_enabled: boolean;
   translation_auto_enabled: boolean;
   translation_limits: TranslationLimits;
@@ -40,6 +41,7 @@ export const DEFAULT_PUBLIC_SETTINGS: PublicSettings = {
   photo_required: true,
   photo_grace_until: null,
   verification_provider: 'manual',
+  verification_doc_retention_days: 90,
   translation_enabled: true,
   translation_auto_enabled: false,
   translation_limits: { max_chars: 1000, per_minute: 10, per_day: 200 },
@@ -66,6 +68,7 @@ export function parsePublicSettings(j: Json): PublicSettings {
     photo_required: bool('photo_required', DEFAULT_PUBLIC_SETTINGS.photo_required),
     photo_grace_until: typeof r.photo_grace_until === 'string' ? r.photo_grace_until : null,
     verification_provider: str('verification_provider', DEFAULT_PUBLIC_SETTINGS.verification_provider),
+    verification_doc_retention_days: num('verification_doc_retention_days', DEFAULT_PUBLIC_SETTINGS.verification_doc_retention_days),
     translation_enabled: bool('translation_enabled', DEFAULT_PUBLIC_SETTINGS.translation_enabled),
     translation_auto_enabled: bool('translation_auto_enabled', DEFAULT_PUBLIC_SETTINGS.translation_auto_enabled),
     translation_limits: {

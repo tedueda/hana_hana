@@ -15,6 +15,7 @@ import { HelpPage, PrivacyPage, TermsPage } from './pages/LegalPages';
 import { LikesPage, MatchesPage } from './pages/LikesMatchesPages';
 import MyProfilePage from './pages/MyProfilePage';
 import { PlusPage, VerificationPage } from './pages/MyPages';
+import OnboardingPage from './pages/OnboardingPage';
 import ProfileEditPage from './pages/ProfileEditPage';
 import SettingsPage, { BlocksPage, ChangePasswordPage, DeleteAccountPage } from './pages/SettingsPage';
 import UserProfilePage from './pages/UserProfilePage';
@@ -111,7 +112,7 @@ const HanaHanaApp: React.FC = () => {
           </Route>
           <Route path="reset-password" element={<ResetPasswordPage />} />
           <Route element={<RequireAuth />}>
-            <Route path="onboarding" element={<ProfileEditPage onboarding />} />
+            <Route path="onboarding" element={<OnboardingPage />} />
             <Route element={<AppShell />}>
               <Route index element={<RecommendPage />} />
               <Route path="search" element={<SearchPage />} />
