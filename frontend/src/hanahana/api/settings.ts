@@ -109,10 +109,25 @@ export function fetchPublicSettings(force = false): Promise<PublicSettings> {
   return settingsCache;
 }
 
-export async function fetchMySettings(userId: string): Promise<UserSettings | null> {
+export function defaultUserSettings(userId: string): UserSettings {
+  return {
+    user_id: userId,
+    auto_translate: false,
+    translate_target_lang: null,
+    notify_like: true,
+    notify_match: true,
+    notify_message: true,
+    notify_email: true,
+    saved_search: null,
+    updated_at: new Date(0).toISOString(),
+  };
+}
+
+/** 行が無い会員 (未保存) は既定値を返す。保存時に upsert で行が作られる */
+export async function fetchMySettings(userId: string): Promise<UserSettings> {
   const { data, error } = await getSupabase().from('user_settings').select('*').eq('user_id', userId).maybeSingle();
   if (error) throw error;
-  return data;
+  return data ?? defaultUserSettings(userId);
 }
 
 export async function upsertMySettings(userId: string, patch: UserSettingsUpdate): Promise<UserSettings> {
