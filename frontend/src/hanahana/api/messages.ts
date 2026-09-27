@@ -19,10 +19,11 @@ export async function sendMessage(
   senderId: string,
   body: string,
   bodyLang?: string,
+  aiAssisted = false,
 ): Promise<Message> {
   const { data, error } = await getSupabase()
     .from('messages')
-    .insert({ conversation_id: conversationId, sender_id: senderId, body, body_lang: bodyLang ?? null })
+    .insert({ conversation_id: conversationId, sender_id: senderId, body, body_lang: bodyLang ?? null, ai_assisted: aiAssisted })
     .select('*')
     .single();
   if (error) throw error;

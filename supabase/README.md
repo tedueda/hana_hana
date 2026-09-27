@@ -28,6 +28,7 @@ VITE_SUPABASE_ANON_KEY=<anon key>
 ```
 supabase/
   migrations/   適用順の SQL (タイムスタンプ順)
+  functions/    Edge Functions (translate: サーバー側チャット翻訳)
   scripts/      Management API でのマイグレーション適用・SQL 実行
   tests/        RLS / トリガーのスモークテスト
 ```
@@ -41,6 +42,7 @@ supabase/
 | `20260927000300_rls.sql` | 全テーブル RLS 有効化・ポリシー・列レベル権限・anon 権限剥奪 |
 | `20260927000400_seed_master.sql` | 言語 / 目的 / 趣味 / 日本47都道府県 + 韓国17広域自治体 / app_settings |
 | `20260927000500_storage.sql` | `profile-photos` バケットと Storage ポリシー |
+| `20260927001300_translation.sql` | `translation_usage` (利用上限記録)・`my_translation_usage()`・`messages.ai_assisted`・`translation_provider` 設定 |
 
 ## 適用
 
@@ -52,6 +54,18 @@ supabase/scripts/apply_migrations.sh
 
 適用済みバージョンは `public.schema_migrations` に記録され、再実行時はスキップされる。
 新しい変更は既存ファイルを編集せず、新しいタイムスタンプのファイルを追加する。
+
+## Edge Function: translate
+
+翻訳 API はブラウザから直接呼ばず `supabase/functions/translate` (service_role) 経由のみ。参加者確認・`app_settings.translation_limits` の上限 (max_chars / per_minute / per_day)・`message_translations` キャッシュ・15 秒タイムアウトをサーバー側で適用する。
+
+```bash
+# デプロイ (Management API)  ※ supabase CLI があれば `supabase functions deploy translate --project-ref $SUPABASE_PROJECT_REF`
+# Secrets (Dashboard → Edge Functions → Secrets):
+#   TRANSLATION_PROVIDER = openai | deepl | mock   (未設定なら OPENAI_API_KEY → DEEPL_API_KEY → mock の順で自動選択)
+#   OPENAI_API_KEY, OPENAI_MODEL (既定 gpt-4o-mini) / DEEPL_API_KEY, DEEPL_API_URL
+cd supabase/functions/translate && deno test detect_test.ts && deno check index.ts
+```
 
 ## テスト
 
