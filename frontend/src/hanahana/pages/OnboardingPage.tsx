@@ -128,6 +128,10 @@ const OnboardingPage: React.FC = () => {
     return null;
   }, [section, form, settings, t]);
 
+  useEffect(() => {
+    if (!validation) setError('');
+  }, [validation]);
+
   const optional = section === 'partner' || section === 'interest' || section === 'bio' || (section === 'photo' && !settings.photo_required);
 
   const advance = async (save: boolean) => {
