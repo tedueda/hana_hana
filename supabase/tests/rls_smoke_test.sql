@@ -222,6 +222,44 @@ begin
   perform pg_temp.check('R17b recommend_users excludes already-matched B',
     (select count(*) from recommend_users(10) r where r.id = b) = 0);
 
+  -- ---------- D01-D08: 見送り/検索カテゴリ (UI/UX A-3) ----------
+  perform pg_temp.as_user(c);
+  perform pass_user(a);
+  perform pg_temp.check('D01 pass_user hides target from recommend_users',
+    (select count(*) from recommend_users(10) r where r.id = a) = 0
+    and (select count(*) from passes where user_id = c and target_user_id = a) = 1);
+  perform pg_temp.check('D02 passed user still appears in search_profiles',
+    (select count(*) from search_profiles('{}'::jsonb, 1, 50) s where s.id = a) = 1);
+  perform undo_pass(a);
+  perform pg_temp.check('D03 undo_pass restores recommendation',
+    (select count(*) from recommend_users(10) r where r.id = a) = 1);
+  perform pass_user(a);
+  perform pg_temp.as_super();
+  update passes set created_at = now() - interval '30 days' where user_id = c and target_user_id = a;
+  perform pg_temp.as_user(c);
+  perform pg_temp.check('D04 pass expires after pass_cooldown_days',
+    (select count(*) from recommend_users(10) r where r.id = a) = 1);
+  begin
+    insert into passes (user_id, target_user_id) values (a, b);
+    perform pg_temp.check('D05 cannot insert pass for others', false);
+  exception when others then
+    perform pg_temp.check('D05 cannot insert pass for others', true);
+  end;
+  perform pg_temp.as_user(a);
+  perform pg_temp.check('D06 cannot read others passes', (select count(*) from passes) = 0);
+  begin
+    perform pass_user(a);
+    perform pg_temp.check('D07 cannot pass self', false);
+  exception when others then
+    perform pg_temp.check('D07 cannot pass self', true);
+  end;
+  perform pg_temp.as_user(c);
+  perform pg_temp.check('D08 search_profiles joined_within_days / sort=new',
+    (select count(*) from search_profiles('{"joined_within_days": 1, "sort": "new"}'::jsonb, 1, 50)) >= 2
+    and (select count(*) from search_profiles('{"joined_within_days": 0}'::jsonb, 1, 50)) = 0);
+  perform pg_temp.check('D09 public_settings exposes pass_cooldown_days',
+    (public_settings()->>'pass_cooldown_days')::int = 7);
+
   -- ---------- S01-S08: 設定/同意/一覧 RPC (UI/UX A-1) ----------
   perform pg_temp.as_user(a);
   perform pg_temp.check('S01 public_settings exposes only allowed keys',

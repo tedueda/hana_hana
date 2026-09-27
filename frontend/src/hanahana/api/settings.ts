@@ -32,6 +32,8 @@ export interface PublicSettings {
   require_verification_for_like: boolean;
   max_profile_photos: number;
   account_purge_days: number;
+  pass_cooldown_days: number;
+  new_member_days: number;
 }
 
 export const DEFAULT_PUBLIC_SETTINGS: PublicSettings = {
@@ -48,6 +50,8 @@ export const DEFAULT_PUBLIC_SETTINGS: PublicSettings = {
   require_verification_for_like: false,
   max_profile_photos: 5,
   account_purge_days: 30,
+  pass_cooldown_days: 7,
+  new_member_days: 14,
 };
 
 function asRecord(j: Json): Record<string, Json> {
@@ -79,6 +83,8 @@ export function parsePublicSettings(j: Json): PublicSettings {
     require_verification_for_like: bool('require_verification_for_like', DEFAULT_PUBLIC_SETTINGS.require_verification_for_like),
     max_profile_photos: num('max_profile_photos', DEFAULT_PUBLIC_SETTINGS.max_profile_photos),
     account_purge_days: num('account_purge_days', DEFAULT_PUBLIC_SETTINGS.account_purge_days),
+    pass_cooldown_days: num('pass_cooldown_days', DEFAULT_PUBLIC_SETTINGS.pass_cooldown_days),
+    new_member_days: num('new_member_days', DEFAULT_PUBLIC_SETTINGS.new_member_days),
   };
 }
 

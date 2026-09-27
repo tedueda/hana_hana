@@ -55,4 +55,6 @@ export interface SearchFilters {
   learning_level?: LanguageLevel;
   meeting_pref?: MeetingPref;
   verified_only?: boolean;
+  joined_within_days?: number;
+  sort?: 'active' | 'new';
 }

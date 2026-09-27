@@ -7,6 +7,7 @@ import { useSupabaseAuth } from '../auth/useSupabaseAuth';
 import { fetchLikesWithProfiles, fetchMatches, unmatch, withdrawLike } from '../api/matching';
 import { fetchUnreadCounts } from '../api/messages';
 import ProfileCard, { Avatar } from '../components/ProfileCard';
+import MatchModal from '../components/MatchModal';
 import type { MatchWithPeer } from '../types';
 import { LikeButton } from './DiscoveryPages';
 import { useErrorMessage, useLikeAction, useRegionNames } from '../hooks';
@@ -16,7 +17,7 @@ import { PageHeader } from './SettingsPage';
 export const LikesPage: React.FC = () => {
   const { user } = useSupabaseAuth();
   const [data, setData] = useState<Awaited<ReturnType<typeof fetchLikesWithProfiles>> | null>(null);
-  const { liked, like } = useLikeAction();
+  const { liked, like, matched, dismissMatch } = useLikeAction();
   const regionName = useRegionNames();
   const { t } = useI18n();
 
@@ -66,6 +67,7 @@ export const LikesPage: React.FC = () => {
           </div>
         </TabsContent>
       </Tabs>
+      <MatchModal match={matched} onClose={dismissMatch} />
     </div>
   );
 };
@@ -84,6 +86,8 @@ export const MatchesPage: React.FC = () => {
     fetchUnreadCounts(user.id).then(setUnread).catch(() => undefined);
   };
   useEffect(reload, [user]);
+
+  const fresh = (items ?? []).filter((m) => !m.conversation?.last_message_preview);
 
   const doUnmatch = async (m: MatchWithPeer) => {
     if (!window.confirm(t('matches.unmatchConfirm', { name: m.peer?.nickname ?? '' }))) return;
@@ -106,28 +110,44 @@ export const MatchesPage: React.FC = () => {
           <p className="text-sm">{t('matches.emptyLead')}</p>
         </div>
       )}
-      <ul className="divide-y divide-gray-100 bg-white rounded-2xl border border-gray-100">
-        {items?.map((m) => {
-          const count = m.conversation ? unread.get(m.conversation.id) ?? 0 : 0;
-          return (
-            <li key={m.match.id} className="flex items-center gap-3 p-3">
-              <Link to={`/app/users/${m.peer?.id ?? ''}`} className="shrink-0">
-                <Avatar path={m.peer?.primary_photo_path} name={m.peer?.nickname ?? null} className="w-14 h-14 rounded-full" />
+      {fresh.length > 0 && (
+        <section className="space-y-2">
+          <h2 className="text-sm font-semibold text-gray-500">{t('matches.new')} ({fresh.length})</h2>
+          <div className="flex gap-3 overflow-x-auto -mx-4 px-4 pb-1 [scrollbar-width:none]">
+            {fresh.map((m) => (
+              <Link key={m.match.id} to={m.conversation ? `/app/chat/${m.conversation.id}` : `/app/users/${m.peer?.id ?? ''}`} className="shrink-0 w-24 text-center">
+                <Avatar path={m.peer?.primary_photo_path} name={m.peer?.nickname ?? null} className="w-24 h-24 rounded-2xl ring-2 ring-rose-300" />
+                <p className="text-xs mt-1 truncate">{m.peer?.nickname ?? t('matches.hiddenUser')}</p>
               </Link>
-              <Link to={m.conversation ? `/app/chat/${m.conversation.id}` : '#'} className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <span className="font-semibold truncate">{m.peer?.nickname ?? t('matches.hiddenUser')}</span>
-                  {count > 0 && <span className="bg-rose-600 text-white text-[10px] rounded-full px-1.5 py-0.5">{count}</span>}
-                </div>
-                <p className="text-sm text-gray-500 truncate">
-                  {m.conversation?.last_message_preview ?? t('matches.sendMessage')}
-                </p>
-              </Link>
-              <Button variant="ghost" size="sm" className="text-gray-400 shrink-0" onClick={() => doUnmatch(m)}>{t('matches.unmatch')}</Button>
-            </li>
-          );
-        })}
-      </ul>
+            ))}
+          </div>
+        </section>
+      )}
+      {fresh.length > 0 && items && items.length > 0 && <h2 className="text-sm font-semibold text-gray-500">{t('matches.talking')}</h2>}
+      {items && items.length > 0 && (
+        <ul className="divide-y divide-gray-100 bg-white rounded-2xl border border-gray-100">
+          {items.map((m) => {
+            const count = m.conversation ? unread.get(m.conversation.id) ?? 0 : 0;
+            return (
+              <li key={m.match.id} className="flex items-center gap-3 p-3">
+                <Link to={`/app/users/${m.peer?.id ?? ''}`} className="shrink-0">
+                  <Avatar path={m.peer?.primary_photo_path} name={m.peer?.nickname ?? null} className="w-14 h-14 rounded-full" />
+                </Link>
+                <Link to={m.conversation ? `/app/chat/${m.conversation.id}` : '#'} className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="font-semibold truncate">{m.peer?.nickname ?? t('matches.hiddenUser')}</span>
+                    {count > 0 && <span className="bg-rose-600 text-white text-[10px] rounded-full px-1.5 py-0.5">{count}</span>}
+                  </div>
+                  <p className="text-sm text-gray-500 truncate">
+                    {m.conversation?.last_message_preview ?? t('matches.sendMessage')}
+                  </p>
+                </Link>
+                <Button variant="ghost" size="sm" className="text-gray-400 shrink-0" onClick={() => doUnmatch(m)}>{t('matches.unmatch')}</Button>
+              </li>
+            );
+          })}
+        </ul>
+      )}
     </div>
   );
 };

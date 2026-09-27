@@ -691,6 +691,24 @@ export type Database = {
         }
         Relationships: []
       }
+      passes: {
+        Row: {
+          created_at: string
+          target_user_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          target_user_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          target_user_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profile_photos: {
         Row: {
           created_at: string
@@ -1297,6 +1315,7 @@ export type Database = {
           notify_like: boolean
           notify_match: boolean
           notify_message: boolean
+          saved_search: Json | null
           translate_target_lang: string | null
           updated_at: string
           user_id: string
@@ -1307,6 +1326,7 @@ export type Database = {
           notify_like?: boolean
           notify_match?: boolean
           notify_message?: boolean
+          saved_search?: Json | null
           translate_target_lang?: string | null
           updated_at?: string
           user_id: string
@@ -1317,6 +1337,7 @@ export type Database = {
           notify_like?: boolean
           notify_match?: boolean
           notify_message?: boolean
+          saved_search?: Json | null
           translate_target_lang?: string | null
           updated_at?: string
           user_id?: string
@@ -1704,6 +1725,8 @@ export type Database = {
         Args: { p_birthdate: string; p_doc_path: string; p_name: string }
         Returns: undefined
       }
+      pass_user: { Args: { p_target: string }; Returns: undefined }
+      undo_pass: { Args: { p_target: string }; Returns: undefined }
       search_profiles: {
         Args: { filters?: Json; page?: number; size?: number }
         Returns: {
