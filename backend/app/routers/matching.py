@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, WebSocket, WebSock
 from sqlalchemy import and_, or_, func, select
 from sqlalchemy.orm import Session
 from app.database import get_db
-from app.models import User, MatchingProfile, Hobby, MatchingProfileHobby, MatchingProfileImage, Like, Match, Chat, Message, ChatRequest, ChatRequestMessage
+from app.models import User, MatchingProfile, Hobby, MatchingProfileHobby, MatchingProfileImage, Like, Match, Chat, Message, ChatRequest, ChatRequestMessage, Notification, UserBlock
 from app.auth import get_current_active_user, get_optional_user
 from jose import jwt, JWTError
 import os
@@ -558,7 +558,16 @@ def like_user(
 ):
     if to_user_id == current_user.id:
         raise HTTPException(status_code=400, detail="cannot like yourself")
-    # 既存のlike
+    target = (
+        db.query(User)
+        .filter(User.id == to_user_id, User.is_active == True, User.deleted_at.is_(None))
+        .first()
+    )
+    if not target:
+        raise HTTPException(status_code=404, detail="user not found")
+    if _is_blocked_between(db, current_user.id, to_user_id):
+        raise HTTPException(status_code=403, detail="cannot like this user")
+
     like = (
         db.query(Like)
         .filter(Like.from_user_id == current_user.id, Like.to_user_id == to_user_id)
@@ -570,8 +579,71 @@ def like_user(
         db.flush()
     else:
         like.status = "active"
+
+    reciprocal = (
+        db.query(Like)
+        .filter(
+            Like.from_user_id == to_user_id,
+            Like.to_user_id == current_user.id,
+            Like.status == "active",
+        )
+        .first()
+    )
+    if not reciprocal:
+        db.commit()
+        return {"status": "liked", "like_id": like.id, "matched": False}
+
+    match, chat, created = _ensure_match_and_chat(db, current_user.id, to_user_id)
+    if created:
+        for uid, other_id in ((current_user.id, to_user_id), (to_user_id, current_user.id)):
+            db.add(Notification(
+                user_id=uid,
+                type="match",
+                payload={"match_id": match.id, "chat_id": chat.id, "user_id": other_id},
+            ))
     db.commit()
-    return {"status": "liked", "like_id": like.id}
+    return {
+        "status": "matched",
+        "like_id": like.id,
+        "matched": True,
+        "match_id": match.id,
+        "chat_id": chat.id,
+    }
+
+
+def _is_blocked_between(db: Session, user_id: int, other_id: int) -> bool:
+    return (
+        db.query(UserBlock)
+        .filter(
+            or_(
+                and_(UserBlock.blocker_id == user_id, UserBlock.blocked_id == other_id),
+                and_(UserBlock.blocker_id == other_id, UserBlock.blocked_id == user_id),
+            )
+        )
+        .first()
+        is not None
+    )
+
+
+def _ensure_match_and_chat(db: Session, user_id: int, other_id: int) -> Tuple[Match, Chat, bool]:
+    """Match と Chat を取得または作成する。created は Match が新規作成/再有効化されたかどうか。"""
+    a, b = sorted([user_id, other_id])
+    match = db.query(Match).filter(Match.user_a_id == a, Match.user_b_id == b).first()
+    created = False
+    if not match:
+        match = Match(user_a_id=a, user_b_id=b, active_flag=True)
+        db.add(match)
+        db.flush()
+        created = True
+    elif not match.active_flag:
+        match.active_flag = True
+        created = True
+    chat = db.query(Chat).filter(Chat.match_id == match.id).first()
+    if not chat:
+        chat = Chat(match_id=match.id)
+        db.add(chat)
+        db.flush()
+    return match, chat, created
 
 
 @router.delete("/likes/{to_user_id}", status_code=200)
@@ -649,17 +721,63 @@ def list_matches(
 ):
     ms = (
         db.query(Match)
-        .filter(or_(Match.user_a_id == current_user.id, Match.user_b_id == current_user.id))
+        .filter(
+            or_(Match.user_a_id == current_user.id, Match.user_b_id == current_user.id),
+            Match.active_flag == True,
+        )
+        .order_by(Match.created_at.desc())
         .all()
     )
     items = []
     for m in ms:
         other_id = m.user_b_id if m.user_a_id == current_user.id else m.user_a_id
         other = db.query(User).filter(User.id == other_id).first()
-        # display_nameを使用
-        display_name = other.display_name if other else f"User {other_id}"
-        items.append({"match_id": m.id, "user_id": other_id, "display_name": display_name})
+        prof = db.query(MatchingProfile).filter(MatchingProfile.user_id == other_id).first()
+        chat = db.query(Chat).filter(Chat.match_id == m.id).first()
+        first_image = (
+            db.query(MatchingProfileImage)
+            .filter(MatchingProfileImage.profile_id == other_id)
+            .order_by(MatchingProfileImage.display_order)
+            .first()
+        )
+        display_name = (prof.nickname if prof and prof.nickname else None) or (other.display_name if other else f"User {other_id}")
+        items.append({
+            "match_id": m.id,
+            "chat_id": chat.id if chat else None,
+            "user_id": other_id,
+            "display_name": display_name,
+            "avatar_url": first_image.image_url if first_image else (prof.avatar_url if prof else None),
+            "matched_at": m.created_at.isoformat() if m.created_at else None,
+        })
     return {"items": items}
+
+
+@router.delete("/matches/{match_id}", status_code=200)
+def unmatch(
+    match_id: int,
+    current_user: User = Depends(require_premium),
+    db: Session = Depends(get_db),
+):
+    """マッチング解除。相互のいいねも取り下げる。"""
+    match = (
+        db.query(Match)
+        .filter(
+            Match.id == match_id,
+            or_(Match.user_a_id == current_user.id, Match.user_b_id == current_user.id),
+        )
+        .first()
+    )
+    if not match:
+        raise HTTPException(status_code=404, detail="match not found")
+    match.active_flag = False
+    db.query(Like).filter(
+        or_(
+            and_(Like.from_user_id == match.user_a_id, Like.to_user_id == match.user_b_id),
+            and_(Like.from_user_id == match.user_b_id, Like.to_user_id == match.user_a_id),
+        )
+    ).update({Like.status: "withdrawn"}, synchronize_session=False)
+    db.commit()
+    return {"status": "unmatched", "match_id": match.id}
 
 
 @router.post("/ensure_chat/{to_user_id}")
@@ -685,15 +803,15 @@ def ensure_chat(
         .first()
     )
     
-    if not accepted_request:
-        raise HTTPException(status_code=404, detail="No accepted chat request found. Please send a chat request first.")
-    
     a, b = sorted([current_user.id, to_user_id])
     match = (
         db.query(Match)
-        .filter(Match.user_a_id == a, Match.user_b_id == b)
+        .filter(Match.user_a_id == a, Match.user_b_id == b, Match.active_flag == True)
         .first()
     )
+
+    if not accepted_request and not match:
+        raise HTTPException(status_code=404, detail="No accepted chat request found. Please send a chat request first.")
     
     if not match:
         raise HTTPException(status_code=404, detail="No match found")
