@@ -86,7 +86,7 @@ const BigCard: React.FC<{
   return (
     <div className="bg-white rounded-3xl shadow-md border border-gray-100 overflow-hidden">
       <Link to={`/app/users/${p.id}`} className="block relative">
-        <Avatar path={p.primary_photo_path} name={p.nickname} className="w-full aspect-[4/5]" />
+        <Avatar path={p.primary_photo_path} name={p.nickname} className="w-full aspect-[3/4]" />
         <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent p-4 pt-14 text-white">
           <div className="flex items-end gap-2 flex-wrap">
             <span className="text-2xl font-bold break-all">{p.nickname ?? t('profile.unnamed')}</span>
@@ -253,7 +253,7 @@ export const RecommendPage: React.FC = () => {
         <>
           <p className="text-xs text-gray-400 text-right">{t('discover.remaining', { n: items.length })}</p>
           <BigCard item={current} regionName={regionName(current.profile.residence_region_id)} master={master} lang={lang as UiLang} />
-          <div className="grid grid-cols-3 gap-3 sticky bottom-20 sm:static">
+          <div className="grid grid-cols-3 gap-3">
             <Button variant="outline" className="h-14 rounded-2xl flex-col gap-0.5 text-xs bg-white" asChild>
               <Link to={`/app/users/${current.id}`}><Info className="w-5 h-5" />{t('discover.detail')}</Link>
             </Button>
@@ -287,6 +287,7 @@ const PAGE_SIZE = 50;
 const Chip: React.FC<{ active: boolean; onClick: () => void; children: React.ReactNode }> = ({ active, onClick, children }) => (
   <button
     type="button"
+    aria-pressed={active}
     onClick={onClick}
     className={cn(
       'min-h-10 px-3 rounded-full border text-sm break-keep',
