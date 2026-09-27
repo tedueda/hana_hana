@@ -1,3 +1,4 @@
+import { errorMessage } from './labels';
 import { useCallback, useEffect, useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useSupabaseAuth } from './auth/useSupabaseAuth';
@@ -27,7 +28,7 @@ export function useLikeAction() {
             : { title: 'いいねを送りました' },
         );
       } catch (e) {
-        toast({ title: 'いいねできませんでした', description: e instanceof Error ? e.message : String(e), variant: 'destructive' });
+        toast({ title: 'いいねできませんでした', description: errorMessage(e), variant: 'destructive' });
       }
     },
     [user, toast],

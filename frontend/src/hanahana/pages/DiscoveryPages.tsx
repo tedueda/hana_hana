@@ -9,7 +9,7 @@ import { useLikeAction, useRegionNames } from '../hooks';
 import { fetchRecommendations, searchProfiles } from '../api/discovery';
 import { loadMasterData, localizedName, type MasterData } from '../api/master';
 import ProfileCard from '../components/ProfileCard';
-import { GENDERS, GENDER_LABELS, LEVELS, LEVEL_LABELS, MEETING_PREFS, MEETING_PREF_LABELS, NATIONALITIES, NATIONALITY_LABELS, REASON_LABELS } from '../labels';
+import { GENDERS, GENDER_LABELS, LEVELS, LEVEL_LABELS, MEETING_PREFS, MEETING_PREF_LABELS, NATIONALITIES, NATIONALITY_LABELS, REASON_LABELS, errorMessage } from '../labels';
 import type { PublicProfile, SearchFilters, UiLang } from '../types';
 
 export const LikeButton: React.FC<{ profile: PublicProfile; liked: boolean; onLike: (p: PublicProfile) => void }> = ({ profile, liked, onLike }) => (
@@ -37,7 +37,7 @@ export const RecommendPage: React.FC = () => {
     setLoading(true);
     fetchRecommendations(30)
       .then(setItems)
-      .catch((e) => setError(e instanceof Error ? e.message : String(e)))
+      .catch((e) => setError(errorMessage(e)))
       .finally(() => setLoading(false));
   }, []);
 
@@ -113,7 +113,7 @@ export const SearchPage: React.FC = () => {
       setResults(await searchProfiles(filters, 1, 50));
       setOpen(false);
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+      setError(errorMessage(e));
     } finally {
       setLoading(false);
     }

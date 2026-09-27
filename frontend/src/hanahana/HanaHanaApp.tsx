@@ -32,7 +32,18 @@ const RequireAuth: React.FC = () => {
   if (profile && !profile.onboarding_completed && location.pathname !== '/app/onboarding' && !location.pathname.startsWith('/app/admin')) {
     return <Navigate to="/app/onboarding" replace />;
   }
-  return <Outlet />;
+  return (
+    <>
+      {profile?.status === 'suspended' && (
+        <div className="bg-amber-50 border-b border-amber-200 text-amber-900 text-sm px-4 py-2 text-center">
+          このアカウントは現在利用停止中です
+          {profile.suspended_until ? `（${new Date(profile.suspended_until).toLocaleString('ja-JP')} まで）` : ''}
+          。いいね・メッセージなどの操作はできません。
+        </div>
+      )}
+      <Outlet />
+    </>
+  );
 };
 
 const GuestOnly: React.FC = () => {

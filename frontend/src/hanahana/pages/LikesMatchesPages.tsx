@@ -1,3 +1,4 @@
+import { errorMessage } from '../labels';
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -87,7 +88,7 @@ export const MatchesPage: React.FC = () => {
       toast({ title: 'マッチを解除しました' });
       reload();
     } catch (e) {
-      toast({ title: '解除できませんでした', description: e instanceof Error ? e.message : String(e), variant: 'destructive' });
+      toast({ title: '解除できませんでした', description: errorMessage(e), variant: 'destructive' });
     }
   };
 
@@ -111,7 +112,7 @@ export const MatchesPage: React.FC = () => {
               </Link>
               <Link to={m.conversation ? `/app/chat/${m.conversation.id}` : '#'} className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
-                  <span className="font-semibold truncate">{m.peer?.nickname ?? '(退会したユーザー)'}</span>
+                  <span className="font-semibold truncate">{m.peer?.nickname ?? '(非表示のユーザー)'}</span>
                   {count > 0 && <span className="bg-rose-600 text-white text-[10px] rounded-full px-1.5 py-0.5">{count}</span>}
                 </div>
                 <p className="text-sm text-gray-500 truncate">

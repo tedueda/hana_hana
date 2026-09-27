@@ -32,4 +32,4 @@ export const ageOf = (birthdate: string | null | undefined): string => {
   return String(age);
 };
 
-export const errorMessage = (e: unknown): string => (e instanceof Error ? e.message : String(e));
+export { errorMessage } from '../labels';

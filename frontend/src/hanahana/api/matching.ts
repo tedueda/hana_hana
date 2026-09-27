@@ -12,15 +12,23 @@ export interface LikeResult {
 /** いいね送信。既存行があれば active に戻す (トリガー側で match 判定) */
 export async function sendLike(fromUserId: string, toUserId: string): Promise<LikeResult> {
   const sb = getSupabase();
-  const { data, error } = await sb
+  // authenticated には likes の update 権限が status 列にしか無いため upsert は使えない
+  let { data, error } = await sb
     .from('likes')
-    .upsert(
-      { from_user_id: fromUserId, to_user_id: toUserId, status: 'active' },
-      { onConflict: 'from_user_id,to_user_id' },
-    )
+    .insert({ from_user_id: fromUserId, to_user_id: toUserId, status: 'active' })
     .select('*')
     .single();
+  if (error?.code === '23505') {
+    ({ data, error } = await sb
+      .from('likes')
+      .update({ status: 'active' })
+      .eq('from_user_id', fromUserId)
+      .eq('to_user_id', toUserId)
+      .select('*')
+      .single());
+  }
   if (error) throw error;
+  if (!data) throw new Error('like row not returned');
 
   const low = fromUserId < toUserId ? fromUserId : toUserId;
   const high = fromUserId < toUserId ? toUserId : fromUserId;

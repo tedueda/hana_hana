@@ -67,3 +67,22 @@ export const REPORT_REASONS: ReportReason[] = [
   'inappropriate_photo',
   'other',
 ];
+
+/** Error / PostgrestError / 文字列 のいずれでも人が読めるメッセージにする */
+export function errorMessage(e: unknown): string {
+  const raw = rawMessage(e);
+  if (/row-level security|permission denied|42501/i.test(raw)) {
+    return 'この操作は現在行えません（利用停止中、ブロック関係、または権限が無い可能性があります）';
+  }
+  if (/Failed to fetch|NetworkError/i.test(raw)) return 'ネットワークエラーが発生しました。通信状況を確認してください';
+  return raw;
+}
+
+function rawMessage(e: unknown): string {
+  if (e instanceof Error) return e.message;
+  if (typeof e === 'string') return e;
+  if (e && typeof e === 'object' && 'message' in e && typeof (e as { message: unknown }).message === 'string') {
+    return (e as { message: string }).message;
+  }
+  return String(e);
+}

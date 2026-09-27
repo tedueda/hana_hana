@@ -1,3 +1,4 @@
+import { errorMessage } from '../labels';
 import React, { useEffect, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { ArrowLeft, Send } from 'lucide-react';
@@ -76,7 +77,7 @@ const ChatPage: React.FC = () => {
       setMessages((prev) => (prev.some((x) => x.id === m.id) ? prev : [...prev, m]));
       setText('');
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+      setError(errorMessage(e));
     } finally {
       setSending(false);
     }

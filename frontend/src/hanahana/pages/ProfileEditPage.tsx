@@ -19,7 +19,7 @@ import {
   type LanguageInput,
 } from '../api/profile';
 import { Avatar } from '../components/ProfileCard';
-import { GENDERS, GENDER_LABELS, LEVELS, LEVEL_LABELS, MEETING_PREFS, MEETING_PREF_LABELS, NATIONALITIES, NATIONALITY_LABELS } from '../labels';
+import { GENDERS, GENDER_LABELS, LEVELS, LEVEL_LABELS, MEETING_PREFS, MEETING_PREF_LABELS, NATIONALITIES, NATIONALITY_LABELS, errorMessage } from '../labels';
 import type { Country, Gender, LanguageLevel, MeetingPref, Nationality, ProfilePhoto, UiLang } from '../types';
 
 const Chip: React.FC<{ active: boolean; onClick: () => void; children: React.ReactNode }> = ({ active, onClick, children }) => (
@@ -139,7 +139,7 @@ const ProfileEditPage: React.FC<{ onboarding?: boolean }> = ({ onboarding = fals
       await refreshProfile();
       navigate(onboarding ? '/app' : '/app/profile', { replace: true });
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+      setError(errorMessage(e));
     } finally {
       setSaving(false);
     }
@@ -155,7 +155,7 @@ const ProfileEditPage: React.FC<{ onboarding?: boolean }> = ({ onboarding = fals
       const p = await uploadProfilePhoto(user.id, file, slot, photos.length === 0);
       setPhotos((prev) => [...prev, p]);
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+      setError(errorMessage(e));
     }
   };
 
