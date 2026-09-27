@@ -1,14 +1,20 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { BadgeCheck, LogOut, Pencil } from 'lucide-react';
+import { BadgeCheck, LogOut, Pencil, ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useSupabaseAuth } from '../auth/useSupabaseAuth';
 import { GENDER_LABELS, MEETING_PREF_LABELS, NATIONALITY_LABELS } from '../labels';
+import { fetchAdminRole } from '../api/admin';
 
 const MyProfilePage: React.FC = () => {
   const { user, profile, signOut } = useSupabaseAuth();
   const navigate = useNavigate();
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    fetchAdminRole().then((r) => setIsAdmin(r !== null)).catch(() => setIsAdmin(false));
+  }, []);
 
   const logout = async () => {
     await signOut();
@@ -52,6 +58,12 @@ const MyProfilePage: React.FC = () => {
 
       {!profile.onboarding_completed && (
         <p className="text-sm text-amber-700 bg-amber-50 rounded-xl p-3">プロフィールが未完成です。おすすめ表示のために必須項目を入力してください。</p>
+      )}
+
+      {isAdmin && (
+        <Button asChild variant="outline" className="w-full">
+          <Link to="/app/admin"><ShieldCheck className="w-4 h-4" /> 管理画面</Link>
+        </Button>
       )}
 
       <Button variant="ghost" className="w-full text-gray-500" onClick={logout}>

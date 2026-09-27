@@ -12,6 +12,15 @@ import { LikesPage, MatchesPage } from './pages/LikesMatchesPages';
 import MyProfilePage from './pages/MyProfilePage';
 import ProfileEditPage from './pages/ProfileEditPage';
 import UserProfilePage from './pages/UserProfilePage';
+import AdminShell from './admin/AdminShell';
+import DashboardPage from './admin/DashboardPage';
+import UsersPage from './admin/UsersPage';
+import UserDetailPage from './admin/UserDetailPage';
+import ReportsPage from './admin/ReportsPage';
+import VerificationsPage from './admin/VerificationsPage';
+import MastersPage from './admin/MastersPage';
+import AnnouncementsPage from './admin/AnnouncementsPage';
+import { AdminsPage, AuditPage } from './admin/AuditAdminsPages';
 
 const Loading: React.FC = () => <div className="min-h-screen flex items-center justify-center text-gray-500">読み込み中…</div>;
 
@@ -20,7 +29,7 @@ const RequireAuth: React.FC = () => {
   const location = useLocation();
   if (isLoading) return <Loading />;
   if (!session) return <Navigate to="/app/login" replace state={{ from: location }} />;
-  if (profile && !profile.onboarding_completed && location.pathname !== '/app/onboarding') {
+  if (profile && !profile.onboarding_completed && location.pathname !== '/app/onboarding' && !location.pathname.startsWith('/app/admin')) {
     return <Navigate to="/app/onboarding" replace />;
   }
   return <Outlet />;
@@ -62,6 +71,17 @@ const HanaHanaApp: React.FC = () => {
             <Route path="users/:userId" element={<UserProfilePage />} />
             <Route path="profile" element={<MyProfilePage />} />
             <Route path="profile/edit" element={<ProfileEditPage />} />
+          </Route>
+          <Route path="admin" element={<AdminShell />}>
+            <Route index element={<DashboardPage />} />
+            <Route path="users" element={<UsersPage />} />
+            <Route path="users/:userId" element={<UserDetailPage />} />
+            <Route path="reports" element={<ReportsPage />} />
+            <Route path="verifications" element={<VerificationsPage />} />
+            <Route path="masters" element={<MastersPage />} />
+            <Route path="announcements" element={<AnnouncementsPage />} />
+            <Route path="audit" element={<AuditPage />} />
+            <Route path="admins" element={<AdminsPage />} />
           </Route>
         </Route>
         <Route path="*" element={<Navigate to="/app" replace />} />
