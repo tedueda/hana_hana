@@ -1,4 +1,5 @@
 import { getSupabase, PROFILE_PHOTO_BUCKET } from '@/lib/supabase';
+import type { Database } from '@/types/supabase';
 import type {
   LanguageLevel,
   Profile,
@@ -157,4 +158,12 @@ export async function photoUrl(path: string | null | undefined): Promise<string 
 
 export async function touchLastActive(): Promise<void> {
   await getSupabase().rpc('touch_last_active');
+}
+
+export type Verification = Database['public']['Tables']['verifications']['Row'];
+
+export async function fetchMyVerification(): Promise<Verification | null> {
+  const { data, error } = await getSupabase().from('verifications').select('*').maybeSingle();
+  if (error) throw error;
+  return data;
 }

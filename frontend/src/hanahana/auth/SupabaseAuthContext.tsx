@@ -59,12 +59,12 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
       profile,
       isLoading,
       refreshProfile,
-      signUp: async (email, password, nickname, uiLang) => {
+      signUp: async (email, password, nickname, uiLang, consent) => {
         const { data, error } = await getSupabase().auth.signUp({
           email,
           password,
           options: {
-            data: { nickname, ui_lang: uiLang },
+            data: { nickname, ui_lang: uiLang, ...(consent ? { consent } : {}) },
             emailRedirectTo: `${window.location.origin}/app/login`,
           },
         });

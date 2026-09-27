@@ -1,4 +1,3 @@
-import { errorMessage } from '../labels';
 import React, { useEffect, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { ArrowLeft, Send } from 'lucide-react';
@@ -11,12 +10,13 @@ import { fetchMessages, markConversationRead, sendMessage, subscribeToConversati
 import { fetchPublicProfile } from '../api/profile';
 import { Avatar } from '../components/ProfileCard';
 import type { Conversation, Message, PublicProfile } from '../types';
-
-const fmtTime = (iso: string) => new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+import { formatTime, useI18n } from '../i18n';
+import { errorMessage } from '../labels';
 
 const ChatPage: React.FC = () => {
   const { conversationId = '' } = useParams();
   const { user, profile: me } = useSupabaseAuth();
+  const { t, lang, locale } = useI18n();
   const [conv, setConv] = useState<(Conversation & { is_active: boolean }) | null>(null);
   const [peer, setPeer] = useState<PublicProfile | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -36,7 +36,7 @@ const ChatPage: React.FC = () => {
         .maybeSingle();
       if (cancelled) return;
       if (err || !data) {
-        setError('この会話を表示できません');
+        setError(t('chat.cannotOpen'));
         return;
       }
       const { matches: match, ...conversation } = data;
@@ -77,7 +77,7 @@ const ChatPage: React.FC = () => {
       setMessages((prev) => (prev.some((x) => x.id === m.id) ? prev : [...prev, m]));
       setText('');
     } catch (e) {
-      setError(errorMessage(e));
+      setError(errorMessage(e, lang));
     } finally {
       setSending(false);
     }
@@ -100,13 +100,13 @@ const ChatPage: React.FC = () => {
             <span className="font-semibold truncate">{peer.nickname}</span>
           </Link>
         )}
-        {conv && !conv.is_active && <span className="ml-auto text-xs text-gray-500">終了した会話</span>}
+        {conv && !conv.is_active && <span className="ml-auto text-xs text-gray-500">{t('chat.ended')}</span>}
       </div>
 
       <div className="flex-1 overflow-y-auto px-3 py-3 space-y-2">
         {error && <p className="text-sm text-red-600 text-center">{error}</p>}
         {messages.length === 0 && !error && (
-          <p className="text-center text-sm text-gray-500 py-8">マッチしました！最初のメッセージを送ってみましょう</p>
+          <p className="text-center text-sm text-gray-500 py-8">{t('chat.firstMessage')}</p>
         )}
         {messages.map((m) => {
           const mine = m.sender_id === user?.id;
@@ -115,7 +115,7 @@ const ChatPage: React.FC = () => {
               <div className={cn('max-w-[75%] rounded-2xl px-3 py-2 text-sm whitespace-pre-wrap break-words', mine ? 'bg-rose-600 text-white rounded-br-sm' : 'bg-white border border-gray-200 rounded-bl-sm')}>
                 {m.body}
                 <div className={cn('text-[10px] mt-0.5 text-right', mine ? 'text-rose-100' : 'text-gray-400')}>
-                  {fmtTime(m.created_at)}{mine && m.read_at ? ' 既読' : ''}
+                  {formatTime(m.created_at, locale)}{mine && m.read_at ? ` ${t('chat.read')}` : ''}
                 </div>
               </div>
             </div>
@@ -131,7 +131,7 @@ const ChatPage: React.FC = () => {
           onKeyDown={onKey}
           rows={1}
           maxLength={2000}
-          placeholder={conv && !conv.is_active ? 'この会話は終了しています' : 'メッセージを入力'}
+          placeholder={conv && !conv.is_active ? t('chat.endedPlaceholder') : t('chat.placeholder')}
           disabled={!conv || !conv.is_active}
           className="min-h-[40px] max-h-32 resize-none"
         />

@@ -750,6 +750,7 @@ export type Database = {
           nickname: string | null
           occupation: string | null
           onboarding_completed: boolean
+          onboarding_step: number
           pref_age_max: number | null
           pref_age_min: number | null
           pref_gender: Database["public"]["Enums"]["gender_t"][] | null
@@ -780,6 +781,7 @@ export type Database = {
           nickname?: string | null
           occupation?: string | null
           onboarding_completed?: boolean
+          onboarding_step?: number
           pref_age_max?: number | null
           pref_age_min?: number | null
           pref_gender?: Database["public"]["Enums"]["gender_t"][] | null
@@ -810,6 +812,7 @@ export type Database = {
           nickname?: string | null
           occupation?: string | null
           onboarding_completed?: boolean
+          onboarding_step?: number
           pref_age_max?: number | null
           pref_age_min?: number | null
           pref_gender?: Database["public"]["Enums"]["gender_t"][] | null
@@ -1075,6 +1078,48 @@ export type Database = {
           },
         ]
       }
+      user_consents: {
+        Row: {
+          agreed_at: string
+          id: number
+          kind: string
+          ui_lang: string | null
+          user_id: string
+          version: string
+        }
+        Insert: {
+          agreed_at?: string
+          id?: never
+          kind: string
+          ui_lang?: string | null
+          user_id: string
+          version: string
+        }
+        Update: {
+          agreed_at?: string
+          id?: never
+          kind?: string
+          ui_lang?: string | null
+          user_id?: string
+          version?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_consents_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_consents_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "public_profile"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_events: {
         Row: {
           created_at: string
@@ -1240,6 +1285,61 @@ export type Database = {
             foreignKeyName: "user_purposes_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
+            referencedRelation: "public_profile"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_settings: {
+        Row: {
+          auto_translate: boolean
+          notify_email: boolean
+          notify_like: boolean
+          notify_match: boolean
+          notify_message: boolean
+          translate_target_lang: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          auto_translate?: boolean
+          notify_email?: boolean
+          notify_like?: boolean
+          notify_match?: boolean
+          notify_message?: boolean
+          translate_target_lang?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          auto_translate?: boolean
+          notify_email?: boolean
+          notify_like?: boolean
+          notify_match?: boolean
+          notify_message?: boolean
+          translate_target_lang?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_settings_translate_target_lang_fkey"
+            columns: ["translate_target_lang"]
+            isOneToOne: false
+            referencedRelation: "languages"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "user_settings_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_settings_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
             referencedRelation: "public_profile"
             referencedColumns: ["id"]
           },
@@ -1470,6 +1570,7 @@ export type Database = {
           nickname: string | null
           occupation: string | null
           onboarding_completed: boolean
+          onboarding_step: number
           pref_age_max: number | null
           pref_age_min: number | null
           pref_gender: Database["public"]["Enums"]["gender_t"][] | null
@@ -1499,6 +1600,38 @@ export type Database = {
         Args: { p_conversation_id: string }
         Returns: number
       }
+      my_blocks: {
+        Args: never
+        Returns: {
+          blocked_id: string
+          created_at: string
+          nickname: string
+          primary_photo_path: string
+        }[]
+      }
+      my_consent_status: {
+        Args: never
+        Returns: {
+          agreed_at: string
+          is_current: boolean
+          kind: string
+          version: string
+        }[]
+      }
+      my_conversations: {
+        Args: never
+        Returns: {
+          conversation_id: string
+          is_active: boolean
+          last_message_at: string
+          last_message_preview: string
+          match_id: string
+          peer_id: string
+          peer_nickname: string
+          peer_photo_path: string
+          unread_count: number
+        }[]
+      }
       my_profile: {
         Args: never
         Returns: {
@@ -1517,6 +1650,7 @@ export type Database = {
           nickname: string | null
           occupation: string | null
           onboarding_completed: boolean
+          onboarding_step: number
           pref_age_max: number | null
           pref_age_min: number | null
           pref_gender: Database["public"]["Enums"]["gender_t"][] | null
@@ -1539,6 +1673,7 @@ export type Database = {
         }
       }
       profile_visible_to_me: { Args: { target: string }; Returns: boolean }
+      public_settings: { Args: never; Returns: Json }
       recommend_users: {
         Args: { p_limit?: number }
         Returns: {
@@ -1546,6 +1681,10 @@ export type Database = {
           reasons: string[]
           score: number
         }[]
+      }
+      record_consent: {
+        Args: { p_kinds: string[]; p_ui_lang?: string }
+        Returns: undefined
       }
       request_account_deletion: { Args: never; Returns: undefined }
       search_profiles: {
