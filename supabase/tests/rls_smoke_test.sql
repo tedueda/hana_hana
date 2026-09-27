@@ -174,6 +174,49 @@ begin
   perform pg_temp.check('R17b recommend_users excludes already-matched B',
     (select count(*) from recommend_users(10) r where r.id = b) = 0);
 
+  -- ---------- S01-S08: 設定/同意/一覧 RPC (UI/UX A-1) ----------
+  perform pg_temp.as_user(a);
+  perform pg_temp.check('S01 public_settings exposes only allowed keys',
+    (public_settings() ? 'terms_version') and not (public_settings() ? 'invite_only'));
+  insert into user_settings (user_id, auto_translate) values (a, true);
+  perform pg_temp.check('S02 owner can insert/read own user_settings',
+    (select auto_translate from user_settings where user_id = a) = true);
+  begin
+    insert into user_settings (user_id, auto_translate) values (b, true);
+    perform pg_temp.check('S03 cannot insert user_settings for others', false);
+  exception when others then
+    perform pg_temp.check('S03 cannot insert user_settings for others', true);
+  end;
+  perform pg_temp.as_user(b);
+  perform pg_temp.check('S04 cannot read other user_settings', (select count(*) from user_settings) = 0);
+  perform pg_temp.as_user(a);
+  perform record_consent(array['terms','privacy','age'], 'ja');
+  perform pg_temp.check('S05 record_consent writes own rows',
+    (select count(*) from user_consents where user_id = a) = 3
+    and (select bool_and(is_current) from my_consent_status()));
+  begin
+    insert into user_consents (user_id, kind, version) values (a, 'terms', 'x');
+    perform pg_temp.check('S06 direct insert into user_consents denied', false);
+  exception when others then
+    perform pg_temp.check('S06 direct insert into user_consents denied', true);
+  end;
+  perform pg_temp.as_user(b);
+  perform pg_temp.check('S07 cannot read other consents', (select count(*) from user_consents) = 0);
+  perform pg_temp.as_user(a);
+  perform pg_temp.check('S08 my_conversations returns peer + unread=0 for sender',
+    (select count(*) from my_conversations() where peer_id = b and unread_count = 0) = 1);
+  perform pg_temp.as_user(b);
+  perform pg_temp.check('S08b my_conversations unread=0 for receiver after mark_conversation_read',
+    (select unread_count from my_conversations() where peer_id = a) = 0);
+  perform pg_temp.as_user(a);
+  insert into messages (conversation_id, sender_id, body) values (v_conv, a, '2件目');
+  perform pg_temp.as_user(b);
+  perform pg_temp.check('S08d my_conversations unread=1 after new message',
+    (select unread_count from my_conversations() where peer_id = a) = 1
+    and (select last_message_preview from my_conversations() where peer_id = a) = '2件目');
+  perform pg_temp.as_user(c);
+  perform pg_temp.check('S08c third party gets no conversations', (select count(*) from my_conversations()) = 0);
+
   -- ---------- R10/R13: ブロック ----------
   perform pg_temp.as_user(b);
   insert into blocks (blocker_id, blocked_id) values (b, a);
@@ -183,6 +226,11 @@ begin
     and (select count(*) from likes where status = 'active' and from_user_id in (a,b) and to_user_id in (a,b)) = 0);
   perform pg_temp.as_user(a);
   perform pg_temp.check('R13 blocked user cannot see block row', (select count(*) from blocks) = 0);
+  perform pg_temp.check('S09 my_blocks empty for blocked side', (select count(*) from my_blocks()) = 0);
+  perform pg_temp.as_user(b);
+  perform pg_temp.check('S09b my_blocks lists blocked user for blocker',
+    (select count(*) from my_blocks() where blocked_id = a) = 1);
+  perform pg_temp.as_user(a);
   perform pg_temp.check('R03 blocked user cannot see blocker profile', (select count(*) from public_profile where id = b) = 0);
   begin
     insert into messages (conversation_id, sender_id, body) values (v_conv, a, 'after block');
