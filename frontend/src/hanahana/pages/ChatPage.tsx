@@ -113,6 +113,10 @@ const ChatPage: React.FC = () => {
         return;
       }
       const { matches: match, ...conversation } = data;
+      if (match.user_low_id !== user.id && match.user_high_id !== user.id) {
+        setError(t('chat.cannotOpen'));
+        return;
+      }
       setConv({ ...conversation, is_active: match.is_active });
       const peerId = match.user_low_id === user.id ? match.user_high_id : match.user_low_id;
       fetchPublicProfile(peerId).then((p) => !cancelled && setPeer(p)).catch(() => undefined);
