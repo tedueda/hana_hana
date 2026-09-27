@@ -128,7 +128,7 @@ begin
     (select count(*) from matches) = 1 and (select count(*) from conversations) = 1);
   perform pg_temp.as_super();
   perform pg_temp.check('R07g re-like does not duplicate match notifications',
-    (select count(*) from notifications where type = 'match') = 2);
+    (select count(*) from notifications where type = 'match' and user_id in (a, b)) = 2);
 
   -- ---------- メッセージ ----------
   perform pg_temp.as_user(a);
@@ -208,14 +208,21 @@ begin
   exception when insufficient_privilege then
     perform pg_temp.check('R18 suspended user cannot like', true);
   end;
+  perform pg_temp.as_super();
+  perform pg_temp.check('R18b suspend hides profile', (select is_public from profiles where id = c) = false);
+  perform pg_temp.as_user(adm);
+  perform admin_set_status(c, 'active');
+  perform pg_temp.as_super();
+  perform pg_temp.check('R18c restore to active makes profile public again',
+    (select is_public and suspended_until is null from profiles where id = c));
 
   -- ---------- R15: admin ----------
   perform pg_temp.as_user(adm);
-  perform pg_temp.check('R15 admin reads all reports', (select count(*) from reports) = 1);
-  perform admin_resolve_report((select id from reports limit 1), 'resolved', 'ok');
+  perform pg_temp.check('R15 admin reads all reports', (select count(*) from reports where reporter_id = c) = 1);
+  perform admin_resolve_report((select id from reports where reporter_id = c), 'resolved', 'ok');
   perform pg_temp.check('R15b admin_resolve_report + audit log',
-    (select status from reports limit 1) = 'resolved'
-    and (select count(*) from admin_audit_logs where action in ('set_status','resolve_report')) = 2);
+    (select status from reports where reporter_id = c) = 'resolved'
+    and (select count(*) from admin_audit_logs where admin_user_id = adm and action in ('set_status','resolve_report')) = 3);
 
   -- 非 admin が admin RPC を呼ぶ
   perform pg_temp.as_user(a);
@@ -233,20 +240,21 @@ begin
   perform pg_temp.check('A02 admin_list_users search by email',
     (select count(*) from admin_list_users(p_query => 'b@test.local')) = 1
     and (select email from admin_list_users(p_query => 'b@test.local')) = 'b@test.local');
-  perform pg_temp.check('A03 admin_list_users filter by status suspended',
-    (select count(*) from admin_list_users(p_status => 'suspended')) >= 1);
+  perform pg_temp.check('A03 admin_list_users filter by status',
+    (select count(*) from admin_list_users(p_query => 'c@test.local', p_status => 'active')) = 1
+    and (select count(*) from admin_list_users(p_query => 'c@test.local', p_status => 'suspended')) = 0);
   perform pg_temp.check('A04 admin_get_user returns email/stats/audit',
     (admin_get_user(b)->>'email') = 'b@test.local'
     and (admin_get_user(b)->'stats') is not null);
   perform pg_temp.check('A05 admin_list_reports joins nicknames',
-    (select count(*) from admin_list_reports()) = 1
-    and (select reported_nickname from admin_list_reports()) is not null);
+    (select count(*) from admin_list_reports(p_size => 1000) where reporter_id = c) = 1
+    and (select reported_nickname from admin_list_reports(p_size => 1000) where reporter_id = c) is not null);
   perform pg_temp.check('A06 admin_list_admins',
     (select count(*) from admin_list_admins() where user_id = adm and role = 'super_admin') = 1);
   perform admin_upsert_admin('c@test.local', 'moderator');
   perform pg_temp.check('A07 admin_upsert_admin adds moderator + audit',
     (select role from admin_users where user_id = c) = 'moderator'
-    and (select count(*) from admin_audit_logs where action = 'upsert_admin') = 1);
+    and (select count(*) from admin_audit_logs where admin_user_id = adm and action = 'upsert_admin') = 1);
 
   -- moderator は管理者追加不可
   perform pg_temp.as_user(c);

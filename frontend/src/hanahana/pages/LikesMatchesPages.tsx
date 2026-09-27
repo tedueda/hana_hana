@@ -112,7 +112,7 @@ export const MatchesPage: React.FC = () => {
               </Link>
               <Link to={m.conversation ? `/app/chat/${m.conversation.id}` : '#'} className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
-                  <span className="font-semibold truncate">{m.peer?.nickname ?? '(退会したユーザー)'}</span>
+                  <span className="font-semibold truncate">{m.peer?.nickname ?? '(非表示のユーザー)'}</span>
                   {count > 0 && <span className="bg-rose-600 text-white text-[10px] rounded-full px-1.5 py-0.5">{count}</span>}
                 </div>
                 <p className="text-sm text-gray-500 truncate">
