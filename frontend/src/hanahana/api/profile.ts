@@ -162,6 +162,62 @@ export async function touchLastActive(): Promise<void> {
 
 export type Verification = Database['public']['Tables']['verifications']['Row'];
 
+export const VERIFICATION_DOC_BUCKET = 'verification-docs';
+
+export interface PublishStatus {
+  photo_required: boolean;
+  photo_count: number;
+  photo_grace_until: string | null;
+  in_grace: boolean;
+  publishable: boolean;
+}
+
+export async function fetchMyPublishStatus(): Promise<PublishStatus> {
+  const { data, error } = await getSupabase().rpc('my_publish_status');
+  if (error) throw error;
+  const r = (data && typeof data === 'object' && !Array.isArray(data) ? data : {}) as Record<string, unknown>;
+  return {
+    photo_required: typeof r.photo_required === 'boolean' ? r.photo_required : true,
+    photo_count: typeof r.photo_count === 'number' ? r.photo_count : 0,
+    photo_grace_until: typeof r.photo_grace_until === 'string' ? r.photo_grace_until : null,
+    in_grace: r.in_grace === true,
+    publishable: r.publishable === true,
+  };
+}
+
+export async function setPrimaryPhoto(userId: string, photoId: string): Promise<void> {
+  const sb = getSupabase();
+  const off = await sb.from('profile_photos').update({ is_primary: false }).eq('user_id', userId);
+  if (off.error) throw off.error;
+  const on = await sb.from('profile_photos').update({ is_primary: true }).eq('id', photoId);
+  if (on.error) throw on.error;
+}
+
+export async function uploadVerificationDoc(userId: string, file: File): Promise<string> {
+  const ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
+  const path = `${userId}/${crypto.randomUUID()}.${ext}`;
+  const { error } = await getSupabase().storage.from(VERIFICATION_DOC_BUCKET).upload(path, file, {
+    contentType: file.type,
+    upsert: false,
+  });
+  if (error) throw error;
+  return path;
+}
+
+export async function requestVerification(name: string, birthdate: string, docPath: string): Promise<void> {
+  const { error } = await getSupabase().rpc('request_verification', {
+    p_name: name,
+    p_birthdate: birthdate,
+    p_doc_path: docPath,
+  });
+  if (error) throw error;
+}
+
+export async function verificationDocUrl(path: string): Promise<string | null> {
+  const { data, error } = await getSupabase().storage.from(VERIFICATION_DOC_BUCKET).createSignedUrl(path, 600);
+  return error || !data ? null : data.signedUrl;
+}
+
 export async function fetchMyVerification(): Promise<Verification | null> {
   const { data, error } = await getSupabase().from('verifications').select('*').maybeSingle();
   if (error) throw error;

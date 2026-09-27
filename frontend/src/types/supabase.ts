@@ -1348,10 +1348,12 @@ export type Database = {
       verifications: {
         Row: {
           attempt_count: number
+          doc_path: string | null
           provider: string
           provider_session_id: string | null
           rejected_reason: string | null
           status: Database["public"]["Enums"]["verification_status_t"]
+          submitted_at: string | null
           submitted_birthdate: string | null
           submitted_name: string | null
           updated_at: string
@@ -1361,10 +1363,12 @@ export type Database = {
         }
         Insert: {
           attempt_count?: number
+          doc_path?: string | null
           provider?: string
           provider_session_id?: string | null
           rejected_reason?: string | null
           status?: Database["public"]["Enums"]["verification_status_t"]
+          submitted_at?: string | null
           submitted_birthdate?: string | null
           submitted_name?: string | null
           updated_at?: string
@@ -1374,10 +1378,12 @@ export type Database = {
         }
         Update: {
           attempt_count?: number
+          doc_path?: string | null
           provider?: string
           provider_session_id?: string | null
           rejected_reason?: string | null
           status?: Database["public"]["Enums"]["verification_status_t"]
+          submitted_at?: string | null
           submitted_birthdate?: string | null
           submitted_name?: string | null
           updated_at?: string
@@ -1509,6 +1515,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      admin_purge_verification_docs: { Args: never; Returns: number }
       admin_remove_admin: { Args: { p_user_id: string }; Returns: undefined }
       admin_resolve_report: {
         Args: {
@@ -1592,6 +1599,10 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      has_publishable_photo: {
+        Args: { p_created_at: string; p_user_id: string }
+        Returns: boolean
+      }
       is_active_member: { Args: never; Returns: boolean }
       is_admin: { Args: never; Returns: boolean }
       is_blocked_between: { Args: { a: string; b: string }; Returns: boolean }
@@ -1600,6 +1611,7 @@ export type Database = {
         Args: { p_conversation_id: string }
         Returns: number
       }
+      min_age: { Args: never; Returns: number }
       my_blocks: {
         Args: never
         Returns: {
@@ -1672,6 +1684,7 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      my_publish_status: { Args: never; Returns: Json }
       profile_visible_to_me: { Args: { target: string }; Returns: boolean }
       public_settings: { Args: never; Returns: Json }
       recommend_users: {
@@ -1687,6 +1700,10 @@ export type Database = {
         Returns: undefined
       }
       request_account_deletion: { Args: never; Returns: undefined }
+      request_verification: {
+        Args: { p_birthdate: string; p_doc_path: string; p_name: string }
+        Returns: undefined
+      }
       search_profiles: {
         Args: { filters?: Json; page?: number; size?: number }
         Returns: {

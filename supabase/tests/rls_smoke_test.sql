@@ -56,6 +56,54 @@ begin
   insert into admin_users (user_id, role) values (adm, 'super_admin');
   insert into user_languages values (a, 'ja', 'native', 'native'), (a, 'ko', 'learning', 'beginner'),
                                     (b, 'ko', 'native', 'native'), (b, 'ja', 'learning', 'intermediate');
+  -- 写真必須 (photo_required) のため、公開対象ユーザーには主写真を 1 枚ずつ登録
+  insert into profile_photos (user_id, storage_path, sort_order, is_primary)
+  values (a, a || '/p0.jpg', 0, true), (b, b || '/p0.jpg', 0, true), (c, c || '/p0.jpg', 0, true);
+
+  -- ---------- V01-V04: 生年月日の検証 / 写真必須 (UI/UX A-2) ----------
+  begin
+    update profiles set birthdate = current_date + 1 where id = a;
+    perform pg_temp.check('V01 future birthdate rejected', false);
+  exception when check_violation then
+    perform pg_temp.check('V01 future birthdate rejected', true);
+  end;
+  begin
+    update profiles set birthdate = current_date - interval '17 years' where id = a;
+    perform pg_temp.check('V02 underage birthdate rejected (min_age)', false);
+  exception when check_violation then
+    perform pg_temp.check('V02 underage birthdate rejected (min_age)', true);
+  end;
+  perform pg_temp.check('V02b birthdate unchanged after rejections',
+    (select birthdate from profiles where id = a) = '1995-01-01');
+
+  perform pg_temp.as_user(a);
+  perform pg_temp.check('V03 my_publish_status publishable with photo',
+    (my_publish_status() ->> 'publishable')::bool and (my_publish_status() ->> 'photo_count')::int = 1);
+  perform pg_temp.as_super();
+  delete from profile_photos where user_id = c;
+  perform pg_temp.as_user(a);
+  perform pg_temp.check('V04 new user without photo hidden from public_profile',
+    (select count(*) from public_profile where id = c) = 0);
+  perform pg_temp.check('V04b new user without photo excluded from candidate_profiles',
+    (select count(*) from candidate_profiles() where id = c) = 0);
+  perform pg_temp.as_user(c);
+  perform pg_temp.check('V04c my_publish_status not publishable / not in grace for new user',
+    not (my_publish_status() ->> 'publishable')::bool and not (my_publish_status() ->> 'in_grace')::bool);
+  perform pg_temp.as_super();
+  -- 既存アカウント (猶予開始日より前に作成) は猶予期間中は写真なしでも公開
+  update profiles set created_at = now() - interval '30 days' where id = c;
+  update app_settings set value = to_jsonb((current_date + 7)::text) where key = 'photo_grace_until';
+  perform pg_temp.as_user(a);
+  perform pg_temp.check('V04d existing user without photo visible during grace',
+    (select count(*) from public_profile where id = c) = 1);
+  perform pg_temp.as_super();
+  update app_settings set value = to_jsonb((current_date - 1)::text) where key = 'photo_grace_until';
+  perform pg_temp.as_user(a);
+  perform pg_temp.check('V04e existing user without photo hidden after grace',
+    (select count(*) from public_profile where id = c) = 0);
+  perform pg_temp.as_super();
+  update app_settings set value = to_jsonb('2026-10-27'::text) where key = 'photo_grace_until';
+  insert into profile_photos (user_id, storage_path, sort_order, is_primary) values (c, c || '/p0.jpg', 0, true);
 
   -- ---------- R01: A が B の public_profile を見られる / birthdate は列としてない ----------
   perform pg_temp.as_user(a);
@@ -263,6 +311,77 @@ begin
   perform pg_temp.as_super();
   perform pg_temp.check('R18c restore to active makes profile public again',
     (select is_public and suspended_until is null from profiles where id = c));
+
+  -- ---------- V10-V18: 本人確認申請 RPC / 書類ストレージ (UI/UX A-2) ----------
+  perform pg_temp.as_super();
+  -- アップロード済み書類を模擬 (Storage API の代わりに storage.objects へ直接挿入)
+  insert into storage.objects (bucket_id, name, owner, owner_id, metadata)
+  values ('verification-docs', a || '/doc1.jpg', a, a::text, '{"mimetype":"image/jpeg"}'),
+         ('verification-docs', b || '/doc1.jpg', b, b::text, '{"mimetype":"image/jpeg"}');
+
+  perform pg_temp.as_user(a);
+  perform pg_temp.check('V10 own verification doc readable',
+    (select count(*) from storage.objects where bucket_id = 'verification-docs' and name = a || '/doc1.jpg') = 1);
+  perform pg_temp.check('V11 other user verification doc hidden',
+    (select count(*) from storage.objects where bucket_id = 'verification-docs' and name = b || '/doc1.jpg') = 0);
+  begin
+    perform request_verification('山田 太郎', '1995-01-01', b || '/doc1.jpg');
+    perform pg_temp.check('V12 cannot submit with someone else doc path', false);
+  exception when check_violation then
+    perform pg_temp.check('V12 cannot submit with someone else doc path', true);
+  end;
+  begin
+    perform request_verification('山田 太郎', '1995-01-01', a || '/missing.jpg');
+    perform pg_temp.check('V13 cannot submit with non-uploaded doc', false);
+  exception when check_violation then
+    perform pg_temp.check('V13 cannot submit with non-uploaded doc', true);
+  end;
+  begin
+    perform request_verification('', '1995-01-01', a || '/doc1.jpg');
+    perform pg_temp.check('V14 name required', false);
+  exception when check_violation then
+    perform pg_temp.check('V14 name required', true);
+  end;
+  perform request_verification('山田 太郎', '1995-01-01', a || '/doc1.jpg');
+  perform pg_temp.check('V15 request_verification -> pending with doc_path',
+    (select status = 'pending' and doc_path = a || '/doc1.jpg' and submitted_name = '山田 太郎' and attempt_count = 1
+       from verifications where user_id = a));
+  begin
+    perform request_verification('山田 太郎', '1995-01-01', a || '/doc1.jpg');
+    perform pg_temp.check('V16 duplicate submit while pending rejected', false);
+  exception when unique_violation then
+    perform pg_temp.check('V16 duplicate submit while pending rejected', true);
+  end;
+  perform pg_temp.as_user(b);
+  perform pg_temp.check('V17 other user cannot see my verification row',
+    (select count(*) from verifications where user_id = a) = 0);
+  perform pg_temp.check('V17b public_profile has no verification doc/name columns',
+    (select count(*) from information_schema.columns where table_name = 'public_profile'
+       and column_name in ('doc_path', 'submitted_name', 'submitted_birthdate')) = 0);
+  perform pg_temp.as_user(adm);
+  perform admin_set_verification(a, 'rejected', '画像が不鮮明');
+  perform pg_temp.as_user(a);
+  perform request_verification('山田 太郎', '1995-01-01', a || '/doc1.jpg');
+  perform pg_temp.check('V18 re-apply after rejection -> pending, attempt_count=2, reason cleared',
+    (select status = 'pending' and attempt_count = 2 and rejected_reason is null from verifications where user_id = a));
+  perform pg_temp.as_user(adm);
+  perform admin_set_verification(a, 'verified');
+  perform pg_temp.as_super();
+  alter table verifications disable trigger verifications_set_updated_at;
+  update verifications set updated_at = now() - interval '100 days' where user_id = a;
+  alter table verifications enable trigger verifications_set_updated_at;
+  perform pg_temp.as_user(b);
+  begin
+    perform admin_purge_verification_docs();
+    perform pg_temp.check('V19 non-admin cannot purge docs', false);
+  exception when insufficient_privilege then
+    perform pg_temp.check('V19 non-admin cannot purge docs', true);
+  end;
+  perform pg_temp.as_user(adm);
+  n := admin_purge_verification_docs();
+  perform pg_temp.check('V19b admin_purge_verification_docs removes expired doc',
+    n = 1 and (select doc_path is null from verifications where user_id = a)
+    and (select count(*) from storage.objects where bucket_id = 'verification-docs' and name = a || '/doc1.jpg') = 0);
 
   -- ---------- R15: admin ----------
   perform pg_temp.as_user(adm);
