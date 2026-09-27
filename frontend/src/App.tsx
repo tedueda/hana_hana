@@ -3,6 +3,8 @@ import { API_URL } from '@/config';
 import { BrowserRouter as Router, Routes, Route, Navigate, useParams, useLocation, useSearchParams, useNavigate } from 'react-router-dom';
 import { AuthProvider, useAuth, resilientFetch } from './contexts/AuthContext';
 import { LanguageProvider } from './contexts/LanguageContext';
+import HanaHanaApp from './hanahana/HanaHanaApp';
+import { Toaster } from '@/components/ui/toaster';
 import Header from './components/Header';
 import Footer from './components/Footer';
 import LoginForm from './components/LoginForm';
@@ -181,6 +183,19 @@ function MaintenancePage() {
 function AppContent() {
   const location = useLocation();
   const isHome = location.pathname === '/' || location.pathname === '/feed';
+
+  // 新サービス (Supabase ベース) は /app 配下に段階的に構築する
+  if (location.pathname === '/app' || location.pathname.startsWith('/app/')) {
+    return (
+      <>
+        <ScrollToTop />
+        <Routes>
+          <Route path="/app/*" element={<HanaHanaApp />} />
+        </Routes>
+        <Toaster />
+      </>
+    );
+  }
 
   // サイト閉鎖モード: 許可されたパス以外は閉鎖ページを表示（他ページへのリンクなし）
   if (SITE_MAINTENANCE && !MAINTENANCE_ALLOWED_PATHS.some(p => location.pathname.startsWith(p))) {
