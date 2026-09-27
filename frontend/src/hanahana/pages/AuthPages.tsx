@@ -5,11 +5,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useSupabaseAuth } from '../auth/useSupabaseAuth';
-import { APP_NAME } from '../labels';
+import { APP_NAME, errorMessage as rawErrorMessage } from '../labels';
 import type { UiLang } from '../types';
 
 const errorMessage = (e: unknown): string => {
-  const msg = e instanceof Error ? e.message : String(e);
+  const msg = rawErrorMessage(e);
   if (/invalid login credentials/i.test(msg)) return 'メールアドレスまたはパスワードが正しくありません';
   if (/email not confirmed/i.test(msg)) return 'メールアドレスの確認が完了していません。届いたメールのリンクを開いてください';
   if (/already registered/i.test(msg)) return 'このメールアドレスは既に登録されています';

@@ -1,3 +1,4 @@
+import { errorMessage } from '../labels';
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -87,7 +88,7 @@ export const MatchesPage: React.FC = () => {
       toast({ title: 'マッチを解除しました' });
       reload();
     } catch (e) {
-      toast({ title: '解除できませんでした', description: e instanceof Error ? e.message : String(e), variant: 'destructive' });
+      toast({ title: '解除できませんでした', description: errorMessage(e), variant: 'destructive' });
     }
   };
 
