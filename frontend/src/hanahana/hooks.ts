@@ -17,11 +17,17 @@ export function useErrorMessage(): (e: unknown) => string {
   return useCallback((e: unknown) => errorMessage(e, lang), [lang]);
 }
 
+export interface NewMatch {
+  peer: PublicProfile;
+  conversationId: string | null;
+}
+
 export function useLikeAction() {
   const { user } = useSupabaseAuth();
   const { toast } = useToast();
   const { t, lang } = useI18n();
   const [liked, setLiked] = useState<Set<string>>(new Set());
+  const [matched, setMatched] = useState<NewMatch | null>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -34,11 +40,8 @@ export function useLikeAction() {
       try {
         const res = await sendLike(user.id, target.id);
         setLiked((prev) => new Set(prev).add(target.id!));
-        toast(
-          res.matched
-            ? { title: t('matches.matched'), description: t('matches.matchedLead', { name: target.nickname ?? '' }) }
-            : { title: t('likes.sentToast') },
-        );
+        if (res.matched) setMatched({ peer: target, conversationId: res.conversationId });
+        else toast({ title: t('likes.sentToast') });
         return res;
       } catch (e) {
         toast({ title: t('likes.failed'), description: errorMessage(e, lang), variant: 'destructive' });
@@ -48,7 +51,8 @@ export function useLikeAction() {
     [user, toast, t, lang],
   );
 
-  return { liked, like };
+  const dismissMatch = useCallback(() => setMatched(null), []);
+  return { liked, like, matched, dismissMatch };
 }
 
 export function useRegionNames(): (id: string | null | undefined) => string | undefined {

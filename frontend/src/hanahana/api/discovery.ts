@@ -14,6 +14,46 @@ export async function fetchRecommendations(limit = 20): Promise<RecommendedUser[
   });
 }
 
+export async function passUser(targetUserId: string): Promise<void> {
+  const { error } = await getSupabase().rpc('pass_user', { p_target: targetUserId });
+  if (error) throw error;
+}
+
+export async function undoPass(targetUserId: string): Promise<void> {
+  const { error } = await getSupabase().rpc('undo_pass', { p_target: targetUserId });
+  if (error) throw error;
+}
+
+const FILTER_KEYS: (keyof SearchFilters)[] = [
+  'nationality', 'residence_country', 'residence_region_id', 'gender', 'age_min', 'age_max',
+  'purposes', 'interests', 'native_language', 'learning_language', 'learning_level', 'meeting_pref', 'verified_only',
+];
+
+export function isEmptyFilters(f: SearchFilters): boolean {
+  return FILTER_KEYS.every((k) => {
+    const v = f[k];
+    return v === undefined || v === null || v === '' || v === false || (Array.isArray(v) && v.length === 0);
+  });
+}
+
+export async function loadSavedSearch(userId: string): Promise<SearchFilters | null> {
+  const { data, error } = await getSupabase().from('user_settings').select('saved_search').eq('user_id', userId).maybeSingle();
+  if (error) throw error;
+  const j = data?.saved_search;
+  if (!j || typeof j !== 'object' || Array.isArray(j)) return null;
+  const src = j as Record<string, Json>;
+  const out: Record<string, Json> = {};
+  for (const k of FILTER_KEYS) if (src[k] !== undefined) out[k] = src[k];
+  return out as SearchFilters;
+}
+
+export async function saveSearch(userId: string, filters: SearchFilters | null): Promise<void> {
+  const { error } = await getSupabase()
+    .from('user_settings')
+    .upsert({ user_id: userId, saved_search: filters as Json | null }, { onConflict: 'user_id' });
+  if (error) throw error;
+}
+
 export async function searchProfiles(
   filters: SearchFilters,
   page = 1,
