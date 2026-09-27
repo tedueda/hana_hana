@@ -303,6 +303,43 @@ begin
   perform pg_temp.as_user(c);
   perform pg_temp.check('S08c third party gets no conversations', (select count(*) from my_conversations()) = 0);
 
+  -- ---------- T01-T08: 翻訳 (message_translations / translation_usage / ai_assisted) ----------
+  perform pg_temp.as_user(a);
+  begin
+    insert into message_translations (message_id, target_lang, translated_body)
+      select id, 'ko', 'x' from messages where conversation_id = v_conv limit 1;
+    perform pg_temp.check('T01 participant cannot insert translation directly (server only)', false);
+  exception when insufficient_privilege then
+    perform pg_temp.check('T01 participant cannot insert translation directly (server only)', true);
+  end;
+  begin
+    insert into translation_usage (user_id, kind, target_lang, chars) values (a, 'draft', 'ko', 5);
+    perform pg_temp.check('T02 user cannot insert translation_usage', false);
+  exception when insufficient_privilege then
+    perform pg_temp.check('T02 user cannot insert translation_usage', true);
+  end;
+  perform pg_temp.as_super();
+  insert into message_translations (message_id, target_lang, translated_body, provider)
+    select id, 'ko', '안녕하세요', 'mock' from messages where conversation_id = v_conv and body = 'こんにちは';
+  insert into translation_usage (user_id, kind, target_lang, chars, provider) values (a, 'message', 'ko', 5, 'mock');
+  perform pg_temp.as_user(b);
+  perform pg_temp.check('T03 participant can read cached translation',
+    (select count(*) from message_translations where target_lang = 'ko') = 1);
+  perform pg_temp.check('T04 original body unchanged after translation',
+    (select count(*) from messages where conversation_id = v_conv and body = 'こんにちは') = 1);
+  perform pg_temp.as_user(c);
+  perform pg_temp.check('T05 third party cannot read translations', (select count(*) from message_translations) = 0);
+  perform pg_temp.check('T06 third party cannot read others translation_usage', (select count(*) from translation_usage) = 0);
+  perform pg_temp.as_user(a);
+  perform pg_temp.check('T07 my_translation_usage counts own usage and exposes limits',
+    (select used_today from my_translation_usage()) = 1 and (select per_day from my_translation_usage()) = 200);
+  insert into messages (conversation_id, sender_id, body, body_lang, ai_assisted) values (v_conv, a, '안녕하세요!', 'ko', true);
+  perform pg_temp.as_user(b);
+  perform pg_temp.check('T08 ai_assisted flag visible to receiver',
+    (select ai_assisted from messages where conversation_id = v_conv and body = '안녕하세요!') = true);
+  perform pg_temp.check('T09 public_settings exposes translation settings',
+    (public_settings()->>'translation_provider') is not null and (public_settings()->'translation_limits'->>'per_day')::int = 200);
+
   -- ---------- R10/R13: ブロック ----------
   perform pg_temp.as_user(b);
   insert into blocks (blocker_id, blocked_id) values (b, a);

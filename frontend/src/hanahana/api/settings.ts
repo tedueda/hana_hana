@@ -29,6 +29,7 @@ export interface PublicSettings {
   translation_enabled: boolean;
   translation_auto_enabled: boolean;
   translation_limits: TranslationLimits;
+  translation_provider: string;
   require_verification_for_like: boolean;
   max_profile_photos: number;
   account_purge_days: number;
@@ -47,6 +48,7 @@ export const DEFAULT_PUBLIC_SETTINGS: PublicSettings = {
   translation_enabled: true,
   translation_auto_enabled: false,
   translation_limits: { max_chars: 1000, per_minute: 10, per_day: 200 },
+  translation_provider: 'auto',
   require_verification_for_like: false,
   max_profile_photos: 5,
   account_purge_days: 30,
@@ -80,6 +82,7 @@ export function parsePublicSettings(j: Json): PublicSettings {
       per_minute: typeof lim.per_minute === 'number' ? lim.per_minute : dl.per_minute,
       per_day: typeof lim.per_day === 'number' ? lim.per_day : dl.per_day,
     },
+    translation_provider: str('translation_provider', DEFAULT_PUBLIC_SETTINGS.translation_provider),
     require_verification_for_like: bool('require_verification_for_like', DEFAULT_PUBLIC_SETTINGS.require_verification_for_like),
     max_profile_photos: num('max_profile_photos', DEFAULT_PUBLIC_SETTINGS.max_profile_photos),
     account_purge_days: num('account_purge_days', DEFAULT_PUBLIC_SETTINGS.account_purge_days),

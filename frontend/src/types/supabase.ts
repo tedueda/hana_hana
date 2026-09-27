@@ -451,6 +451,39 @@ export type Database = {
           },
         ]
       }
+      translation_usage: {
+        Row: {
+          cached: boolean
+          chars: number
+          created_at: string
+          id: number
+          kind: string
+          provider: string | null
+          target_lang: string
+          user_id: string
+        }
+        Insert: {
+          cached?: boolean
+          chars: number
+          created_at?: string
+          id?: never
+          kind: string
+          provider?: string | null
+          target_lang: string
+          user_id: string
+        }
+        Update: {
+          cached?: boolean
+          chars?: number
+          created_at?: string
+          id?: never
+          kind?: string
+          provider?: string | null
+          target_lang?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       message_translations: {
         Row: {
           created_at: string
@@ -485,6 +518,7 @@ export type Database = {
       }
       messages: {
         Row: {
+          ai_assisted: boolean
           attachment_path: string | null
           body: string
           body_lang: string | null
@@ -496,6 +530,7 @@ export type Database = {
           sender_id: string
         }
         Insert: {
+          ai_assisted?: boolean
           attachment_path?: string | null
           body: string
           body_lang?: string | null
@@ -507,6 +542,7 @@ export type Database = {
           sender_id: string
         }
         Update: {
+          ai_assisted?: boolean
           attachment_path?: string | null
           body?: string
           body_lang?: string | null
@@ -1726,6 +1762,16 @@ export type Database = {
         Returns: undefined
       }
       pass_user: { Args: { p_target: string }; Returns: undefined }
+      my_translation_usage: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          used_today: number
+          used_last_minute: number
+          per_day: number
+          per_minute: number
+          max_chars: number
+        }[]
+      }
       undo_pass: { Args: { p_target: string }; Returns: undefined }
       search_profiles: {
         Args: { filters?: Json; page?: number; size?: number }
