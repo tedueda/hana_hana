@@ -1,59 +1,8 @@
 import type { Country, Gender, LanguageLevel, MeetingPref, Nationality, ReportReason } from './types';
+import { translate, type Lang } from './i18n';
+import type { MessageKey } from './i18n/ja';
 
 export const APP_NAME = (import.meta.env.VITE_APP_NAME as string | undefined) || 'Hana-Hana';
-
-export const GENDER_LABELS: Record<Gender, string> = {
-  male: '男性',
-  female: '女性',
-  other: 'その他',
-  undisclosed: '回答しない',
-};
-
-export const NATIONALITY_LABELS: Record<Nationality, string> = {
-  JP: '日本',
-  KR: '韓国',
-  other: 'その他',
-};
-
-export const COUNTRY_LABELS: Record<Country, string> = NATIONALITY_LABELS;
-
-export const LEVEL_LABELS: Record<LanguageLevel, string> = {
-  beginner: '初級',
-  intermediate: '中級',
-  advanced: '上級',
-  native: 'ネイティブ',
-};
-
-export const MEETING_PREF_LABELS: Record<MeetingPref, string> = {
-  online_only: 'オンラインのみ',
-  online_first: 'まずはオンライン',
-  meet_ok: '実際に会うのもOK',
-  travel_meet: '旅行時に会いたい',
-};
-
-export const REPORT_REASON_LABELS: Record<ReportReason, string> = {
-  inappropriate_content: '不適切な内容',
-  impersonation: 'なりすまし',
-  harassment: '迷惑行為',
-  fraud_suspected: '詐欺の疑い',
-  inappropriate_photo: '不適切な写真',
-  other: 'その他',
-};
-
-export const REASON_LABELS: Record<string, string> = {
-  gender: '希望の性別',
-  gender_mutual: 'お互いの希望が一致',
-  nationality: '希望の国籍',
-  age: '希望の年齢',
-  language: '言語交換が成立',
-  interest: '共通の趣味',
-  purpose: '同じ利用目的',
-  region: '同じ地域',
-  country: '同じ国',
-  meeting_pref: '交流スタイルが近い',
-  recent: '最近アクティブ',
-  verified: '本人確認済み',
-};
 
 export const LEVELS: LanguageLevel[] = ['beginner', 'intermediate', 'advanced'];
 export const GENDERS: Gender[] = ['male', 'female', 'other', 'undisclosed'];
@@ -68,13 +17,59 @@ export const REPORT_REASONS: ReportReason[] = [
   'other',
 ];
 
+const REASON_KEYS = [
+  'gender', 'gender_mutual', 'nationality', 'age', 'language', 'language_exchange', 'interest',
+  'shared_interests', 'purpose', 'shared_purpose', 'region', 'nearby', 'country', 'meeting_pref',
+  'recent', 'verified',
+] as const;
+
+function mapOf<K extends string>(lang: Lang, prefix: string, keys: readonly K[]): Record<K, string> {
+  return Object.fromEntries(keys.map((k) => [k, translate(lang, `${prefix}.${k}` as MessageKey)])) as Record<K, string>;
+}
+
+export interface Labels {
+  gender: Record<Gender, string>;
+  nationality: Record<Nationality, string>;
+  country: Record<Country, string>;
+  level: Record<LanguageLevel, string>;
+  meetingPref: Record<MeetingPref, string>;
+  reportReason: Record<ReportReason, string>;
+  reason: Record<string, string>;
+}
+
+export function labelsFor(lang: Lang): Labels {
+  const nationality = mapOf(lang, 'nat', NATIONALITIES);
+  return {
+    gender: mapOf(lang, 'gender', GENDERS),
+    nationality,
+    country: nationality,
+    level: mapOf(lang, 'level', [...LEVELS, 'native'] as LanguageLevel[]),
+    meetingPref: mapOf(lang, 'meeting', MEETING_PREFS),
+    reportReason: mapOf(lang, 'report', REPORT_REASONS),
+    reason: mapOf(lang, 'reason', REASON_KEYS),
+  };
+}
+
+const JA = labelsFor('ja');
+/** @deprecated 表示言語に依存しない箇所のみ。画面では useLabels() を使う */
+export const GENDER_LABELS = JA.gender;
+export const NATIONALITY_LABELS = JA.nationality;
+export const COUNTRY_LABELS = JA.country;
+export const LEVEL_LABELS = JA.level;
+export const MEETING_PREF_LABELS = JA.meetingPref;
+export const REPORT_REASON_LABELS = JA.reportReason;
+export const REASON_LABELS = JA.reason;
+
 /** Error / PostgrestError / 文字列 のいずれでも人が読めるメッセージにする */
-export function errorMessage(e: unknown): string {
+export function errorMessage(e: unknown, lang: Lang = 'ja'): string {
   const raw = rawMessage(e);
-  if (/row-level security|permission denied|42501/i.test(raw)) {
-    return 'この操作は現在行えません（利用停止中、ブロック関係、または権限が無い可能性があります）';
-  }
-  if (/Failed to fetch|NetworkError/i.test(raw)) return 'ネットワークエラーが発生しました。通信状況を確認してください';
+  if (/row-level security|permission denied|42501/i.test(raw)) return translate(lang, 'common.forbidden');
+  if (/Failed to fetch|NetworkError/i.test(raw)) return translate(lang, 'common.networkError');
+  if (/Invalid login credentials/i.test(raw)) return translate(lang, 'auth.err.invalid');
+  if (/Email not confirmed/i.test(raw)) return translate(lang, 'auth.err.notConfirmed');
+  if (/already registered|already been registered/i.test(raw)) return translate(lang, 'auth.err.exists');
+  if (/Password should be at least/i.test(raw)) return translate(lang, 'auth.err.password');
+  if (/rate limit/i.test(raw)) return translate(lang, 'auth.err.rateLimit');
   return raw;
 }
 

@@ -1,28 +1,27 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { getSupabase } from '@/lib/supabase';
 import { useSupabaseAuth } from '../auth/useSupabaseAuth';
-import { APP_NAME, errorMessage as rawErrorMessage } from '../labels';
-import type { UiLang } from '../types';
-
-const errorMessage = (e: unknown): string => {
-  const msg = rawErrorMessage(e);
-  if (/invalid login credentials/i.test(msg)) return 'メールアドレスまたはパスワードが正しくありません';
-  if (/email not confirmed/i.test(msg)) return 'メールアドレスの確認が完了していません。届いたメールのリンクを開いてください';
-  if (/already registered/i.test(msg)) return 'このメールアドレスは既に登録されています';
-  if (/password/i.test(msg) && /8/.test(msg)) return 'パスワードは8文字以上にしてください';
-  if (/rate limit/i.test(msg)) return '送信回数の上限に達しました。しばらくしてからお試しください';
-  return msg;
-};
+import { APP_NAME } from '../labels';
+import { useI18n } from '../i18n';
+import { useErrorMessage } from '../hooks';
+import LangSwitch from '../components/LangSwitch';
+import { DEFAULT_PUBLIC_SETTINGS, fetchPublicSettings, type PublicSettings } from '../api/settings';
 
 const AuthCard: React.FC<{ title: string; description?: string; children: React.ReactNode }> = ({ title, description, children }) => (
-  <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-rose-50 to-white px-4 py-10">
+  <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-rose-50 to-white px-4 py-8 pt-[max(2rem,env(safe-area-inset-top))]">
     <Card className="w-full max-w-md shadow-lg border-rose-100">
       <CardHeader className="text-center space-y-2">
-        <p className="text-rose-600 font-bold tracking-wide">{APP_NAME}</p>
+        <div className="flex items-center justify-between">
+          <span className="w-24" />
+          <p className="text-rose-600 font-bold tracking-wide">{APP_NAME}</p>
+          <LangSwitch className="w-24 justify-center" />
+        </div>
         <CardTitle className="text-2xl">{title}</CardTitle>
         {description && <CardDescription>{description}</CardDescription>}
       </CardHeader>
@@ -33,6 +32,8 @@ const AuthCard: React.FC<{ title: string; description?: string; children: React.
 
 export const LoginPage: React.FC = () => {
   const { signIn } = useSupabaseAuth();
+  const { t } = useI18n();
+  const errorMessage = useErrorMessage();
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -54,26 +55,26 @@ export const LoginPage: React.FC = () => {
   };
 
   return (
-    <AuthCard title="ログイン" description="日本と韓国をつなぐ、新しい出会い。">
+    <AuthCard title={t('auth.login')} description={t('auth.loginLead')}>
       <form onSubmit={submit} className="space-y-4">
         <div className="space-y-1.5">
-          <Label htmlFor="email">メールアドレス</Label>
-          <Input id="email" type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
+          <Label htmlFor="email">{t('auth.email')}</Label>
+          <Input id="email" type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} className="h-11" />
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="password">パスワード</Label>
-          <Input id="password" type="password" autoComplete="current-password" required value={password} onChange={(e) => setPassword(e.target.value)} />
+          <Label htmlFor="password">{t('auth.password')}</Label>
+          <Input id="password" type="password" autoComplete="current-password" required value={password} onChange={(e) => setPassword(e.target.value)} className="h-11" />
         </div>
-        {error && <p className="text-sm text-red-600">{error}</p>}
-        <Button type="submit" className="w-full bg-rose-600 hover:bg-rose-700" disabled={busy}>
-          {busy ? 'ログイン中…' : 'ログイン'}
+        {error && <p className="text-sm text-red-600" role="alert">{error}</p>}
+        <Button type="submit" className="w-full h-11 bg-rose-600 hover:bg-rose-700" disabled={busy}>
+          {busy ? t('auth.loggingIn') : t('auth.login')}
         </Button>
         <div className="text-sm text-center text-gray-600 space-y-1">
           <p>
-            <Link to="/app/forgot-password" className="underline">パスワードをお忘れですか？</Link>
+            <Link to="/app/forgot-password" className="underline">{t('auth.forgot')}</Link>
           </p>
           <p>
-            アカウントをお持ちでない方は <Link to="/app/register" className="text-rose-600 underline">新規登録</Link>
+            {t('auth.noAccount')} <Link to="/app/register" className="text-rose-600 underline">{t('auth.register')}</Link>
           </p>
         </div>
       </form>
@@ -83,21 +84,39 @@ export const LoginPage: React.FC = () => {
 
 export const RegisterPage: React.FC = () => {
   const { signUp } = useSupabaseAuth();
+  const { t, lang } = useI18n();
+  const errorMessage = useErrorMessage();
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [nickname, setNickname] = useState('');
-  const [uiLang, setUiLang] = useState<UiLang>('ja');
+  const [agreeTerms, setAgreeTerms] = useState(false);
+  const [agreeAge, setAgreeAge] = useState(false);
+  const [settings, setSettings] = useState<PublicSettings>(DEFAULT_PUBLIC_SETTINGS);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const [sent, setSent] = useState(false);
+  const [resent, setResent] = useState(false);
+
+  useEffect(() => {
+    fetchPublicSettings().then(setSettings).catch(() => undefined);
+  }, []);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!agreeTerms || !agreeAge) {
+      setError(t('auth.consentRequired'));
+      return;
+    }
     setBusy(true);
     setError('');
     try {
-      const { needsEmailConfirm } = await signUp(email, password, nickname, uiLang);
+      const { needsEmailConfirm } = await signUp(email, password, nickname, lang, {
+        terms_version: settings.terms_version,
+        privacy_version: settings.privacy_version,
+        min_age: settings.min_age,
+        consented_at: new Date().toISOString(),
+      });
       if (needsEmailConfirm) setSent(true);
       else navigate('/app/onboarding', { replace: true });
     } catch (err) {
@@ -107,50 +126,76 @@ export const RegisterPage: React.FC = () => {
     }
   };
 
+  const resend = async () => {
+    try {
+      const { error: err } = await getSupabase().auth.resend({
+        type: 'signup',
+        email,
+        options: { emailRedirectTo: `${window.location.origin}/app/login` },
+      });
+      if (err) throw err;
+      setResent(true);
+    } catch (err) {
+      setError(errorMessage(err));
+    }
+  };
+
   if (sent) {
     return (
-      <AuthCard title="確認メールを送信しました">
-        <p className="text-sm text-gray-700 text-center leading-relaxed">
-          {email} に確認メールを送りました。メール内のリンクを開いて登録を完了してください。
-        </p>
-        <Button asChild variant="outline" className="w-full mt-6">
-          <Link to="/app/login">ログイン画面へ</Link>
+      <AuthCard title={t('auth.sentTitle')}>
+        <p className="text-sm text-gray-700 text-center leading-relaxed">{t('auth.sentBody', { email })}</p>
+        {error && <p className="text-sm text-red-600 mt-3 text-center" role="alert">{error}</p>}
+        <Button variant="ghost" className="w-full mt-4 h-11" onClick={resend} disabled={resent}>
+          {resent ? t('auth.resent') : t('auth.resend')}
+        </Button>
+        <Button asChild variant="outline" className="w-full mt-2 h-11">
+          <Link to="/app/login">{t('auth.toLogin')}</Link>
         </Button>
       </AuthCard>
     );
   }
 
   return (
-    <AuthCard title="新規登録" description="無料で始められます">
+    <AuthCard title={t('auth.register')} description={t('auth.registerLead')}>
       <form onSubmit={submit} className="space-y-4">
         <div className="space-y-1.5">
-          <Label htmlFor="nickname">ニックネーム</Label>
-          <Input id="nickname" required maxLength={20} value={nickname} onChange={(e) => setNickname(e.target.value)} />
+          <Label htmlFor="nickname">{t('auth.nickname')}</Label>
+          <Input id="nickname" required maxLength={20} value={nickname} onChange={(e) => setNickname(e.target.value)} className="h-11" />
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="email">メールアドレス</Label>
-          <Input id="email" type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
+          <Label htmlFor="email">{t('auth.email')}</Label>
+          <Input id="email" type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} className="h-11" />
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="password">パスワード（8文字以上）</Label>
-          <Input id="password" type="password" autoComplete="new-password" required minLength={8} value={password} onChange={(e) => setPassword(e.target.value)} />
+          <Label htmlFor="password">{t('auth.passwordHint')}</Label>
+          <Input id="password" type="password" autoComplete="new-password" required minLength={8} value={password} onChange={(e) => setPassword(e.target.value)} className="h-11" />
         </div>
-        <div className="space-y-1.5">
-          <Label>表示言語</Label>
-          <div className="flex gap-2">
-            {(['ja', 'ko', 'en'] as UiLang[]).map((l) => (
-              <Button key={l} type="button" size="sm" variant={uiLang === l ? 'default' : 'outline'} onClick={() => setUiLang(l)}>
-                {l === 'ja' ? '日本語' : l === 'ko' ? '한국어' : 'English'}
-              </Button>
-            ))}
-          </div>
+
+        <div className="space-y-3 rounded-xl bg-gray-50 p-3">
+          <label className="flex items-start gap-3 text-sm min-h-[44px] cursor-pointer">
+            <Checkbox checked={agreeTerms} onCheckedChange={(v) => setAgreeTerms(v === true)} className="mt-0.5" aria-required />
+            <span>
+              {t('auth.agreeTerms')}{' '}
+              <span className="block text-xs text-gray-500 mt-0.5">
+                <Link to="/app/terms" target="_blank" className="underline">{t('legal.terms')}</Link>
+                {' / '}
+                <Link to="/app/privacy" target="_blank" className="underline">{t('legal.privacy')}</Link>
+                {' '}({settings.terms_version})
+              </span>
+            </span>
+          </label>
+          <label className="flex items-start gap-3 text-sm min-h-[44px] cursor-pointer">
+            <Checkbox checked={agreeAge} onCheckedChange={(v) => setAgreeAge(v === true)} className="mt-0.5" aria-required />
+            <span>{t('auth.agreeAge', { age: settings.min_age })}</span>
+          </label>
         </div>
-        {error && <p className="text-sm text-red-600">{error}</p>}
-        <Button type="submit" className="w-full bg-rose-600 hover:bg-rose-700" disabled={busy}>
-          {busy ? '登録中…' : '登録する'}
+
+        {error && <p className="text-sm text-red-600" role="alert">{error}</p>}
+        <Button type="submit" className="w-full h-11 bg-rose-600 hover:bg-rose-700" disabled={busy || !agreeTerms || !agreeAge}>
+          {busy ? t('auth.registering') : t('auth.registerButton')}
         </Button>
         <p className="text-sm text-center text-gray-600">
-          すでにアカウントをお持ちの方は <Link to="/app/login" className="text-rose-600 underline">ログイン</Link>
+          {t('auth.hasAccount')} <Link to="/app/login" className="text-rose-600 underline">{t('auth.login')}</Link>
         </p>
       </form>
     </AuthCard>
@@ -159,6 +204,8 @@ export const RegisterPage: React.FC = () => {
 
 export const ForgotPasswordPage: React.FC = () => {
   const { requestPasswordReset } = useSupabaseAuth();
+  const { t } = useI18n();
+  const errorMessage = useErrorMessage();
   const [email, setEmail] = useState('');
   const [done, setDone] = useState(false);
   const [error, setError] = useState('');
@@ -175,18 +222,18 @@ export const ForgotPasswordPage: React.FC = () => {
   };
 
   return (
-    <AuthCard title="パスワード再設定" description="登録メールアドレスに再設定リンクを送ります">
+    <AuthCard title={t('auth.resetTitle')} description={t('auth.resetLead')}>
       {done ? (
-        <p className="text-sm text-gray-700 text-center">メールを送信しました。リンクを開いて新しいパスワードを設定してください。</p>
+        <p className="text-sm text-gray-700 text-center">{t('auth.resetSent')}</p>
       ) : (
         <form onSubmit={submit} className="space-y-4">
-          <Input type="email" required placeholder="メールアドレス" value={email} onChange={(e) => setEmail(e.target.value)} />
-          {error && <p className="text-sm text-red-600">{error}</p>}
-          <Button type="submit" className="w-full">送信</Button>
+          <Input type="email" required placeholder={t('auth.email')} value={email} onChange={(e) => setEmail(e.target.value)} className="h-11" />
+          {error && <p className="text-sm text-red-600" role="alert">{error}</p>}
+          <Button type="submit" className="w-full h-11">{t('common.send')}</Button>
         </form>
       )}
       <p className="text-sm text-center mt-4">
-        <Link to="/app/login" className="underline text-gray-600">ログインへ戻る</Link>
+        <Link to="/app/login" className="underline text-gray-600">{t('auth.backToLogin')}</Link>
       </p>
     </AuthCard>
   );
@@ -194,6 +241,8 @@ export const ForgotPasswordPage: React.FC = () => {
 
 export const ResetPasswordPage: React.FC = () => {
   const { updatePassword, session } = useSupabaseAuth();
+  const { t } = useI18n();
+  const errorMessage = useErrorMessage();
   const navigate = useNavigate();
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -210,14 +259,14 @@ export const ResetPasswordPage: React.FC = () => {
   };
 
   return (
-    <AuthCard title="新しいパスワード">
+    <AuthCard title={t('auth.newPasswordTitle')}>
       {!session ? (
-        <p className="text-sm text-gray-700 text-center">リンクが無効か期限切れです。再度パスワード再設定を行ってください。</p>
+        <p className="text-sm text-gray-700 text-center">{t('auth.linkInvalid')}</p>
       ) : (
         <form onSubmit={submit} className="space-y-4">
-          <Input type="password" required minLength={8} placeholder="新しいパスワード（8文字以上）" value={password} onChange={(e) => setPassword(e.target.value)} />
-          {error && <p className="text-sm text-red-600">{error}</p>}
-          <Button type="submit" className="w-full">変更する</Button>
+          <Input type="password" required minLength={8} placeholder={t('auth.newPassword')} value={password} onChange={(e) => setPassword(e.target.value)} className="h-11" />
+          {error && <p className="text-sm text-red-600" role="alert">{error}</p>}
+          <Button type="submit" className="w-full h-11">{t('auth.change')}</Button>
         </form>
       )}
     </AuthCard>

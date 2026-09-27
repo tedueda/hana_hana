@@ -1,14 +1,26 @@
-import { errorMessage } from './labels';
-import { useCallback, useEffect, useState } from 'react';
+import { errorMessage, labelsFor, type Labels } from './labels';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useI18n } from './i18n';
 import { useToast } from '@/hooks/use-toast';
 import { useSupabaseAuth } from './auth/useSupabaseAuth';
 import { loadMasterData, localizedName, type MasterData } from './api/master';
 import { fetchSentLikes, sendLike } from './api/matching';
-import type { PublicProfile, UiLang } from './types';
+import type { PublicProfile } from './types';
+
+export function useLabels(): Labels {
+  const { lang } = useI18n();
+  return useMemo(() => labelsFor(lang), [lang]);
+}
+
+export function useErrorMessage(): (e: unknown) => string {
+  const { lang } = useI18n();
+  return useCallback((e: unknown) => errorMessage(e, lang), [lang]);
+}
 
 export function useLikeAction() {
   const { user } = useSupabaseAuth();
   const { toast } = useToast();
+  const { t, lang } = useI18n();
   const [liked, setLiked] = useState<Set<string>>(new Set());
 
   useEffect(() => {
@@ -24,26 +36,27 @@ export function useLikeAction() {
         setLiked((prev) => new Set(prev).add(target.id!));
         toast(
           res.matched
-            ? { title: 'マッチ成立！', description: `${target.nickname ?? ''} さんとメッセージを始められます` }
-            : { title: 'いいねを送りました' },
+            ? { title: t('matches.matched'), description: t('matches.matchedLead', { name: target.nickname ?? '' }) }
+            : { title: t('likes.sentToast') },
         );
+        return res;
       } catch (e) {
-        toast({ title: 'いいねできませんでした', description: errorMessage(e), variant: 'destructive' });
+        toast({ title: t('likes.failed'), description: errorMessage(e, lang), variant: 'destructive' });
+        return null;
       }
     },
-    [user, toast],
+    [user, toast, t, lang],
   );
 
   return { liked, like };
 }
 
 export function useRegionNames(): (id: string | null | undefined) => string | undefined {
-  const { profile } = useSupabaseAuth();
+  const { lang } = useI18n();
   const [master, setMaster] = useState<MasterData | null>(null);
   useEffect(() => {
     loadMasterData().then(setMaster).catch(() => undefined);
   }, []);
-  const lang = (profile?.preferred_ui_lang ?? 'ja') as UiLang;
   return useCallback(
     (id) => {
       if (!id || !master) return undefined;
