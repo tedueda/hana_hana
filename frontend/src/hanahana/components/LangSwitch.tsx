@@ -29,7 +29,7 @@ const LangSwitch: React.FC<Props> = ({ className, size = 'sm', onChange }) => {
             onChange?.(l);
           }}
           className={cn(
-            'rounded-full font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-400',
+            'rounded-full font-medium whitespace-nowrap transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-400',
             size === 'sm' ? 'px-3 py-1 text-xs min-h-[32px]' : 'px-4 py-2 text-sm min-h-[44px]',
             lang === l ? 'bg-rose-600 text-white' : 'text-gray-600 hover:bg-gray-100',
           )}
