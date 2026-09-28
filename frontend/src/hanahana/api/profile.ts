@@ -43,24 +43,30 @@ export interface ProfileDetails {
   languages: UserLanguage[];
   interestIds: string[];
   purposeIds: string[];
+  /** RLS (プランの写真閲覧上限) を通過した写真のみ */
   photos: ProfilePhoto[];
+  /** 相手が登録している写真の総数 (閲覧できない分を含む) */
+  photoTotal: number;
 }
 
 export async function fetchProfileDetails(userId: string): Promise<ProfileDetails> {
   const sb = getSupabase();
-  const [languages, interests, purposes, photos] = await Promise.all([
+  const [languages, interests, purposes, photos, total] = await Promise.all([
     sb.from('user_languages').select('*').eq('user_id', userId),
     sb.from('user_interests').select('interest_id').eq('user_id', userId),
     sb.from('user_purposes').select('purpose_id').eq('user_id', userId),
     sb.from('profile_photos').select('*').eq('user_id', userId).order('sort_order'),
+    sb.rpc('profile_photo_count', { p_owner: userId }),
   ]);
-  const err = languages.error ?? interests.error ?? purposes.error ?? photos.error;
+  const err = languages.error ?? interests.error ?? purposes.error ?? photos.error ?? total.error;
   if (err) throw err;
+  const visible = photos.data ?? [];
   return {
     languages: languages.data ?? [],
     interestIds: (interests.data ?? []).map((r) => r.interest_id),
     purposeIds: (purposes.data ?? []).map((r) => r.purpose_id),
-    photos: photos.data ?? [],
+    photos: visible,
+    photoTotal: Math.max(visible.length, total.data ?? 0),
   };
 }
 

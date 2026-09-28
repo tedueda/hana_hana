@@ -60,13 +60,13 @@ export async function ensureCustomer(stripe: Stripe, admin: SupabaseClient, uid:
   return customer.id;
 }
 
-// Billing Portal 設定 (プラン変更 standard⇄premium・解約・支払い方法・請求履歴)。初回に作成し app_settings に保存
+// Billing Portal 設定 (プラン変更 light⇄standard・解約・支払い方法・請求履歴)。初回に作成し app_settings に保存
 export async function portalConfiguration(stripe: Stripe, admin: SupabaseClient): Promise<string> {
   const { data } = await admin.from('app_settings').select('value').eq('key', 'stripe_portal_configuration_id').maybeSingle();
   const saved = typeof data?.value === 'string' ? data.value : null;
   if (saved) return saved;
 
-  const { data: plans } = await admin.from('plans').select('stripe_price_id').in('code', ['standard', 'premium']).not('stripe_price_id', 'is', null);
+  const { data: plans } = await admin.from('plans').select('stripe_price_id').in('code', ['light', 'standard']).not('stripe_price_id', 'is', null);
   const products = new Map<string, string[]>();
   for (const p of plans ?? []) {
     const price = await stripe.prices.retrieve(p.stripe_price_id);

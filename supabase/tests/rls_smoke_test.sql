@@ -31,6 +31,7 @@ declare
   adm uuid := gen_random_uuid();
   v_match uuid;
   v_conv uuid;
+  v_p2 uuid;
   v_post uuid;
   v_post2 uuid;
   v_comment uuid;
@@ -64,6 +65,11 @@ begin
   -- 写真必須 (photo_required) のため、公開対象ユーザーには主写真を 1 枚ずつ登録
   insert into profile_photos (user_id, storage_path, sort_order, is_primary)
   values (a, a || '/p0.jpg', 0, true), (b, b || '/p0.jpg', 0, true), (c, c || '/p0.jpg', 0, true);
+
+  -- 既存テストは v1 の上限/全員課金対象を前提にしているため一時的に合わせる (末尾の Z セクションで v2 既定値へ戻して検証)
+  update app_settings set value = '[]' where key = 'free_full_access_genders';
+  update app_settings set value = jsonb_set(value, '{free}', (value->'free') || '{"likes_per_day":10,"messages_per_month":10,"translations_per_day":2}'::jsonb)
+    where key = 'plan_limits';
 
   -- ---------- V01-V04: 生年月日の検証 / 写真必須 (UI/UX A-2) ----------
   begin
@@ -703,28 +709,28 @@ begin
 
   -- ---------- P1: 会員プラン基盤 ----------
   perform pg_temp.as_super();
-  perform pg_temp.check('P01 plans seeded (free/standard/premium, 0/500/980)',
-    (select count(*) from plans where (tier, price_jpy) in (('free',0),('standard',500),('premium',980)) and is_active) = 3);
+  perform pg_temp.check('P01 plans seeded (free/light/standard, 0/1000/2980)',
+    (select count(*) from plans where (tier, price_jpy) in (('free',0),('light',1000),('standard',2980)) and is_active) = 3);
   perform pg_temp.check('P02 no subscription -> free', current_plan_tier(b) = 'free');
-  perform pg_temp.check('P03 plan_limit reads app_settings (free likes 10, premium messages null)',
-    plan_limit('free','likes_per_day') = 10 and plan_limit('premium','messages_per_month') is null);
+  perform pg_temp.check('P03 plan_limit reads app_settings (free likes 10, standard messages null)',
+    plan_limit('free','likes_per_day') = 10 and plan_limit('standard','messages_per_month') is null);
 
-  -- 有効な subscription → premium
+  -- 有効な subscription → standard
   insert into subscriptions (user_id, plan_id, status, current_period_end, plan_tier)
-  values (a, (select id from plans where code = 'premium'), 'active', now() + interval '20 days', 'premium');
-  perform pg_temp.check('P04 active subscription -> premium', current_plan_tier(a) = 'premium');
+  values (a, (select id from plans where code = 'standard'), 'active', now() + interval '20 days', 'standard');
+  perform pg_temp.check('P04 active subscription -> standard', current_plan_tier(a) = 'standard');
   perform pg_temp.check('P04b member_tier synced to paid (display only)', (select member_tier from profiles where id = a) = 'paid');
   -- 期限切れ + 猶予超過 → free
   update subscriptions set status = 'past_due', current_period_end = now() - interval '30 days' where user_id = a;
   perform pg_temp.check('P05 past_due beyond grace -> free', current_plan_tier(a) = 'free');
   update subscriptions set status = 'past_due', current_period_end = now() - interval '1 day' where user_id = a;
-  perform pg_temp.check('P05b past_due within grace keeps tier', current_plan_tier(a) = 'premium');
+  perform pg_temp.check('P05b past_due within grace keeps tier', current_plan_tier(a) = 'standard');
   update subscriptions set status = 'canceled' where user_id = a;
   perform pg_temp.check('P05c canceled -> free', current_plan_tier(a) = 'free');
   -- 招待特典
-  update app_settings set value = '"standard"' where key = 'invited_tier';
+  update app_settings set value = '"light"' where key = 'invited_tier';
   update profiles set member_tier = 'invited' where id = c;
-  perform pg_temp.check('P06 invited member gets invited_tier (standard)', current_plan_tier(c) = 'standard');
+  perform pg_temp.check('P06 invited member gets invited_tier (light)', current_plan_tier(c) = 'light');
   update profiles set member_tier = 'free' where id = c;
 
   -- authenticated は subscriptions に書けない / 他人の subscription は見えない
@@ -754,7 +760,7 @@ begin
   perform pg_temp.as_super();
   update app_settings set value = jsonb_set(value, '{free,likes_per_day}', '10') where key = 'plan_limits';
 
-  -- メッセージ月次上限 (free=1) と premium 無制限
+  -- メッセージ月次上限 (free=1) と standard 無制限
   update app_settings set value = jsonb_set(value, '{free,messages_per_month}', '1') where key = 'plan_limits';
   delete from blocks where (blocker_id, blocked_id) in ((a,c),(c,a));
   delete from likes where (from_user_id, to_user_id) in ((a,c),(c,a));
@@ -777,20 +783,20 @@ begin
   perform pg_temp.as_user(a);
   insert into messages (conversation_id, sender_id, body) values (v_conv, a, 'm3');
   insert into messages (conversation_id, sender_id, body) values (v_conv, a, 'm4');
-  perform pg_temp.check('P11 premium messages unlimited', (select count(*) from messages where conversation_id = v_conv and sender_id = a) = 3);
+  perform pg_temp.check('P11 standard messages unlimited', (select count(*) from messages where conversation_id = v_conv and sender_id = a) = 3);
   perform pg_temp.as_super();
   update app_settings set value = '2' where key = 'message_rate_per_minute';
   perform pg_temp.as_user(a);
   begin
     insert into messages (conversation_id, sender_id, body) values (v_conv, a, 'm5');
-    perform pg_temp.check('P12 common rate limit applies to premium too', false);
+    perform pg_temp.check('P12 common rate limit applies to standard too', false);
   exception when others then
-    perform pg_temp.check('P12 common rate limit applies to premium too', sqlerrm like '%message_rate_limited%', sqlerrm);
+    perform pg_temp.check('P12 common rate limit applies to standard too', sqlerrm like '%message_rate_limited%', sqlerrm);
   end;
   perform pg_temp.as_super();
   update app_settings set value = '20' where key = 'message_rate_per_minute';
   update app_settings set value = jsonb_set(value, '{free,messages_per_month}', '10') where key = 'plan_limits';
-  perform pg_temp.check('P13 translation_quota premium 50/day', (translation_quota(a)->>'per_day')::int = 50);
+  perform pg_temp.check('P13 translation_quota standard 30/day', (translation_quota(a)->>'per_day')::int = 30);
   perform pg_temp.as_user(b);
   begin
     perform admin_plan_stats();
@@ -806,17 +812,17 @@ begin
   delete from subscriptions where user_id in (a, b, c);
   delete from blocks where blocker_id in (a, b, c) and blocked_id in (a, b, c);
   update profiles set status = 'active', is_public = true where id in (a, b, c);
-  perform pg_temp.check('Q01 free has no premium features', not plan_has_feature(b, 'footprints') and not plan_has_feature(b, 'priority') and plan_feature_int(b, 'event_discount_pct') = 0);
+  perform pg_temp.check('Q01 free has no standard features', not plan_has_feature(b, 'footprints') and not plan_has_feature(b, 'priority') and plan_feature_int(b, 'event_discount_pct') = 0);
   ok := (select status = 'verified' from verifications where user_id = a);
   insert into subscriptions (user_id, plan_id, status, current_period_end, plan_tier)
-  values (a, (select id from plans where code = 'premium'), 'active', now() + interval '20 days', 'premium');
-  perform pg_temp.check('Q02 premium has footprints/priority/compat/polish + 20% discount',
+  values (a, (select id from plans where code = 'standard'), 'active', now() + interval '20 days', 'standard');
+  perform pg_temp.check('Q02 standard has footprints/priority/compat/polish + 20% discount',
     plan_has_feature(a, 'footprints') and plan_has_feature(a, 'priority') and plan_has_feature(a, 'compatibility')
     and plan_has_feature(a, 'profile_polish') and plan_feature_int(a, 'event_discount_pct') = 20);
   perform pg_temp.check('Q02b verification badge unchanged by subscription',
     (select status = 'verified' from verifications where user_id = a) = ok);
 
-  -- 足あと: b が a を閲覧 → a(premium) は見える / b(free) はロック
+  -- 足あと: b が a を閲覧 → a(standard) は見える / b(free) はロック
   perform pg_temp.as_user(b);
   perform record_profile_view(a);
   perform record_profile_view(a);
@@ -835,7 +841,7 @@ begin
     perform pg_temp.check('Q06 direct insert into profile_views denied', true);
   end;
   perform pg_temp.as_user(a);
-  perform pg_temp.check('Q07 premium sees footprint from b (deduped per day, count 2)',
+  perform pg_temp.check('Q07 standard sees footprint from b (deduped per day, count 2)',
     (select count(*) from my_footprints()) = 1 and (select view_count from my_footprints() where viewer_id = b) = 2);
   perform pg_temp.check('Q07b footprints summary unlocked with 1 viewer',
     (my_footprints_summary()->>'unlocked')::boolean and (my_footprints_summary()->>'viewer_count')::int = 1);
@@ -856,7 +862,7 @@ begin
   perform pg_temp.as_user(b);
   perform pg_temp.check('Q10 free compatibility locked', (compatibility(a)->>'unlocked')::boolean = false);
   perform pg_temp.as_user(a);
-  perform pg_temp.check('Q11 premium compatibility returns score 0..100 + breakdown',
+  perform pg_temp.check('Q11 standard compatibility returns score 0..100 + breakdown',
     (compatibility(b)->>'unlocked')::boolean and (compatibility(b)->>'score')::int between 0 and 100 and (compatibility(b)->'breakdown'->>'purpose') is not null);
   perform pg_temp.as_super();
   insert into blocks (blocker_id, blocked_id) values (b, a);
@@ -870,12 +876,12 @@ begin
   perform pg_temp.as_super();
   delete from blocks where blocker_id = b and blocked_id = a;
 
-  -- 優先表示: premium の a は b のおすすめで reasons に priority
+  -- 優先表示: standard の a は b のおすすめで reasons に priority
   perform pg_temp.as_super();
   delete from likes where (from_user_id, to_user_id) in ((b,a),(a,b));
   delete from passes where user_id = b;
   perform pg_temp.as_user(b);
-  perform pg_temp.check('Q13 premium candidate flagged priority in recommend_users',
+  perform pg_temp.check('Q13 standard candidate flagged priority in recommend_users',
     exists (select 1 from recommend_users(50) r where r.id = a and 'priority' = any(r.reasons)));
   perform pg_temp.check('Q13b free candidate not flagged priority',
     not exists (select 1 from recommend_users(50) r where r.id = c and 'priority' = any(r.reasons)));
@@ -917,13 +923,13 @@ begin
   exception when insufficient_privilege then
     perform pg_temp.check('Q19 direct insert into event_registrations denied', true);
   end;
-  -- premium: 20% 割引で先行申込
+  -- standard: 20% 割引で先行申込
   perform pg_temp.as_user(a);
-  perform pg_temp.check('Q20 premium sees 20% discounted price 2400',
+  perform pg_temp.check('Q20 standard sees 20% discounted price 2400',
     (select my_price_jpy = 2400 and my_discount_pct = 20 and early_access from list_events('upcoming') where id = v_event));
   perform register_event(v_event);
-  perform pg_temp.check('Q21 premium registered with quoted price stored',
-    (select quoted_price_jpy = 2400 and discount_pct = 20 and plan_tier = 'premium' and status = 'registered' from event_registrations where event_id = v_event and user_id = a));
+  perform pg_temp.check('Q21 standard registered with quoted price stored',
+    (select quoted_price_jpy = 2400 and discount_pct = 20 and plan_tier = 'standard' and status = 'registered' from event_registrations where event_id = v_event and user_id = a));
   perform pg_temp.check('Q21b list_events(mine) shows my registration', exists (select 1 from list_events('mine') where id = v_event and my_status = 'registered'));
   -- 定員 1 → 一般公開後も満席
   perform pg_temp.as_super();
@@ -979,8 +985,8 @@ begin
 
   -- ---------- P3: Stripe 課金同期 ----------
   perform pg_temp.as_super();
+  update plans set stripe_price_id = coalesce(stripe_price_id, 'price_test_light') where code = 'light';
   update plans set stripe_price_id = coalesce(stripe_price_id, 'price_test_standard') where code = 'standard';
-  update plans set stripe_price_id = coalesce(stripe_price_id, 'price_test_premium') where code = 'premium';
 
   -- 冪等性: 初回 true / 重複 false / 失敗記録後は再処理可
   perform pg_temp.check('R01 stripe_begin_event first', stripe_begin_event('evt_t1', 'invoice.paid', false, '{}'::jsonb));
@@ -992,22 +998,22 @@ begin
   perform pg_temp.check('R04 finished event not retryable', not stripe_begin_event('evt_t2', 'invoice.paid', false, '{}'::jsonb));
 
   -- 同期: subscription → subscriptions / current_plan_tier
-  perform stripe_sync_subscription(a, 'cus_a', 'sub_a', (select stripe_price_id from plans where code = 'standard'),
+  perform stripe_sync_subscription(a, 'cus_a', 'sub_a', (select stripe_price_id from plans where code = 'light'),
     'active', now(), now() + interval '30 days', false, null, 'paid', false);
-  perform pg_temp.check('R05 sync creates active standard', current_plan_tier(a) = 'standard'
+  perform pg_temp.check('R05 sync creates active light', current_plan_tier(a) = 'light'
     and (select stripe_customer_id from billing_customers where user_id = a) = 'cus_a');
-  perform stripe_sync_subscription(null, 'cus_a', 'sub_a', (select stripe_price_id from plans where code = 'premium'),
+  perform stripe_sync_subscription(null, 'cus_a', 'sub_a', (select stripe_price_id from plans where code = 'standard'),
     'active', now(), now() + interval '30 days', false, null, 'paid', false);
-  perform pg_temp.check('R06 plan change via customer lookup → premium', current_plan_tier(a) = 'premium'
+  perform pg_temp.check('R06 plan change via customer lookup → standard', current_plan_tier(a) = 'standard'
     and (select count(*) from subscriptions where user_id = a and stripe_subscription_id = 'sub_a') = 1);
-  perform stripe_sync_subscription(null, 'cus_a', 'sub_a', (select stripe_price_id from plans where code = 'premium'),
+  perform stripe_sync_subscription(null, 'cus_a', 'sub_a', (select stripe_price_id from plans where code = 'standard'),
     'active', now(), now() + interval '30 days', true, null, 'paid', false);
-  perform pg_temp.check('R07 cancel_at_period_end keeps premium until end', current_plan_tier(a) = 'premium'
+  perform pg_temp.check('R07 cancel_at_period_end keeps standard until end', current_plan_tier(a) = 'standard'
     and (select cancel_at_period_end from subscriptions where stripe_subscription_id = 'sub_a'));
-  perform stripe_sync_subscription(null, 'cus_a', 'sub_a', (select stripe_price_id from plans where code = 'premium'),
+  perform stripe_sync_subscription(null, 'cus_a', 'sub_a', (select stripe_price_id from plans where code = 'standard'),
     'past_due', now(), now() - interval '1 day', false, null, 'open', false);
-  perform pg_temp.check('R08 past_due within grace keeps tier', current_plan_tier(a) = 'premium');
-  perform stripe_sync_subscription(null, 'cus_a', 'sub_a', (select stripe_price_id from plans where code = 'premium'),
+  perform pg_temp.check('R08 past_due within grace keeps tier', current_plan_tier(a) = 'standard');
+  perform stripe_sync_subscription(null, 'cus_a', 'sub_a', (select stripe_price_id from plans where code = 'standard'),
     'canceled', now(), now() - interval '1 day', false, now(), 'paid', false);
   perform pg_temp.check('R09 canceled → free', current_plan_tier(a) = 'free');
   begin
@@ -1025,7 +1031,7 @@ begin
   perform pg_temp.check('R12 failed payment stored with message', (select failure_message from payments where stripe_invoice_id = 'in_2') = 'card_declined');
   perform stripe_record_refund('ch_1', 'pi_1', 500, now());
   perform pg_temp.check('R13 partial refund', (select status = 'partially_refunded' and refunded_amount = 500 from payments where stripe_invoice_id = 'in_1'));
-  perform stripe_record_refund('ch_1', 'pi_1', 980, now());
+  perform stripe_record_refund('ch_1', 'pi_1', 2980, now());
   perform pg_temp.check('R14 full refund', (select status = 'refunded' from payments where stripe_invoice_id = 'in_1'));
 
   -- 会員側: my_billing は本人のみ / 同期RPCは実行不可 / 直接書込不可
@@ -1037,7 +1043,7 @@ begin
   perform pg_temp.check('R17 member cannot read others billing_customers', not exists (select 1 from billing_customers where user_id = a));
   perform pg_temp.check('R18 member cannot read stripe_events', (select count(*) from stripe_events) = 0);
   begin
-    perform stripe_sync_subscription(b, 'cus_b', 'sub_b', (select stripe_price_id from plans where code = 'premium'), 'active', now(), now() + interval '30 days', false, null, 'paid', false);
+    perform stripe_sync_subscription(b, 'cus_b', 'sub_b', (select stripe_price_id from plans where code = 'standard'), 'active', now(), now() + interval '30 days', false, null, 'paid', false);
     perform pg_temp.check('R19 member cannot call stripe_sync_subscription', false);
   exception when insufficient_privilege then
     perform pg_temp.check('R19 member cannot call stripe_sync_subscription', true);
@@ -1049,13 +1055,13 @@ begin
     perform pg_temp.check('R20 member cannot call stripe_begin_event', true);
   end;
   begin
-    perform stripe_record_refund('ch_1', 'pi_1', 980, now());
+    perform stripe_record_refund('ch_1', 'pi_1', 2980, now());
     perform pg_temp.check('R21 member cannot call stripe_record_refund', false);
   exception when insufficient_privilege then
     perform pg_temp.check('R21 member cannot call stripe_record_refund', true);
   end;
   begin
-    insert into subscriptions (user_id, plan_id, status, plan_tier) values (b, (select id from plans where code = 'premium'), 'active', 'premium');
+    insert into subscriptions (user_id, plan_id, status, plan_tier) values (b, (select id from plans where code = 'standard'), 'active', 'standard');
     perform pg_temp.check('R22 member cannot insert subscriptions', false);
   exception when others then
     perform pg_temp.check('R22 member cannot insert subscriptions', true);
@@ -1075,6 +1081,145 @@ begin
   delete from subscriptions where user_id = a;
   delete from billing_customers where user_id = a;
   delete from stripe_events where id in ('evt_t1', 'evt_t2');
+  -- ---------- Z01-Z20: 料金体系 v2 (女性無料 / 男性 free・light・standard / 写真閲覧 / 本人確認検索) ----------
+  perform pg_temp.as_super();
+  delete from subscriptions where user_id in (a, b, c);
+  delete from likes where from_user_id in (a, b, c) or to_user_id in (a, b, c);
+  delete from matches where user_low_id in (a, b, c) or user_high_id in (a, b, c);
+  delete from blocks where blocker_id in (a, b, c) or blocked_id in (a, b, c);
+  update profiles set member_tier = 'free' where id in (a, b, c);
+  -- v2 既定値へ戻す
+  update app_settings set value = '["female"]' where key = 'free_full_access_genders';
+  update app_settings set value = '{
+    "free":     {"likes_per_day": 3,    "likes_per_month": null, "messages_per_month": 0,    "translations_per_day": 2},
+    "light":    {"likes_per_day": null, "likes_per_month": 30,   "messages_per_month": 10,   "translations_per_day": 5},
+    "standard": {"likes_per_day": null, "likes_per_month": 100,  "messages_per_month": null, "translations_per_day": 30}
+  }'::jsonb where key = 'plan_limits';
+
+  perform pg_temp.check('Z01 female is plan_exempt, male is not', plan_exempt(b) and not plan_exempt(a) and not plan_exempt(c));
+  perform pg_temp.check('Z02 female effective tier = standard but subscribed tier = free',
+    current_plan_tier(b) = 'standard' and subscribed_plan_tier(b) = 'free');
+  perform pg_temp.check('Z03 male without subscription = free', current_plan_tier(a) = 'free' and subscribed_plan_tier(a) = 'free');
+  perform pg_temp.check('Z04 v2 limits (free 3/day, light 30/month+10msg, standard 100/month, unlimited msg)',
+    plan_limit('free','likes_per_day') = 3 and plan_limit('free','messages_per_month') = 0
+    and plan_limit('light','likes_per_month') = 30 and plan_limit('light','messages_per_month') = 10
+    and plan_limit('standard','likes_per_month') = 100 and plan_limit('standard','messages_per_month') is null);
+  perform pg_temp.check('Z05 female has standard features (footprints/verified_search/unlimited photos)',
+    plan_has_feature(b, 'footprints') and plan_has_feature(b, 'verified_search') and plan_feature_int(b, 'photo_view_max') = 0);
+  perform pg_temp.check('Z06 male free has no verified_search, photo_view_max=1',
+    not plan_has_feature(a, 'verified_search') and plan_feature_int(a, 'photo_view_max') = 1);
+
+  -- 女性 (b) の my_plan_usage: exempt=true, 上限なし
+  perform pg_temp.as_user(b);
+  perform pg_temp.check('Z07 female my_plan_usage exempt with no limits',
+    (my_plan_usage()->>'exempt')::boolean and (my_plan_usage()->>'tier') = 'standard'
+    and (my_plan_usage()->>'subscribed_tier') = 'free'
+    and (my_plan_usage()->'likes_per_month') = 'null'::jsonb and (my_plan_usage()->'messages_per_month') = 'null'::jsonb);
+
+  -- 男性 free (a): いいね 3/日
+  perform pg_temp.as_user(a);
+  insert into likes (from_user_id, to_user_id) values (a, b);
+  perform pg_temp.as_super();
+  insert into profile_photos (user_id, storage_path, sort_order) values (b, b || '/p1.jpg', 1), (b, b || '/p2.jpg', 2);
+  select id into v_p2 from profile_photos where storage_path = b || '/p2.jpg';
+  perform pg_temp.as_user(a);
+  -- 写真閲覧: free は 1 枚のみ (未マッチ)
+  perform pg_temp.check('Z08 male free sees only 1 of 3 photos of female (RLS)',
+    (select count(*) from profile_photos where user_id = b) = 1
+    and (select is_primary from profile_photos where user_id = b) = true);
+  perform pg_temp.check('Z09 profile_photo_count reports total 3', profile_photo_count(b) = 3);
+  perform pg_temp.check('Z10 storage read policy hides non-visible photo',
+    (select photo_visible_to_me(b, (select id from public.profile_photos where storage_path = b || '/p0.jpg'))
+       from (select 1) _) = true
+    and (select photo_visible_to_me(b, v_p2) from (select 1) _) = false);
+  -- 本人確認済み検索は free で拒否
+  begin
+    perform * from search_profiles('{"verified_only": true}'::jsonb, 1, 20);
+    perform pg_temp.check('Z11 free verified_only search denied', false);
+  exception when others then
+    perform pg_temp.check('Z11 free verified_only search denied', sqlerrm like '%plan_feature_required%', sqlerrm);
+  end;
+  perform pg_temp.check('Z11b free normal search still works', (select count(*) from search_profiles('{}'::jsonb, 1, 20)) >= 0);
+  -- メッセージ不可 (free = 0): 相互マッチ後でも送れない
+  perform pg_temp.as_user(b);
+  insert into likes (from_user_id, to_user_id) values (b, a);
+  perform pg_temp.as_super();
+  select id into v_conv from conversations where match_id = (select id from matches where user_low_id = least(a,b) and user_high_id = greatest(a,b) and is_active);
+  perform pg_temp.check('Z12 mutual like still creates match+conversation', v_conv is not null);
+  perform pg_temp.as_user(a);
+  begin
+    insert into messages (conversation_id, sender_id, body) values (v_conv, a, 'free cannot send');
+    perform pg_temp.check('Z13 male free cannot send message (messages_per_month=0)', false);
+  exception when others then
+    perform pg_temp.check('Z13 male free cannot send message (messages_per_month=0)', sqlerrm like '%message_limit_reached%', sqlerrm);
+  end;
+  perform pg_temp.check('Z14 matched -> all photos visible regardless of plan', (select count(*) from profile_photos where user_id = b) = 3);
+  -- 女性は無料でメッセージ送信可
+  perform pg_temp.as_user(b);
+  insert into messages (conversation_id, sender_id, body) values (v_conv, b, '여성 무료');
+  perform pg_temp.check('Z15 female sends message for free', (select count(*) from messages where conversation_id = v_conv and sender_id = b) = 1);
+  begin
+    perform * from search_profiles('{"verified_only": true}'::jsonb, 1, 20);
+    perform pg_temp.check('Z16 female verified_only search allowed', true);
+  exception when others then
+    perform pg_temp.check('Z16 female verified_only search allowed', false, sqlerrm);
+  end;
+
+  -- 男性 light (a): 月30いいね / 月10メッセージ / 本人確認検索不可 / 写真3枚
+  perform pg_temp.as_super();
+  insert into subscriptions (user_id, plan_id, status, current_period_end, plan_tier)
+  values (a, (select id from plans where code = 'light'), 'active', now() + interval '20 days', 'light');
+  perform pg_temp.check('Z17 light subscription -> light tier, photo_view_max 3, no verified_search',
+    current_plan_tier(a) = 'light' and plan_feature_int(a, 'photo_view_max') = 3 and not plan_has_feature(a, 'verified_search'));
+  perform pg_temp.as_user(a);
+  insert into messages (conversation_id, sender_id, body) values (v_conv, a, 'light ok');
+  perform pg_temp.check('Z18 light can send message', (select count(*) from messages where conversation_id = v_conv and sender_id = a) = 1);
+  perform pg_temp.check('Z18b light usage shows monthly like limit 30 / msg 10',
+    (my_plan_usage()->>'likes_per_month')::int = 30 and (my_plan_usage()->'likes_per_day') = 'null'::jsonb
+    and (my_plan_usage()->>'messages_per_month')::int = 10);
+  -- 月次いいね上限 (light=1 に下げて確認)
+  perform pg_temp.as_super();
+  update app_settings set value = jsonb_set(value, '{light,likes_per_month}', '1') where key = 'plan_limits';
+  perform pg_temp.as_user(a);
+  begin
+    insert into likes (from_user_id, to_user_id) values (a, c);
+    perform pg_temp.check('Z19 light monthly like limit enforced', false);
+  exception when others then
+    perform pg_temp.check('Z19 light monthly like limit enforced', sqlerrm like '%like_limit_reached%', sqlerrm);
+  end;
+  perform pg_temp.as_super();
+  update app_settings set value = jsonb_set(value, '{light,likes_per_month}', '30') where key = 'plan_limits';
+
+  -- 男性 standard (a): 本人確認検索可 / 写真無制限 / メッセージ無制限
+  update subscriptions set plan_id = (select id from plans where code = 'standard'), plan_tier = 'standard' where user_id = a;
+  perform pg_temp.check('Z20 standard -> verified_search + unlimited photos + footprints',
+    current_plan_tier(a) = 'standard' and plan_has_feature(a, 'verified_search')
+    and plan_feature_int(a, 'photo_view_max') = 0 and plan_has_feature(a, 'footprints'));
+  perform pg_temp.as_user(a);
+  begin
+    perform * from search_profiles('{"verified_only": true}'::jsonb, 1, 20);
+    perform pg_temp.check('Z21 standard verified_only search allowed', true);
+  exception when others then
+    perform pg_temp.check('Z21 standard verified_only search allowed', false, sqlerrm);
+  end;
+  perform pg_temp.check('Z22 standard usage: messages unlimited, likes 100/month',
+    (my_plan_usage()->'messages_per_month') = 'null'::jsonb and (my_plan_usage()->>'likes_per_month')::int = 100);
+  -- 未マッチの c の写真を standard が全件閲覧できる
+  perform pg_temp.as_super();
+  insert into profile_photos (user_id, storage_path, sort_order) values (c, c || '/p1.jpg', 1);
+  perform pg_temp.as_user(a);
+  perform pg_temp.check('Z23 standard sees all photos of unmatched user', (select count(*) from profile_photos where user_id = c) = 2);
+  -- 本人確認済み表示は課金ではなく審査結果
+  perform pg_temp.check('Z24 is_verified reflects verification review, not plan',
+    (select is_verified from public_profile where id = a) = (select status = 'verified' from verifications where user_id = a));
+  perform pg_temp.as_super();
+  -- Stripe 同期: 旧 Price (plans に存在しない) の解約イベントでも既存 subscription の plan で同期できる
+  update subscriptions set stripe_subscription_id = 'sub_legacy' where user_id = a;
+  perform stripe_sync_subscription(a, 'cus_legacy', 'sub_legacy', 'price_old_archived', 'canceled', now() - interval '30 days', now() - interval '1 day', false, now(), 'paid', false);
+  perform pg_temp.check('Z25 legacy price cancel event syncs via existing subscription plan', current_plan_tier(a) = 'free'
+    and (select status from subscriptions where user_id = a) = 'canceled');
+  delete from subscriptions where user_id = a;
+  delete from billing_customers where user_id = a;
 end $$;
 
 select name, case when ok then 'PASS' else 'FAIL' end as result from t_results

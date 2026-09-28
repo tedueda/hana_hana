@@ -19,6 +19,7 @@ import { fetchProfileDetails, type ProfileDetails } from '../api/profile';
 import { DEFAULT_PUBLIC_SETTINGS, fetchPublicSettings, type PublicSettings } from '../api/settings';
 import { Avatar } from '../components/ProfileCard';
 import MatchModal from '../components/MatchModal';
+import { PlanLimitNotice, usePlanLimitText } from '../components/PlanLimitNotice';
 import { GENDERS, LEVELS, MEETING_PREFS, NATIONALITIES } from '../labels';
 import type { PublicProfile, RecommendedUser, SearchFilters, UiLang } from '../types';
 
@@ -363,7 +364,9 @@ export const SearchPage: React.FC = () => {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [featureLock, setFeatureLock] = useState('');
   const [savedLoaded, setSavedLoaded] = useState(false);
+  const planLimitText = usePlanLimitText();
 
   useEffect(() => {
     if (!user) return;
@@ -387,12 +390,20 @@ export const SearchPage: React.FC = () => {
     let alive = true;
     setLoading(true);
     setError('');
+    setFeatureLock('');
     searchProfiles({ ...filters, ...categoryFilters }, 1, PAGE_SIZE)
       .then((r) => alive && setResults(r))
-      .catch((e) => alive && setError(errorMessage(e)))
+      .catch((e) => {
+        if (!alive) return;
+        const lock = planLimitText(e);
+        if (lock?.kind === 'feature') {
+          setFeatureLock(t('search.verifiedOnlyLocked'));
+          setResults([]);
+        } else setError(errorMessage(e));
+      })
       .finally(() => alive && setLoading(false));
     return () => { alive = false; };
-  }, [filters, categoryFilters, savedLoaded, errorMessage]);
+  }, [filters, categoryFilters, savedLoaded, errorMessage, planLimitText, t]);
 
   const openSheet = () => { setDraft(filters); setOpen(true); };
   const apply = () => { setFilters(draft); setOpen(false); };
@@ -460,7 +471,8 @@ export const SearchPage: React.FC = () => {
       </div>
 
       {error && <p className="text-sm text-red-600">{error}</p>}
-      {results !== null && !loading && (
+      {featureLock && <PlanLimitNotice text={featureLock} />}
+      {results !== null && !loading && !featureLock && (
         <p className="text-xs text-gray-500">
           {results.length >= PAGE_SIZE ? t('search.countMax', { n: results.length }) : t('search.count', { n: results.length })}
         </p>

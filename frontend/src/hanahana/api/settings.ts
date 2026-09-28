@@ -41,6 +41,8 @@ export interface PublicSettings {
   plan_limits: Json;
   message_rate_per_minute: number;
   stripe_mode: string;
+  /** 全機能を無料で使える性別 (既定 female) */
+  free_full_access_genders: string[];
 }
 
 export const DEFAULT_PUBLIC_SETTINGS: PublicSettings = {
@@ -66,6 +68,7 @@ export const DEFAULT_PUBLIC_SETTINGS: PublicSettings = {
   plan_limits: {},
   message_rate_per_minute: 20,
   stripe_mode: 'test',
+  free_full_access_genders: ['female'],
 };
 
 function asRecord(j: Json): Record<string, Json> {
@@ -106,6 +109,9 @@ export function parsePublicSettings(j: Json): PublicSettings {
     plan_limits: (r.plan_limits as Json | undefined) ?? {},
     message_rate_per_minute: num('message_rate_per_minute', DEFAULT_PUBLIC_SETTINGS.message_rate_per_minute),
     stripe_mode: str('stripe_mode', DEFAULT_PUBLIC_SETTINGS.stripe_mode),
+    free_full_access_genders: Array.isArray(r.free_full_access_genders)
+      ? r.free_full_access_genders.filter((g): g is string => typeof g === 'string')
+      : DEFAULT_PUBLIC_SETTINGS.free_full_access_genders,
   };
 }
 

@@ -2,23 +2,21 @@ import React, { useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { Crown } from 'lucide-react';
 import { useI18n } from '../i18n';
-import { planLimitKind, type PlanLimitKind } from '../api/plans';
+import { errorDetail, planLimitKind, type PlanLimitKind } from '../api/plans';
 import type { MessageKey } from '../i18n/ja';
 
 const KEY: Record<PlanLimitKind, MessageKey> = {
   like: 'plans.limit.like',
+  like_month: 'plans.limit.likeMonth',
   message: 'plans.limit.message',
+  message_none: 'plans.limit.messageNone',
   message_rate: 'plans.limit.messageRate',
   translation: 'plans.limit.translation',
+  feature: 'plans.limit.feature',
 };
 
 function limitFromError(e: unknown): number | string {
-  const d =
-    e && typeof e === 'object' && 'details' in e && typeof (e as { details: unknown }).details === 'string'
-      ? (e as { details: string }).details
-      : e && typeof e === 'object' && 'detail' in e
-        ? JSON.stringify((e as { detail: unknown }).detail)
-        : '';
+  const d = errorDetail(e);
   const m = /"limit"\s*:\s*(\d+)|"per_day"\s*:\s*(\d+)/.exec(d);
   return m ? Number(m[1] ?? m[2]) : '';
 }

@@ -2491,6 +2491,19 @@ export type Database = {
         Returns: Database["public"]["Enums"]["plan_tier_t"]
       }
       my_plan_usage: { Args: never; Returns: Json }
+      photo_visible_to_me: {
+        Args: { p_owner: string; p_photo: string }
+        Returns: boolean
+      }
+      profile_photo_count: { Args: { p_owner: string }; Returns: number }
+      subscribed_plan_tier: {
+        Args: { p_user: string }
+        Returns: Database["public"]["Enums"]["plan_tier_t"]
+      }
+      top_plan_tier: {
+        Args: never
+        Returns: Database["public"]["Enums"]["plan_tier_t"]
+      }
       my_profile: {
         Args: never
         Returns: {
@@ -2548,6 +2561,7 @@ export type Database = {
         Args: { p_key: string; p_user: string }
         Returns: number
       }
+      plan_exempt: { Args: { p_user: string }; Returns: boolean }
       plan_has_feature: {
         Args: { p_key: string; p_user: string }
         Returns: boolean
@@ -2760,7 +2774,7 @@ export type Database = {
         | "salon_comment"
         | "salon_reaction"
         | "salon_moderation"
-      plan_tier_t: "free" | "standard" | "premium"
+      plan_tier_t: "free" | "light" | "standard"
       report_reason_t:
         | "inappropriate_content"
         | "impersonation"
@@ -2928,7 +2942,7 @@ export const Constants = {
         "salon_reaction",
         "salon_moderation",
       ],
-      plan_tier_t: ["free", "standard", "premium"],
+      plan_tier_t: ["free", "light", "standard"],
       report_reason_t: [
         "inappropriate_content",
         "impersonation",

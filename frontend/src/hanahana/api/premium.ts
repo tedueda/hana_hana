@@ -90,7 +90,7 @@ export function eventErrorCode(e: unknown): EventErrorCode | null {
 
 export function isPremiumRequired(e: unknown): boolean {
   const msg = e instanceof Error ? e.message : e && typeof e === 'object' && 'message' in e ? String((e as { message: unknown }).message) : String(e);
-  return msg.includes('premium_required');
+  return msg.includes('premium_required') || msg.includes('plan_feature_required');
 }
 
 // admin

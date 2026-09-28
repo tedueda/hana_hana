@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, BadgeCheck, Ban, Flag } from 'lucide-react';
+import { Link, useNavigate, useParams } from 'react-router-dom';
+import { ArrowLeft, BadgeCheck, Ban, Flag, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
@@ -49,6 +49,7 @@ const UserProfilePage: React.FC = () => {
   const region = master?.regions.find((r) => r.id === profile.residence_region_id);
   const natives = details?.languages.filter((l) => l.role === 'native') ?? [];
   const learning = details?.languages.filter((l) => l.role === 'learning') ?? [];
+  const hiddenPhotos = details ? details.photoTotal - details.photos.length : 0;
 
   const doBlock = async () => {
     if (!user || !window.confirm(t('profile.blockConfirm'))) return;
@@ -75,6 +76,13 @@ const UserProfilePage: React.FC = () => {
           {(details?.photos.length ? details.photos : [null]).map((p, i) => (
             <Avatar key={p?.id ?? i} path={p?.storage_path ?? profile.primary_photo_path} name={profile.nickname} className="w-full aspect-square" />
           ))}
+          {hiddenPhotos > 0 && (
+            <Link to="/app/plans" className="w-full aspect-square bg-gray-100 flex flex-col items-center justify-center gap-1 text-gray-600 text-xs p-3 text-center" data-testid="photos-locked">
+              <Lock className="w-6 h-6 text-gray-400" />
+              <span className="font-semibold">{t('profile.photosLocked', { n: hiddenPhotos })}</span>
+              <span className="text-rose-600 underline">{t('premium.viewPlans')}</span>
+            </Link>
+          )}
         </div>
         <div className="p-4 space-y-3">
           <div className="flex items-center gap-2">
