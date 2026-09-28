@@ -38,6 +38,13 @@ export const ja = {
 
   // ランディング
   'landing.tagline': '日本と韓国をつなぐ、\n新しい出会い。',
+  'landing.hero.aria': 'トップ画像',
+  'landing.hero1.title': '日本と韓国をつなぐ、\n新しい出会い。',
+  'landing.hero1.sub': '恋愛・友達・言語交換・趣味。目的に合わせて、隣の国の誰かとつながろう。',
+  'landing.hero2.title': '言葉の壁は、\nAI翻訳がなくす。',
+  'landing.hero2.sub': '日本語と韓国語、そのまま入力するだけ。チャットもサロンもワンタップで翻訳。',
+  'landing.hero3.title': '交流サロンで、\n仲間と語ろう。',
+  'landing.hero3.sub': 'K-POP・ドラマ・旅行・語学。共通の話題から、日韓の輪が広がります。',
   'landing.lead': '恋愛・友達・言語交換・趣味。目的に合わせて、隣の国の誰かとつながろう。',
   'landing.start': '無料で始める',
   'landing.login': 'ログイン',
