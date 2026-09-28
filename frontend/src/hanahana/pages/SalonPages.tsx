@@ -220,7 +220,7 @@ const PostCard: React.FC<{ item: SalonFeedItem; cat?: SalonCategory }> = ({ item
         )}
         <span className="ml-auto">{formatDate(item.created_at, locale, { month: 'numeric', day: 'numeric' })}</span>
       </div>
-      <h2 className="font-semibold break-words leading-snug">{item.title}</h2>
+      <h2 className="text-base font-semibold break-words leading-snug">{item.title}</h2>
       <p className="text-sm text-gray-600 line-clamp-2 break-words">{item.body}</p>
       {item.photo_path && <SalonPhoto path={item.photo_path} className="aspect-video" />}
       <div className="flex items-center gap-2 text-xs text-gray-500">
