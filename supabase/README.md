@@ -83,3 +83,15 @@ supabase/scripts/run_sql.sh supabase/tests/rls_smoke_test.sql
 - `profiles` の `birthdate` / `pref_*` / 停止情報は列レベルで `authenticated` から剥奪し、本人は `my_profile()`、他人は `public_profile` view (年齢のみ) 経由で参照
 - `member_tier` / `status` はユーザーが更新不可 (admin RPC / サーバー側のみ)
 - `anon` ロールには public スキーマの権限なし
+
+## デモ用会員 (開発・確認用)
+
+```bash
+export SUPABASE_PROJECT_REF=...
+supabase/scripts/run_sql.sh supabase/tests/cleanup_test_users.sql   # 管理者以外の @hanahana.test 会員を全削除
+(cd supabase/scripts && python3 cleanup_test_storage.py)           # 削除会員の写真等 (Storage) を削除
+supabase/scripts/run_sql.sh supabase/tests/seed_demo_users.sql      # 会員 4 名 (咲希/悠真/지은/민준)
+python3 supabase/scripts/upload_demo_photos.py                      # supabase/assets/demo/*.jpg を profile-photos へ
+```
+
+`demo-saki/yuma/jieun/minjun@hanahana.test`（パスワード `Hanahana-Test1`）。おすすめ・探すに表示される。本番運用開始前に削除する。
