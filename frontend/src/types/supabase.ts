@@ -130,6 +130,42 @@ export type Database = {
         }
         Relationships: []
       }
+      billing_customers: {
+        Row: {
+          created_at: string
+          livemode: boolean
+          stripe_customer_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          livemode?: boolean
+          stripe_customer_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          livemode?: boolean
+          stripe_customer_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "billing_customers_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "billing_customers_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "public_profile"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       blocks: {
         Row: {
           blocked_id: string
@@ -773,9 +809,13 @@ export type Database = {
           amount: number
           created_at: string
           currency: string
+          failure_message: string | null
           id: string
           paid_at: string | null
+          refunded_amount: number
+          refunded_at: string | null
           status: string
+          stripe_charge_id: string | null
           stripe_invoice_id: string | null
           stripe_payment_intent_id: string | null
           subscription_id: string | null
@@ -785,9 +825,13 @@ export type Database = {
           amount: number
           created_at?: string
           currency?: string
+          failure_message?: string | null
           id?: string
           paid_at?: string | null
+          refunded_amount?: number
+          refunded_at?: string | null
           status: string
+          stripe_charge_id?: string | null
           stripe_invoice_id?: string | null
           stripe_payment_intent_id?: string | null
           subscription_id?: string | null
@@ -797,9 +841,13 @@ export type Database = {
           amount?: number
           created_at?: string
           currency?: string
+          failure_message?: string | null
           id?: string
           paid_at?: string | null
+          refunded_amount?: number
+          refunded_at?: string | null
           status?: string
+          stripe_charge_id?: string | null
           stripe_invoice_id?: string | null
           stripe_payment_intent_id?: string | null
           subscription_id?: string | null
@@ -1563,6 +1611,36 @@ export type Database = {
         }
         Relationships: []
       }
+      stripe_events: {
+        Row: {
+          error: string | null
+          id: string
+          livemode: boolean
+          payload: Json | null
+          processed_at: string | null
+          received_at: string
+          type: string
+        }
+        Insert: {
+          error?: string | null
+          id: string
+          livemode?: boolean
+          payload?: Json | null
+          processed_at?: string | null
+          received_at?: string
+          type: string
+        }
+        Update: {
+          error?: string | null
+          id?: string
+          livemode?: boolean
+          payload?: Json | null
+          processed_at?: string | null
+          received_at?: string
+          type?: string
+        }
+        Relationships: []
+      }
       subscriptions: {
         Row: {
           cancel_at_period_end: boolean
@@ -1572,10 +1650,12 @@ export type Database = {
           current_period_start: string | null
           id: string
           latest_invoice_status: string | null
+          livemode: boolean
           plan_id: string | null
           plan_tier: Database["public"]["Enums"]["plan_tier_t"] | null
           status: Database["public"]["Enums"]["subscription_status_t"]
           stripe_customer_id: string | null
+          stripe_price_id: string | null
           stripe_subscription_id: string | null
           updated_at: string
           user_id: string
@@ -1588,10 +1668,12 @@ export type Database = {
           current_period_start?: string | null
           id?: string
           latest_invoice_status?: string | null
+          livemode?: boolean
           plan_id?: string | null
           plan_tier?: Database["public"]["Enums"]["plan_tier_t"] | null
           status: Database["public"]["Enums"]["subscription_status_t"]
           stripe_customer_id?: string | null
+          stripe_price_id?: string | null
           stripe_subscription_id?: string | null
           updated_at?: string
           user_id: string
@@ -1604,10 +1686,12 @@ export type Database = {
           current_period_start?: string | null
           id?: string
           latest_invoice_status?: string | null
+          livemode?: boolean
           plan_id?: string | null
           plan_tier?: Database["public"]["Enums"]["plan_tier_t"] | null
           status?: Database["public"]["Enums"]["subscription_status_t"]
           stripe_customer_id?: string | null
+          stripe_price_id?: string | null
           stripe_subscription_id?: string | null
           updated_at?: string
           user_id?: string
@@ -2073,6 +2157,22 @@ export type Database = {
           user_id: string
         }[]
       }
+      admin_list_payments: {
+        Args: { p_limit?: number }
+        Returns: {
+          amount: number
+          created_at: string
+          currency: string
+          id: string
+          nickname: string
+          paid_at: string
+          plan_tier: Database["public"]["Enums"]["plan_tier_t"]
+          refunded_amount: number
+          status: string
+          stripe_invoice_id: string
+          user_id: string
+        }[]
+      }
       admin_list_reports: {
         Args: {
           p_page?: number
@@ -2343,6 +2443,7 @@ export type Database = {
         Returns: number
       }
       min_age: { Args: never; Returns: number }
+      my_billing: { Args: never; Returns: Json }
       my_blocks: {
         Args: never
         Returns: {
@@ -2564,6 +2665,63 @@ export type Database = {
           id: string
           score: number
         }[]
+      }
+      stripe_begin_event: {
+        Args: {
+          p_id: string
+          p_livemode: boolean
+          p_payload: Json
+          p_type: string
+        }
+        Returns: boolean
+      }
+      stripe_finish_event: {
+        Args: { p_error?: string; p_id: string }
+        Returns: undefined
+      }
+      stripe_map_status: {
+        Args: { p: string }
+        Returns: Database["public"]["Enums"]["subscription_status_t"]
+      }
+      stripe_record_payment: {
+        Args: {
+          p_amount: number
+          p_charge: string
+          p_currency: string
+          p_customer: string
+          p_failure_message: string
+          p_invoice: string
+          p_paid_at: string
+          p_payment_intent: string
+          p_status: string
+          p_subscription: string
+        }
+        Returns: string
+      }
+      stripe_record_refund: {
+        Args: {
+          p_charge: string
+          p_payment_intent: string
+          p_refunded_amount: number
+          p_refunded_at: string
+        }
+        Returns: undefined
+      }
+      stripe_sync_subscription: {
+        Args: {
+          p_cancel_at_period_end: boolean
+          p_canceled_at: string
+          p_customer: string
+          p_latest_invoice_status: string
+          p_livemode: boolean
+          p_period_end: string
+          p_period_start: string
+          p_price: string
+          p_status: string
+          p_subscription: string
+          p_user: string
+        }
+        Returns: string
       }
       touch_last_active: { Args: never; Returns: undefined }
       translation_quota: { Args: { p_user: string }; Returns: Json }
@@ -2794,3 +2952,4 @@ export const Constants = {
     },
   },
 } as const
+

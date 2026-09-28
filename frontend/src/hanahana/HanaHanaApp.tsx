@@ -17,6 +17,7 @@ import { LikesPage, MatchesPage } from './pages/LikesMatchesPages';
 import MyProfilePage from './pages/MyProfilePage';
 import { VerificationPage } from './pages/MyPages';
 import { PlansPage } from './pages/PlansPage';
+import { BillingManagePage } from './pages/BillingManagePage';
 import OnboardingPage from './pages/OnboardingPage';
 import ProfileEditPage from './pages/ProfileEditPage';
 import SettingsPage, { BlocksPage, ChangePasswordPage, DeleteAccountPage } from './pages/SettingsPage';
@@ -139,6 +140,7 @@ const HanaHanaApp: React.FC = () => {
               <Route path="likes" element={<Navigate to="/app/profile/likes" replace />} />
               <Route path="profile/verification" element={<VerificationPage />} />
               <Route path="plans" element={<PlansPage />} />
+              <Route path="plans/manage" element={<BillingManagePage />} />
               <Route path="plus" element={<Navigate to="/app/plans" replace />} />
               <Route path="settings" element={<SettingsPage />} />
               <Route path="settings/blocks" element={<BlocksPage />} />
