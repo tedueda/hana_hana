@@ -1,7 +1,7 @@
 import { FunctionsHttpError } from '@supabase/supabase-js';
 import { getSupabase } from '@/lib/supabase';
 import type { Database } from '@/types/supabase';
-import type { PlanTier } from './plans';
+import type { PaidTier, PlanTier } from './plans';
 
 export type BillingErrorCode =
   | 'unauthorized'
@@ -9,13 +9,14 @@ export type BillingErrorCode =
   | 'origin_not_allowed'
   | 'account_not_active'
   | 'plan_not_purchasable'
+  | 'plan_not_required'
   | 'already_subscribed'
   | 'stripe_not_configured'
   | 'network';
 
 const KNOWN = new Set<BillingErrorCode>([
   'unauthorized', 'invalid_plan', 'origin_not_allowed', 'account_not_active',
-  'plan_not_purchasable', 'already_subscribed', 'stripe_not_configured',
+  'plan_not_purchasable', 'plan_not_required', 'already_subscribed', 'stripe_not_configured',
 ]);
 
 export class BillingError extends Error {
@@ -81,7 +82,7 @@ async function invoke(fn: 'stripe-checkout' | 'stripe-portal', body: Record<stri
 }
 
 /** Stripe Checkout (新規購入) または Billing Portal (プラン変更) の URL を取得 */
-export function startCheckout(planCode: 'standard' | 'premium') {
+export function startCheckout(planCode: PaidTier) {
   return invoke('stripe-checkout', { plan_code: planCode, origin: window.location.origin });
 }
 

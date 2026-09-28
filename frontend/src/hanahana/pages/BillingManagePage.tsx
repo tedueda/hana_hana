@@ -86,7 +86,7 @@ export const BillingManagePage: React.FC = () => {
         <section className="bg-white rounded-2xl border border-gray-100 p-4 space-y-3" data-testid="billing-current">
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-semibold text-gray-800">{t('plans.current')}</h2>
-            <Badge className={billing.tier === 'premium' ? 'bg-rose-500' : billing.tier === 'standard' ? 'bg-sky-500' : 'bg-gray-400'}>
+            <Badge className={billing.tier === 'standard' ? 'bg-rose-500' : billing.tier === 'light' ? 'bg-sky-500' : 'bg-gray-400'}>
               {t(TIER_KEY[billing.tier])}
             </Badge>
           </div>
@@ -121,8 +121,8 @@ export const BillingManagePage: React.FC = () => {
 
               <div className="grid grid-cols-1 gap-2 pt-1">
                 {sub.status !== 'canceled' && (
-                  <Button variant="outline" disabled={busy} onClick={() => void go(() => startCheckout(sub.plan_tier === 'premium' ? 'standard' : 'premium'))} data-testid="btn-change">
-                    {t('billing.changePlan')}: {t(TIER_KEY[sub.plan_tier === 'premium' ? 'standard' : 'premium'])}
+                  <Button variant="outline" disabled={busy} onClick={() => void go(() => startCheckout(sub.plan_tier === 'standard' ? 'light' : 'standard'))} data-testid="btn-change">
+                    {t('billing.changePlan')}: {t(TIER_KEY[sub.plan_tier === 'standard' ? 'light' : 'standard'])}
                   </Button>
                 )}
                 <Button variant="outline" disabled={busy} onClick={() => void go(() => openPortal('payment_method'))} data-testid="btn-card">

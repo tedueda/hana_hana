@@ -1,7 +1,7 @@
 // Edge Function: stripe-portal (テストモード)
 //   POST { origin, flow?: 'cancel' | 'payment_method' }
 //   Stripe Billing Portal セッションを作成し { url } を返す。
-//   Portal 設定 (プラン変更 standard⇄premium・解約・支払い方法・請求履歴) は初回に API で作成し
+//   Portal 設定 (プラン変更 light⇄standard・解約・支払い方法・請求履歴) は初回に API で作成し
 //   app_settings.stripe_portal_configuration_id に保存する。
 import { adminClient, allowedOrigin, cors, ensureCustomer, fail, json, portalConfiguration, requireUser, stripeClient, type Stripe } from '../_shared/stripe.ts';
 

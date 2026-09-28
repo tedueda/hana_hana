@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """Stripe テストモードの初期設定 (冪等)。
 
-  1. Product/Price (lookup_key: hanahana_standard_monthly / hanahana_premium_monthly, JPY 月額) を作成または再利用
+  1. Product/Price (lookup_key: hanahana_light_monthly / hanahana_standard_v2_monthly, JPY 月額) を作成または再利用
+     旧価格 (hanahana_standard_monthly ¥500 / hanahana_premium_monthly ¥980) は active=false にする
   2. plans.stripe_price_id を更新 (Supabase Management API)
   3. Webhook エンドポイント (<SUPABASE_URL>/functions/v1/stripe-webhook) を作成または再利用
   4. Edge Function Secrets に STRIPE_SECRET_KEY / STRIPE_WEBHOOK_SECRET を保存 (値は出力しない)
@@ -31,9 +32,10 @@ EVENTS = [
     "charge.refunded",
 ]
 PLANS = {
-    "standard": {"lookup_key": "hanahana_standard_monthly", "name": "Hana-Hana スタンダード / 스탠다드", "amount": 500},
-    "premium": {"lookup_key": "hanahana_premium_monthly", "name": "Hana-Hana プレミアム / 프리미엄", "amount": 980},
+    "light": {"lookup_key": "hanahana_light_monthly", "name": "Hana-Hana ライト / 라이트", "amount": 1000},
+    "standard": {"lookup_key": "hanahana_standard_v2_monthly", "name": "Hana-Hana スタンダード / 스탠다드", "amount": 2980},
 }
+LEGACY_LOOKUP_KEYS = ["hanahana_standard_monthly", "hanahana_premium_monthly"]
 
 
 def stripe(method, path, data=None):
@@ -78,10 +80,24 @@ for code, p in PLANS.items():
     price_ids[code] = price["id"]
     print(f"{code}: price {price['id']} ¥{price['unit_amount']}/month (product {price['product']})")
 
-# 2. plans.stripe_price_id
+for key in LEGACY_LOOKUP_KEYS:
+    for price in stripe("GET", f"/prices?lookup_keys[]={key}&active=true&limit=10")["data"]:
+        stripe("POST", f"/prices/{price['id']}", {"active": "false"})
+        print(f"legacy price archived {price['id']} ({key})")
+
+# 2. plans.stripe_price_id (旧価格に紐づくテスト契約は即時解約し、Portal 設定は新価格で再作成させる)
 for code, pid in price_ids.items():
     sql(f"update plans set stripe_price_id = '{pid}' where code = '{code}';")
 print("plans.stripe_price_id updated")
+new_ids = set(price_ids.values())
+for sub in stripe("GET", "/subscriptions?status=all&limit=100")["data"]:
+    if sub["status"] in ("canceled", "incomplete_expired"):
+        continue
+    if all(item["price"]["id"] in new_ids for item in sub["items"]["data"]):
+        continue
+    stripe("DELETE", f"/subscriptions/{sub['id']}")
+    print(f"legacy subscription canceled {sub['id']}")
+sql("delete from app_settings where key = 'stripe_portal_configuration_id';")
 
 # 3. Webhook endpoint
 endpoints = stripe("GET", "/webhook_endpoints?limit=100")["data"]

@@ -1,5 +1,5 @@
 // Edge Function: stripe-checkout (テストモード)
-//   POST { plan_code: 'standard'|'premium', origin }
+//   POST { plan_code: 'light'|'standard', origin }
 //   有効な Stripe 契約が無い会員 → Checkout Session を作成し { url } を返す
 //   既に Stripe 契約がある会員     → プラン変更は Billing Portal (比例配分) へ誘導 { url, portal: true }
 // 価格は plans.stripe_price_id (DB) から取得。ブラウザから price_id は受け取らない。
@@ -14,7 +14,7 @@ Deno.serve(async (req) => {
 
   let body: { plan_code?: string; origin?: string };
   try { body = await req.json(); } catch { return fail(400, 'invalid_json'); }
-  if (body.plan_code !== 'standard' && body.plan_code !== 'premium') return fail(400, 'invalid_plan');
+  if (body.plan_code !== 'light' && body.plan_code !== 'standard') return fail(400, 'invalid_plan');
 
   const admin = adminClient();
   const origin = await allowedOrigin(admin, body.origin);
@@ -22,6 +22,8 @@ Deno.serve(async (req) => {
 
   const { data: prof } = await admin.from('profiles').select('status').eq('id', user.uid).maybeSingle();
   if (!prof || prof.status !== 'active') return fail(403, 'account_not_active');
+  const { data: exempt } = await admin.rpc('plan_exempt', { p_user: user.uid });
+  if (exempt === true) return fail(409, 'plan_not_required');
 
   const { data: plan } = await admin.from('plans').select('id, code, tier, stripe_price_id, is_active').eq('code', body.plan_code).maybeSingle();
   if (!plan?.is_active || !plan.stripe_price_id) return fail(409, 'plan_not_purchasable');
