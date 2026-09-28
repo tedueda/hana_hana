@@ -117,3 +117,13 @@ export function guessLang(text: string): 'ja' | 'ko' | 'en' | 'und' {
   if (latin > 0) return 'en';
   return 'und';
 }
+
+/** サロン投稿 (title/body) の翻訳。サーバー側で可視性・キャッシュ・上限を適用 */
+export function translateSalonPost(postId: string, field: 'title' | 'body', targetLang: string): Promise<TranslateResult> {
+  return invoke({ salon_post_id: postId, field, target_lang: targetLang });
+}
+
+/** サロンコメントの翻訳 */
+export function translateSalonComment(commentId: string, targetLang: string): Promise<TranslateResult> {
+  return invoke({ salon_comment_id: commentId, target_lang: targetLang });
+}

@@ -14,6 +14,9 @@ export const REPORT_REASONS: ReportReason[] = [
   'harassment',
   'fraud_suspected',
   'inappropriate_photo',
+  'spam',
+  'solicitation',
+  'personal_info',
   'other',
 ];
 

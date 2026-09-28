@@ -3,6 +3,8 @@
 // 認証済み会員だけが呼べるサーバー側翻訳。ブラウザから翻訳 API を直接呼ばない。
 //   POST { message_id, target_lang }                 受信メッセージの翻訳 (会話参加者のみ・message_translations にキャッシュ)
 //   POST { text, target_lang, source_lang? }         送信前の下書き翻訳 (キャッシュしない・上限は消費)
+//   POST { salon_post_id, field?: 'title'|'body', target_lang }   サロン投稿の翻訳 (閲覧可能な会員のみ・salon_translations にキャッシュ)
+//   POST { salon_comment_id, target_lang }           サロンコメントの翻訳 (同上)
 // 応答 { translated, detected_lang, target_lang, provider, cached, same_lang }
 //
 // 環境変数 (Supabase Dashboard → Edge Functions → Secrets)
@@ -98,7 +100,15 @@ Deno.serve(async (req) => {
   const uid = userData.user.id;
   const admin = createClient(url, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 
-  let body: { message_id?: string; text?: string; target_lang?: string; source_lang?: string };
+  let body: {
+    message_id?: string;
+    salon_post_id?: string;
+    salon_comment_id?: string;
+    field?: 'title' | 'body';
+    text?: string;
+    target_lang?: string;
+    source_lang?: string;
+  };
   try {
     body = await req.json();
   } catch {
@@ -117,8 +127,27 @@ Deno.serve(async (req) => {
 
   let text: string;
   let sourceHint: string | undefined = body.source_lang;
-  let kind: 'message' | 'draft';
+  let kind: 'message' | 'draft' | 'salon_post' | 'salon_comment';
   let messageId: string | null = null;
+  let salonTarget: { type: 'post_title' | 'post_body' | 'comment'; id: string } | null = null;
+
+  const salonCached = async (t: { type: string; id: string }, srcText: string) => {
+    const { data: cached } = await admin
+      .from('salon_translations')
+      .select('translated_body, provider')
+      .eq('target_type', t.type)
+      .eq('target_id', t.id)
+      .eq('target_lang', target)
+      .maybeSingle();
+    if (!cached) return null;
+    await admin.from('translation_usage').insert({ user_id: uid, kind, target_lang: target, chars: srcText.length, provider: cached.provider, cached: true });
+    return json(200, { translated: cached.translated_body, detected_lang: detectLang(srcText), target_lang: target, provider: cached.provider, cached: true, same_lang: false });
+  };
+  // RLS と同じ可視性判定 (ブロック/非表示/削除/停止中投稿者) を auth.uid() 文脈で評価する
+  const salonPostVisible = async (postId: string) => {
+    const { data } = await userClient.rpc('salon_post_visible_to_me', { p_post: postId });
+    return data === true;
+  };
 
   if (body.message_id) {
     kind = 'message';
@@ -144,6 +173,33 @@ Deno.serve(async (req) => {
       await admin.from('translation_usage').insert({ user_id: uid, kind, target_lang: target, chars: text.length, provider: cached.provider, cached: true });
       return json(200, { translated: cached.translated_body, detected_lang: detectLang(text), target_lang: target, provider: cached.provider, cached: true, same_lang: false });
     }
+  } else if (body.salon_post_id) {
+    kind = 'salon_post';
+    if (!(await salonPostVisible(body.salon_post_id))) return fail(404, 'message_not_found');
+    const { data: p } = await admin.from('salon_posts').select('title, body, body_lang').eq('id', body.salon_post_id).maybeSingle();
+    if (!p) return fail(404, 'message_not_found');
+    const field = body.field === 'title' ? 'title' : 'body';
+    salonTarget = { type: field === 'title' ? 'post_title' : 'post_body', id: body.salon_post_id };
+    text = field === 'title' ? p.title : p.body;
+    sourceHint = sourceHint ?? p.body_lang ?? undefined;
+    const hit = await salonCached(salonTarget, text);
+    if (hit) return hit;
+  } else if (body.salon_comment_id) {
+    kind = 'salon_comment';
+    const { data: c } = await admin
+      .from('salon_comments')
+      .select('post_id, author_id, body, body_lang, deleted_at, is_hidden')
+      .eq('id', body.salon_comment_id)
+      .maybeSingle();
+    if (!c || c.deleted_at || (c.is_hidden && c.author_id !== uid)) return fail(404, 'message_not_found');
+    if (!(await salonPostVisible(c.post_id))) return fail(404, 'message_not_found');
+    const { data: blocked } = await admin.rpc('is_blocked_between', { a: uid, b: c.author_id });
+    if (blocked === true) return fail(404, 'message_not_found');
+    salonTarget = { type: 'comment', id: body.salon_comment_id };
+    text = c.body;
+    sourceHint = sourceHint ?? c.body_lang ?? undefined;
+    const hit = await salonCached(salonTarget, text);
+    if (hit) return hit;
   } else {
     kind = 'draft';
     text = (body.text ?? '').trim();
@@ -179,6 +235,12 @@ Deno.serve(async (req) => {
     await admin.from('message_translations').upsert(
       { message_id: messageId, target_lang: target, translated_body: translated, provider },
       { onConflict: 'message_id,target_lang' },
+    );
+  }
+  if (salonTarget) {
+    await admin.from('salon_translations').upsert(
+      { target_type: salonTarget.type, target_id: salonTarget.id, target_lang: target, translated_body: translated, provider },
+      { onConflict: 'target_type,target_id,target_lang' },
     );
   }
   return json(200, { translated, detected_lang: source, target_lang: target, provider, cached: false, same_lang: false });

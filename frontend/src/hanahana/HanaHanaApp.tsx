@@ -11,7 +11,8 @@ import ChatPage from './pages/ChatPage';
 import ChatsPage from './pages/ChatsPage';
 import { RecommendPage, SearchPage } from './pages/DiscoveryPages';
 import LandingPage from './pages/LandingPage';
-import { HelpPage, PrivacyPage, TermsPage } from './pages/LegalPages';
+import { HelpPage, PrivacyPage, SalonRulesPage, TermsPage } from './pages/LegalPages';
+import { SalonNewPage, SalonPage, SalonPostPage } from './pages/SalonPages';
 import { LikesPage, MatchesPage } from './pages/LikesMatchesPages';
 import MyProfilePage from './pages/MyProfilePage';
 import { PlusPage, VerificationPage } from './pages/MyPages';
@@ -24,6 +25,7 @@ import DashboardPage from './admin/DashboardPage';
 import UsersPage from './admin/UsersPage';
 import UserDetailPage from './admin/UserDetailPage';
 import ReportsPage from './admin/ReportsPage';
+import SalonAdminPage from './admin/SalonAdminPage';
 import VerificationsPage from './admin/VerificationsPage';
 import MastersPage from './admin/MastersPage';
 import AnnouncementsPage from './admin/AnnouncementsPage';
@@ -105,6 +107,7 @@ const HanaHanaApp: React.FC = () => {
           <Route path="terms" element={<TermsPage />} />
           <Route path="privacy" element={<PrivacyPage />} />
           <Route path="help" element={<HelpPage />} />
+          <Route path="salon-rules" element={<SalonRulesPage />} />
           <Route element={<GuestOnly />}>
             <Route path="login" element={<LoginPage />} />
             <Route path="register" element={<RegisterPage />} />
@@ -116,6 +119,10 @@ const HanaHanaApp: React.FC = () => {
             <Route element={<AppShell />}>
               <Route index element={<RecommendPage />} />
               <Route path="search" element={<SearchPage />} />
+            <Route path="salon" element={<SalonPage />} />
+            <Route path="salon/new" element={<SalonNewPage />} />
+            <Route path="salon/:postId" element={<SalonPostPage />} />
+            <Route path="salon/:postId/edit" element={<SalonNewPage edit />} />
               <Route path="matches" element={<MatchesPage />} />
               <Route path="chats" element={<ChatsPage />} />
               <Route path="chat/:conversationId" element={<ChatPage />} />
@@ -141,6 +148,7 @@ const HanaHanaApp: React.FC = () => {
               <Route path="announcements" element={<AnnouncementsPage />} />
               <Route path="audit" element={<AuditPage />} />
               <Route path="admins" element={<AdminsPage />} />
+              <Route path="salon" element={<SalonAdminPage />} />
             </Route>
           </Route>
           <Route path="*" element={<Navigate to="/app" replace />} />
