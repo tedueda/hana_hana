@@ -35,7 +35,7 @@ const LandingPage: React.FC = () => {
       </div>
       <main className="max-w-3xl mx-auto px-4 py-10 space-y-10">
         <section className="text-center">
-          <p className="text-gray-600 break-keep">{t('landing.lead')}</p>
+          <p className="text-gray-600">{t('landing.lead')}</p>
         </section>
         <section className="grid sm:grid-cols-2 gap-4">
           {FEATURES.map(({ icon: Icon, title, body }) => (
@@ -48,7 +48,7 @@ const LandingPage: React.FC = () => {
             </div>
           ))}
         </section>
-        <section className="text-center text-sm text-gray-500 break-keep">{t('landing.flow')}</section>
+        <section className="text-center text-sm text-gray-500">{t('landing.flow')}</section>
         <section className="flex flex-col sm:flex-row justify-center gap-3">
           <Button asChild variant="outline" className="h-11 bg-white"><Link to="/app/about">{t('public.nav.about')}</Link></Button>
           <Button asChild variant="outline" className="h-11 bg-white"><Link to="/app/pricing">{t('public.nav.pricing')}</Link></Button>
