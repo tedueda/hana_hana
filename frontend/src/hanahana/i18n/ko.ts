@@ -247,6 +247,7 @@ export const ko: Record<MessageKey, string> = {
   'chat.firstMessage': '매칭되었습니다! 첫 메시지를 보내 보세요',
   'chat.read': '읽음',
   'chat.translate': 'AI 번역',
+  'chat.translateAll': '받은 메시지를 한 번에 AI 번역',
   'chat.translating': '번역 중…',
   'chat.translated': 'AI 번역',
   'chat.showOriginal': '원문 보기',

@@ -8,7 +8,7 @@ export function detectLang(text: string): string {
     else if (c >= 0x4e00 && c <= 0x9fff) cjk++;
     else if ((c >= 0x41 && c <= 0x5a) || (c >= 0x61 && c <= 0x7a)) latin++;
   }
-  if (ko > 0 && ko >= ja) return 'ko';
+  if (ko > 0 && ko >= ja + cjk) return 'ko';
   if (ja > 0 || cjk > 0) return 'ja';
   if (latin > 0) return 'en';
   return 'und';

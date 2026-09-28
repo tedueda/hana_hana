@@ -8,7 +8,7 @@ import { getSupabase } from '@/lib/supabase';
 import { useSupabaseAuth } from '../auth/useSupabaseAuth';
 import { fetchMessages, markConversationRead, sendMessage, subscribeToConversation } from '../api/messages';
 import { fetchPublicProfile } from '../api/profile';
-import { fetchMySettings, fetchPublicSettings, type PublicSettings, type UserSettings } from '../api/settings';
+import { defaultUserSettings, fetchMySettings, fetchPublicSettings, upsertMySettings, type PublicSettings, type UserSettings } from '../api/settings';
 import {
   fetchCachedTranslations,
   guessLang,
@@ -238,6 +238,51 @@ const ChatPage: React.FC = () => {
   }, [text]);
 
   const canChat = !!conv && conv.is_active;
+
+  // ヘッダーの「AI翻訳」: 未翻訳の受信メッセージをまとめて翻訳し、翻訳済みは訳文表示に戻す
+  const pendingTargets = useMemo(
+    () => (user ? messages.filter((m) => m.sender_id !== user.id && !translations[m.id] && guessLang(m.body) !== targetLang) : []),
+    [messages, translations, targetLang, user],
+  );
+  const translatedCount = useMemo(
+    () => Object.values(translations).filter((s) => s.status === 'done' && !s.sameLang).length,
+    [translations],
+  );
+  const anyOriginalShown = useMemo(
+    () => Object.values(translations).some((s) => s.status === 'done' && !s.sameLang && s.showOriginal),
+    [translations],
+  );
+  const translateAll = () => {
+    if (pendingTargets.length > 0) {
+      for (const m of pendingTargets) {
+        autoRequested.current.add(m.id);
+        void requestTranslation(m);
+      }
+    }
+    if (anyOriginalShown) {
+      setTranslations((prev) => {
+        const next = { ...prev };
+        for (const [id, s] of Object.entries(next)) {
+          if (s.status === 'done' && !s.sameLang) next[id] = { ...s, showOriginal: false };
+        }
+        return next;
+      });
+    }
+  };
+  const showAllOriginal = () =>
+    setTranslations((prev) => {
+      const next = { ...prev };
+      for (const [id, s] of Object.entries(next)) {
+        if (s.status === 'done' && !s.sameLang) next[id] = { ...s, showOriginal: true };
+      }
+      return next;
+    });
+  const changeTarget = (l: string) => {
+    if (l === targetLang || !user) return;
+    setSettings((prev) => ({ ...(prev ?? defaultUserSettings(user.id)), translate_target_lang: l }));
+    upsertMySettings(user.id, { translate_target_lang: l }).catch(() => undefined);
+  };
+
   const toggleOriginal = (id: string) =>
     setTranslations((prev) => {
       const s = prev[id];
@@ -255,15 +300,52 @@ const ChatPage: React.FC = () => {
           </Link>
         )}
         <span className="ml-auto text-xs text-gray-500 flex items-center gap-1">
-          {autoTranslate && (
-            <>
-              <Languages className="w-3.5 h-3.5" />
-              {t('chat.autoTranslateOn')}
-            </>
-          )}
           {conv && !conv.is_active && t('chat.ended')}
         </span>
       </div>
+
+      {translationEnabled && (
+        <div className="flex items-center gap-2 px-3 py-1.5 bg-rose-50 border-b border-rose-100">
+          <Button
+            type="button"
+            size="sm"
+            className="h-8 rounded-full bg-rose-600 hover:bg-rose-700 text-white px-3 gap-1"
+            onClick={translateAll}
+            disabled={pendingTargets.length === 0 && !anyOriginalShown}
+            aria-label={t('chat.translateAll')}
+          >
+            <Sparkles className="w-3.5 h-3.5" />
+            {t('chat.translate')}
+            {pendingTargets.length > 0 && <span className="text-[10px] opacity-90">({pendingTargets.length})</span>}
+          </Button>
+          {translatedCount > 0 && !anyOriginalShown && (
+            <button type="button" onClick={showAllOriginal} className="text-xs text-rose-700 underline-offset-2 hover:underline min-h-8">
+              {t('chat.showOriginal')}
+            </button>
+          )}
+          <div className="ml-auto flex items-center gap-1" role="group" aria-label={t('settings.translateTarget')}>
+            <Languages className="w-3.5 h-3.5 text-rose-600" />
+            <div className="flex rounded-full border border-rose-300 bg-white overflow-hidden text-xs">
+              {TARGETS.map((l) => (
+                <button
+                  key={l}
+                  type="button"
+                  onClick={() => changeTarget(l)}
+                  aria-pressed={targetLang === l}
+                  className={cn('px-3 min-h-8 font-medium', targetLang === l ? 'bg-rose-600 text-white' : 'text-rose-700 hover:bg-rose-100')}
+                >
+                  {l === 'ja' ? '日本語' : '한국어'}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+      {autoTranslate && (
+        <p className="px-3 py-1 text-[11px] text-gray-500 bg-white border-b border-gray-100 flex items-center gap-1">
+          <Languages className="w-3 h-3" />{t('chat.autoTranslateOn')}
+        </p>
+      )}
 
       <div className="flex-1 overflow-y-auto px-3 py-3 space-y-2">
         {error && <p className="text-sm text-red-600 text-center">{error}</p>}

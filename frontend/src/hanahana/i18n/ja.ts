@@ -336,6 +336,7 @@ export const ja = {
   'chat.firstMessage': 'マッチしました！最初のメッセージを送ってみましょう',
   'chat.read': '既読',
   'chat.translate': 'AI翻訳',
+  'chat.translateAll': '受信メッセージをまとめてAI翻訳',
   'chat.translating': '翻訳中…',
   'chat.translated': 'AI翻訳',
   'chat.showOriginal': '原文を表示',
