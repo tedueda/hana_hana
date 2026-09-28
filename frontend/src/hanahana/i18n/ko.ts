@@ -37,6 +37,13 @@ export const ko: Record<MessageKey, string> = {
   'nav.notifications': '알림',
 
   'landing.tagline': '일본과 한국을 잇는\n새로운 만남.',
+  'landing.hero.aria': '메인 이미지',
+  'landing.hero1.title': '일본과 한국을 잇는\n새로운 만남.',
+  'landing.hero1.sub': '연애·친구·언어 교환·취미. 목적에 맞게 이웃 나라의 누군가와 연결되세요.',
+  'landing.hero2.title': '언어의 벽은\nAI 번역이 없애 드립니다.',
+  'landing.hero2.sub': '일본어와 한국어, 그대로 입력하면 끝. 채팅도 살롱도 한 번의 탭으로 번역.',
+  'landing.hero3.title': '교류 살롱에서\n친구들과 이야기해요.',
+  'landing.hero3.sub': 'K-POP·드라마·여행·어학. 공통 화제에서 한일의 인연이 넓어집니다.',
   'landing.lead': '연애·친구·언어 교환·취미. 목적에 맞게 이웃 나라의 누군가와 연결되세요.',
   'landing.start': '무료로 시작하기',
   'landing.login': '로그인',
