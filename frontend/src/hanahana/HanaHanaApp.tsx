@@ -27,6 +27,9 @@ import UsersPage from './admin/UsersPage';
 import UserDetailPage from './admin/UserDetailPage';
 import ReportsPage from './admin/ReportsPage';
 import SalonAdminPage from './admin/SalonAdminPage';
+import EventsAdminPage from './admin/EventsAdminPage';
+import FootprintsPage from './pages/FootprintsPage';
+import EventsPage from './pages/EventsPage';
 import VerificationsPage from './admin/VerificationsPage';
 import MastersPage from './admin/MastersPage';
 import AnnouncementsPage from './admin/AnnouncementsPage';
@@ -131,6 +134,8 @@ const HanaHanaApp: React.FC = () => {
               <Route path="profile" element={<MyProfilePage />} />
               <Route path="profile/edit" element={<ProfileEditPage />} />
               <Route path="profile/likes" element={<LikesPage />} />
+              <Route path="profile/footprints" element={<FootprintsPage />} />
+              <Route path="events" element={<EventsPage />} />
               <Route path="likes" element={<Navigate to="/app/profile/likes" replace />} />
               <Route path="profile/verification" element={<VerificationPage />} />
               <Route path="plans" element={<PlansPage />} />
@@ -151,6 +156,7 @@ const HanaHanaApp: React.FC = () => {
               <Route path="audit" element={<AuditPage />} />
               <Route path="admins" element={<AdminsPage />} />
               <Route path="salon" element={<SalonAdminPage />} />
+              <Route path="events" element={<EventsAdminPage />} />
             </Route>
           </Route>
           <Route path="*" element={<Navigate to="/app" replace />} />

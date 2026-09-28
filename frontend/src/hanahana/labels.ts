@@ -23,7 +23,7 @@ export const REPORT_REASONS: ReportReason[] = [
 const REASON_KEYS = [
   'gender', 'gender_mutual', 'nationality', 'age', 'language', 'language_exchange', 'interest',
   'shared_interests', 'purpose', 'shared_purpose', 'region', 'nearby', 'country', 'meeting_pref',
-  'recent', 'verified',
+  'recent', 'verified', 'priority',
 ] as const;
 
 function mapOf<K extends string>(lang: Lang, prefix: string, keys: readonly K[]): Record<K, string> {

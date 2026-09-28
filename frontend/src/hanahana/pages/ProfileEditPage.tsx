@@ -7,6 +7,7 @@ import { useErrorMessage } from '../hooks';
 import { DEFAULT_PUBLIC_SETTINGS, fetchPublicSettings, type PublicSettings } from '../api/settings';
 import { PageHeader } from './SettingsPage';
 import { ageFromBirthdate, isBasicComplete, isProfileComplete, useProfileForm, type ProfileSection } from '../profile/useProfileForm';
+import ProfileAiAssist from '../components/ProfileAiAssist';
 import { BasicStep, BioStep, InterestStep, LanguageStep, PartnerStep, PhotoStep, PurposeStep } from '../profile/ProfileSteps';
 
 const SECTIONS: ProfileSection[] = ['photo', 'basic', 'partner', 'purpose', 'language', 'interest', 'bio'];
@@ -67,7 +68,12 @@ const ProfileEditPage: React.FC = () => {
     purpose: <PurposeStep {...stepProps} />,
     language: <LanguageStep {...stepProps} />,
     interest: <InterestStep {...stepProps} />,
-    bio: <BioStep {...stepProps} />,
+    bio: (
+      <div className="space-y-3">
+        <BioStep {...stepProps} />
+        <ProfileAiAssist bio={form.bio} onApply={(bio) => patch({ bio })} />
+      </div>
+    ),
   };
 
   return (

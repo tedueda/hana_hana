@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { BadgeCheck, ChevronRight, Heart, LogOut, MessagesSquare, Pencil, Settings, ShieldCheck, Sparkles } from 'lucide-react';
+import { BadgeCheck, CalendarDays, ChevronRight, Footprints, Heart, LogOut, MessagesSquare, Pencil, Settings, ShieldCheck, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useSupabaseAuth } from '../auth/useSupabaseAuth';
@@ -155,6 +155,8 @@ const MyProfilePage: React.FC = () => {
       <nav className="bg-white rounded-2xl border border-gray-100 divide-y divide-gray-100">
         <MenuRow to="/app/profile/verification" icon={BadgeCheck} label={t('my.verification')} value={t(verifyKey)} />
         <MenuRow to="/app/profile/likes" icon={Heart} label={t('my.likes')} />
+        <MenuRow to="/app/profile/footprints" icon={Footprints} label={t('footprints.title')} />
+        <MenuRow to="/app/events" icon={CalendarDays} label={t('events.title')} />
         <MenuRow to="/app/salon?kind=mine" icon={MessagesSquare} label={t('salon.kind.mine')} />
         <MenuRow to="/app/settings" icon={Settings} label={t('my.settings')} />
         <MenuRow to="/app/plans" icon={Sparkles} label={t('my.plus')} />
