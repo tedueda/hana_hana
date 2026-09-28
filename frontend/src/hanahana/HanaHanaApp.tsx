@@ -3,6 +3,7 @@ import { Navigate, Outlet, Route, Routes, useLocation } from 'react-router-dom';
 import { isSupabaseConfigured } from '@/lib/supabase';
 import { SupabaseAuthProvider } from './auth/SupabaseAuthContext';
 import { useSupabaseAuth } from './auth/useSupabaseAuth';
+import { PREVIEW_LOGIN } from './auth/preview';
 import { formatDate, I18nProvider, uiLangToLang, useI18n } from './i18n';
 import { fetchConsentStatus, recordConsent } from './api/settings';
 import AppShell from './components/AppShell';
@@ -79,6 +80,11 @@ const RequireAuth: React.FC = () => {
   return (
     <>
       <SessionSync />
+      {PREVIEW_LOGIN && session.user.email === PREVIEW_LOGIN.email && (
+        <div className="bg-sky-50 border-b border-sky-200 text-sky-900 text-xs px-4 py-1.5 text-center" role="status">
+          {t('auth.previewMode', { name: profile?.nickname ?? '' })}
+        </div>
+      )}
       {profile?.status === 'suspended' && (
         <div className="bg-amber-50 border-b border-amber-200 text-amber-900 text-sm px-4 py-2 text-center" role="status">
           {t('auth.suspended', {
