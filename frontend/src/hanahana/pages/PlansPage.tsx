@@ -1,11 +1,13 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Check, Minus, Crown, Sparkles } from 'lucide-react';
+import { Link, useSearchParams } from 'react-router-dom';
+import { Check, Minus, Crown, Sparkles, CreditCard } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useI18n } from '../i18n';
 import { useErrorMessage } from '../hooks';
 import { fetchPlans, fetchMyPlanUsage, planFeatures, remaining, TIER_KEY, TIER_ORDER, type Plan, type PlanTier, type PlanUsage } from '../api/plans';
 import { fetchPublicSettings, type PublicSettings } from '../api/settings';
+import { BillingError, startCheckout } from '../api/billing';
 import { PageHeader } from './SettingsPage';
 import type { MessageKey } from '../i18n/ja';
 
@@ -48,6 +50,21 @@ export const PlansPage: React.FC = () => {
   const [usage, setUsage] = useState<PlanUsage | null>(null);
   const [pub, setPub] = useState<PublicSettings | null>(null);
   const [error, setError] = useState('');
+  const [busy, setBusy] = useState<PlanTier | null>(null);
+  const [params] = useSearchParams();
+
+  const choose = async (tier: PlanTier) => {
+    if (tier !== 'standard' && tier !== 'premium') return;
+    setBusy(tier);
+    setError('');
+    try {
+      const { url } = await startCheckout(tier);
+      window.location.assign(url);
+    } catch (e) {
+      setError(e instanceof BillingError ? t(`billing.err.${e.code}` as MessageKey) : errMsg(e));
+      setBusy(null);
+    }
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -76,7 +93,8 @@ export const PlansPage: React.FC = () => {
     <div className="space-y-4">
       <PageHeader title={t('plans.title')} back="/app/profile" />
       <p className="text-sm text-gray-700">{t('plans.lead')}</p>
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {params.get('checkout') === 'cancel' && <p className="text-sm text-amber-700">{t('plans.checkoutCanceled')}</p>}
+      {error && <p className="text-sm text-red-600" role="alert">{error}</p>}
 
       {usage && (
         <section className="bg-white rounded-2xl border border-gray-100 p-4 space-y-3">
@@ -90,6 +108,10 @@ export const PlansPage: React.FC = () => {
           <UsageBar label={t('plans.usage.likes')} used={usage.likes_today} limit={usage.likes_per_day} />
           <UsageBar label={t('plans.usage.messages')} used={usage.messages_month} limit={usage.messages_per_month} />
           <UsageBar label={t('plans.usage.translations')} used={usage.translations_today} limit={usage.translations_per_day} />
+          <Link to="/app/plans/manage" className="text-sm text-rose-600 inline-flex items-center gap-1">
+            <CreditCard className="w-4 h-4" />
+            {t('plans.manageLink')}
+          </Link>
         </section>
       )}
 
@@ -98,6 +120,7 @@ export const PlansPage: React.FC = () => {
           const f = planFeatures(p);
           const l = limits[p.tier] ?? {};
           const isCurrent = p.tier === current;
+          const isPaid = p.tier !== 'free';
           const isUpgrade = TIER_ORDER[p.tier] > TIER_ORDER[current];
           return (
             <section key={p.id} className={`bg-white rounded-2xl border-2 p-4 space-y-3 ${TIER_STYLE[p.tier]}`} data-testid={`plan-${p.tier}`}>
@@ -125,9 +148,9 @@ export const PlansPage: React.FC = () => {
                   {f.event_discount_pct ? t('plans.event.discount', { pct: f.event_discount_pct }) : f.event_early_access ? t('plans.event.early') : t('plans.event.none')}
                 </dd>
               </dl>
-              {isUpgrade && (
-                <Button className="w-full" disabled title={t('plans.checkoutSoon')}>
-                  {t('plans.choose')}
+              {isPaid && !isCurrent && (
+                <Button className="w-full" disabled={busy !== null} onClick={() => void choose(p.tier)} data-testid={`choose-${p.tier}`}>
+                  {busy === p.tier ? t('plans.redirecting') : isUpgrade ? t('plans.choose') : t('plans.change')}
                 </Button>
               )}
             </section>
@@ -155,7 +178,7 @@ export const PlansPage: React.FC = () => {
           <li>{t('plans.notes.safety')}</li>
           <li>{t('plans.notes.currency')}</li>
         </ul>
-        <p className="text-xs text-amber-700">{t('plans.checkoutSoon')}</p>
+        {pub?.stripe_mode !== 'live' && <p className="text-xs text-amber-700">{t('plans.testMode')}</p>}
       </section>
     </div>
   );

@@ -977,12 +977,109 @@ begin
   update profiles set status = 'active' where id = c;
   delete from subscriptions where user_id = a;
 
+  -- ---------- P3: Stripe 課金同期 ----------
   perform pg_temp.as_super();
+  update plans set stripe_price_id = coalesce(stripe_price_id, 'price_test_standard') where code = 'standard';
+  update plans set stripe_price_id = coalesce(stripe_price_id, 'price_test_premium') where code = 'premium';
+
+  -- 冪等性: 初回 true / 重複 false / 失敗記録後は再処理可
+  perform pg_temp.check('R01 stripe_begin_event first', stripe_begin_event('evt_t1', 'invoice.paid', false, '{}'::jsonb));
+  perform pg_temp.check('R02 stripe_begin_event duplicate', not stripe_begin_event('evt_t1', 'invoice.paid', false, '{}'::jsonb));
+  perform stripe_begin_event('evt_t2', 'invoice.paid', false, '{}'::jsonb);
+  perform stripe_finish_event('evt_t2', 'boom');
+  perform pg_temp.check('R03 failed event retryable', stripe_begin_event('evt_t2', 'invoice.paid', false, '{}'::jsonb));
+  perform stripe_finish_event('evt_t2');
+  perform pg_temp.check('R04 finished event not retryable', not stripe_begin_event('evt_t2', 'invoice.paid', false, '{}'::jsonb));
+
+  -- 同期: subscription → subscriptions / current_plan_tier
+  perform stripe_sync_subscription(a, 'cus_a', 'sub_a', (select stripe_price_id from plans where code = 'standard'),
+    'active', now(), now() + interval '30 days', false, null, 'paid', false);
+  perform pg_temp.check('R05 sync creates active standard', current_plan_tier(a) = 'standard'
+    and (select stripe_customer_id from billing_customers where user_id = a) = 'cus_a');
+  perform stripe_sync_subscription(null, 'cus_a', 'sub_a', (select stripe_price_id from plans where code = 'premium'),
+    'active', now(), now() + interval '30 days', false, null, 'paid', false);
+  perform pg_temp.check('R06 plan change via customer lookup → premium', current_plan_tier(a) = 'premium'
+    and (select count(*) from subscriptions where user_id = a and stripe_subscription_id = 'sub_a') = 1);
+  perform stripe_sync_subscription(null, 'cus_a', 'sub_a', (select stripe_price_id from plans where code = 'premium'),
+    'active', now(), now() + interval '30 days', true, null, 'paid', false);
+  perform pg_temp.check('R07 cancel_at_period_end keeps premium until end', current_plan_tier(a) = 'premium'
+    and (select cancel_at_period_end from subscriptions where stripe_subscription_id = 'sub_a'));
+  perform stripe_sync_subscription(null, 'cus_a', 'sub_a', (select stripe_price_id from plans where code = 'premium'),
+    'past_due', now(), now() - interval '1 day', false, null, 'open', false);
+  perform pg_temp.check('R08 past_due within grace keeps tier', current_plan_tier(a) = 'premium');
+  perform stripe_sync_subscription(null, 'cus_a', 'sub_a', (select stripe_price_id from plans where code = 'premium'),
+    'canceled', now(), now() - interval '1 day', false, now(), 'paid', false);
+  perform pg_temp.check('R09 canceled → free', current_plan_tier(a) = 'free');
+  begin
+    perform stripe_sync_subscription(null, 'cus_a', 'sub_x', 'price_unknown', 'active', now(), now() + interval '30 days', false, null, 'paid', false);
+    perform pg_temp.check('R10 unknown price rejected', false);
+  exception when others then
+    perform pg_temp.check('R10 unknown price rejected', sqlerrm like '%unknown_price%', sqlerrm);
+  end;
+
+  -- 支払い / 返金
+  perform stripe_record_payment('cus_a', 'sub_a', 'in_1', 'pi_1', 'ch_1', 980, 'jpy', 'paid', now(), null);
+  perform stripe_record_payment('cus_a', 'sub_a', 'in_1', 'pi_1', 'ch_1', 980, 'jpy', 'paid', now(), null);
+  perform pg_temp.check('R11 payment upsert by invoice (no dup)', (select count(*) from payments where stripe_invoice_id = 'in_1') = 1);
+  perform stripe_record_payment('cus_a', 'sub_a', 'in_2', 'pi_2', null, 980, 'jpy', 'failed', null, 'card_declined');
+  perform pg_temp.check('R12 failed payment stored with message', (select failure_message from payments where stripe_invoice_id = 'in_2') = 'card_declined');
+  perform stripe_record_refund('ch_1', 'pi_1', 500, now());
+  perform pg_temp.check('R13 partial refund', (select status = 'partially_refunded' and refunded_amount = 500 from payments where stripe_invoice_id = 'in_1'));
+  perform stripe_record_refund('ch_1', 'pi_1', 980, now());
+  perform pg_temp.check('R14 full refund', (select status = 'refunded' from payments where stripe_invoice_id = 'in_1'));
+
+  -- 会員側: my_billing は本人のみ / 同期RPCは実行不可 / 直接書込不可
+  perform pg_temp.as_user(a);
+  perform pg_temp.check('R15 my_billing returns own payments (canceled sub hidden)', jsonb_array_length(my_billing()->'payments') = 2
+    and (my_billing()->'subscription') = 'null'::jsonb and (my_billing()->>'tier') = 'free' and (my_billing()->>'has_customer')::boolean);
+  perform pg_temp.as_user(b);
+  perform pg_temp.check('R16 my_billing isolates other user', jsonb_array_length(my_billing()->'payments') = 0 and (my_billing()->'subscription') = 'null'::jsonb);
+  perform pg_temp.check('R17 member cannot read others billing_customers', not exists (select 1 from billing_customers where user_id = a));
+  perform pg_temp.check('R18 member cannot read stripe_events', (select count(*) from stripe_events) = 0);
+  begin
+    perform stripe_sync_subscription(b, 'cus_b', 'sub_b', (select stripe_price_id from plans where code = 'premium'), 'active', now(), now() + interval '30 days', false, null, 'paid', false);
+    perform pg_temp.check('R19 member cannot call stripe_sync_subscription', false);
+  exception when insufficient_privilege then
+    perform pg_temp.check('R19 member cannot call stripe_sync_subscription', true);
+  end;
+  begin
+    perform stripe_begin_event('evt_b', 'x', false, '{}'::jsonb);
+    perform pg_temp.check('R20 member cannot call stripe_begin_event', false);
+  exception when insufficient_privilege then
+    perform pg_temp.check('R20 member cannot call stripe_begin_event', true);
+  end;
+  begin
+    perform stripe_record_refund('ch_1', 'pi_1', 980, now());
+    perform pg_temp.check('R21 member cannot call stripe_record_refund', false);
+  exception when insufficient_privilege then
+    perform pg_temp.check('R21 member cannot call stripe_record_refund', true);
+  end;
+  begin
+    insert into subscriptions (user_id, plan_id, status, plan_tier) values (b, (select id from plans where code = 'premium'), 'active', 'premium');
+    perform pg_temp.check('R22 member cannot insert subscriptions', false);
+  exception when others then
+    perform pg_temp.check('R22 member cannot insert subscriptions', true);
+  end;
+  begin
+    insert into payments (user_id, amount, status) values (b, 1, 'paid');
+    perform pg_temp.check('R23 member cannot insert payments', false);
+  exception when others then
+    perform pg_temp.check('R23 member cannot insert payments', true);
+  end;
+  perform pg_temp.check('R24 member admin_list_payments empty', (select count(*) from admin_list_payments()) = 0);
+  perform pg_temp.as_user(adm);
+  perform pg_temp.check('R25 admin_list_payments for admin', (select count(*) from admin_list_payments()) >= 2);
+
+  perform pg_temp.as_super();
+  delete from payments where stripe_invoice_id in ('in_1', 'in_2');
+  delete from subscriptions where user_id = a;
+  delete from billing_customers where user_id = a;
+  delete from stripe_events where id in ('evt_t1', 'evt_t2');
 end $$;
 
 select name, case when ok then 'PASS' else 'FAIL' end as result from t_results
 union all
-select 'TOTAL', format('%s passed, %s failed', count(*) filter (where ok), count(*) filter (where not ok)) from t_results
+select 'TOTAL', format('%s passed, %s failed', count(*) filter (where ok), count(*) filter (where ok is not true)) from t_results
 order by 1;
 
 rollback;

@@ -40,6 +40,7 @@ export interface PublicSettings {
   salon_post_per_day: number;
   plan_limits: Json;
   message_rate_per_minute: number;
+  stripe_mode: string;
 }
 
 export const DEFAULT_PUBLIC_SETTINGS: PublicSettings = {
@@ -64,6 +65,7 @@ export const DEFAULT_PUBLIC_SETTINGS: PublicSettings = {
   salon_post_per_day: 5,
   plan_limits: {},
   message_rate_per_minute: 20,
+  stripe_mode: 'test',
 };
 
 function asRecord(j: Json): Record<string, Json> {
@@ -103,6 +105,7 @@ export function parsePublicSettings(j: Json): PublicSettings {
     salon_post_per_day: num('salon_post_per_day', DEFAULT_PUBLIC_SETTINGS.salon_post_per_day),
     plan_limits: (r.plan_limits as Json | undefined) ?? {},
     message_rate_per_minute: num('message_rate_per_minute', DEFAULT_PUBLIC_SETTINGS.message_rate_per_minute),
+    stripe_mode: str('stripe_mode', DEFAULT_PUBLIC_SETTINGS.stripe_mode),
   };
 }
 
