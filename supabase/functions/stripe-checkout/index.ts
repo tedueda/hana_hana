@@ -61,6 +61,7 @@ Deno.serve(async (req) => {
     success_url: `${origin}/app/plans/manage?checkout=success&session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${origin}/app/plans?checkout=cancel`,
     locale: 'auto',
+    adaptive_pricing: { enabled: false },
     allow_promotion_codes: false,
     client_reference_id: user.uid,
     metadata: { user_id: user.uid, plan_code: plan.code },

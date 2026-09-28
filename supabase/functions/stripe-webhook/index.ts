@@ -71,7 +71,14 @@ async function handle(stripe: Stripe, admin: ReturnType<typeof adminClient>, eve
       const session = event.data.object;
       if (session.mode === 'subscription' && session.subscription) {
         const id = typeof session.subscription === 'string' ? session.subscription : session.subscription.id;
-        await syncSubscription(admin, await fetchSubscription(stripe, id));
+        const sub = await fetchSubscription(stripe, id);
+        // Checkout は契約側に支払い方法を固定するため、顧客既定へ移して Portal の支払い方法変更が以後の請求に効くようにする
+        const pm = typeof sub.default_payment_method === 'string' ? sub.default_payment_method : sub.default_payment_method?.id;
+        if (pm && typeof sub.customer === 'string') {
+          await stripe.customers.update(sub.customer, { invoice_settings: { default_payment_method: pm } });
+          await stripe.subscriptions.update(sub.id, { default_payment_method: '' });
+        }
+        await syncSubscription(admin, sub);
       }
       return;
     }
