@@ -4,10 +4,12 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { cancelEventRegistration, eventErrorCode, fetchEvents, registerEvent, type EventRow, type EventScope } from '../api/premium';
-import { formatDate, formatTime, useI18n } from '../i18n';
+import { formatDate, useI18n } from '../i18n';
 import type { MessageKey } from '../i18n/ja';
 import { useErrorMessage } from '../hooks';
 import { PageHeader } from './SettingsPage';
+
+const hm = (iso: string) => new Date(iso).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
 
 const EventCard: React.FC<{ ev: EventRow; onChanged: () => void }> = ({ ev, onChanged }) => {
   const { t, lang, locale } = useI18n();
@@ -47,7 +49,7 @@ const EventCard: React.FC<{ ev: EventRow; onChanged: () => void }> = ({ ev, onCh
       </div>
       <p className="text-sm text-gray-700 whitespace-pre-wrap break-words">{desc}</p>
       <ul className="text-xs text-gray-600 space-y-1">
-        <li className="flex items-center gap-1.5"><CalendarDays className="w-3.5 h-3.5" />{formatDate(ev.starts_at, locale)} {formatTime(ev.starts_at, locale)}{ev.ends_at ? ` – ${formatTime(ev.ends_at, locale)}` : ''}</li>
+        <li className="flex items-center gap-1.5"><CalendarDays className="w-3.5 h-3.5" />{formatDate(ev.starts_at, locale)} {hm(ev.starts_at)}{ev.ends_at ? ` – ${hm(ev.ends_at)}` : ''}</li>
         <li className="flex items-center gap-1.5">{ev.is_online ? <Wifi className="w-3.5 h-3.5" /> : <MapPin className="w-3.5 h-3.5" />}{ev.is_online ? t('events.online') : loc}</li>
         {ev.capacity != null && (
           <li className="flex items-center gap-1.5"><Users className="w-3.5 h-3.5" />{t('events.capacity', { n: ev.capacity })} · {full ? t('events.full') : t('events.remaining', { n: remaining ?? 0 })}</li>
@@ -59,7 +61,7 @@ const EventCard: React.FC<{ ev: EventRow; onChanged: () => void }> = ({ ev, onCh
           <p className="text-lg font-black text-rose-600 leading-none">
             {ev.my_price_jpy === 0 ? t('events.free') : t('events.price', { n: ev.my_price_jpy.toLocaleString() })}
           </p>
-          {ev.my_discount_pct > 0 && (
+          {ev.my_discount_pct > 0 && ev.price_jpy > 0 && (
             <p className="text-[11px] text-amber-700 flex items-center gap-1"><Crown className="w-3 h-3" />{t('events.discount', { pct: ev.my_discount_pct })} · {t('events.basePrice', { n: ev.price_jpy.toLocaleString() })}</p>
           )}
         </div>
@@ -74,7 +76,7 @@ const EventCard: React.FC<{ ev: EventRow; onChanged: () => void }> = ({ ev, onCh
         )}
       </div>
       {notOpen && !canceled && !started && (
-        <p className="text-[11px] text-amber-800 bg-amber-50 rounded-lg px-2 py-1.5">{t('events.earlyAccessLocked', { date: `${formatDate(ev.open_at, locale)} ${formatTime(ev.open_at, locale)}` })}</p>
+        <p className="text-[11px] text-amber-800 bg-amber-50 rounded-lg px-2 py-1.5">{t('events.earlyAccessLocked', { date: `${formatDate(ev.open_at, locale)} ${hm(ev.open_at)}` })}</p>
       )}
       {registered && <p className="text-[11px] text-gray-500">{t('events.paymentNote')}</p>}
     </article>
