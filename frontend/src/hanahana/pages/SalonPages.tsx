@@ -6,6 +6,7 @@ import {
   Flag,
   Heart,
   ImagePlus,
+  Languages,
   MessageCircle,
   MoreHorizontal,
   Pencil,
@@ -31,7 +32,7 @@ import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { useSupabaseAuth } from '../auth/useSupabaseAuth';
 import { blockUser } from '../api/matching';
-import { fetchMySettings, fetchPublicSettings } from '../api/settings';
+import { fetchMySettings, fetchPublicSettings, upsertMySettings } from '../api/settings';
 import {
   createSalonComment,
   createSalonPost,
@@ -603,6 +604,14 @@ export const SalonPostPage: React.FC = () => {
     void run(key('post_body', post.id), () => translateSalonPost(post.id, 'body', targetLang));
   };
 
+  const changeTarget = (l: string) => {
+    if (l === targetLang) return;
+    setTargetLang(l);
+    setTrs({});
+    if (user) upsertMySettings(user.id, { translate_target_lang: l }).catch(() => undefined);
+  };
+  const postTranslated = trs[key('post_body', post?.id ?? '')]?.status === 'done';
+
   const react = async () => {
     if (!post || !user) return;
     const reacted = post.reacted;
@@ -719,6 +728,36 @@ export const SalonPostPage: React.FC = () => {
         <p className="text-xs text-amber-900 bg-amber-50 rounded-xl p-3">{t('salon.post.hidden')}</p>
       )}
       {mine && post.flagged && !post.is_hidden && <p className="text-xs text-amber-900 bg-amber-50 rounded-xl p-3">{t('salon.post.flagged')}</p>}
+
+      {translationEnabled && (
+        <div className="flex items-center gap-2 px-3 py-1.5 bg-rose-50 rounded-xl">
+          <Button
+            type="button"
+            size="sm"
+            className="h-8 rounded-full bg-rose-600 hover:bg-rose-700 text-white px-3 gap-1"
+            onClick={postTranslated ? () => { toggle(key('post_title', post.id)); toggle(key('post_body', post.id)); } : translatePost}
+          >
+            <Sparkles className="w-3.5 h-3.5" aria-hidden />
+            {postTranslated ? t('salon.post.translated') : t('salon.post.translate')}
+          </Button>
+          <div className="ml-auto flex items-center gap-1" role="group" aria-label={t('settings.translateTarget')}>
+            <Languages className="w-3.5 h-3.5 text-rose-600" aria-hidden />
+            <div className="flex rounded-full border border-rose-300 bg-white overflow-hidden text-xs">
+              {(['ja', 'ko'] as const).map((l) => (
+                <button
+                  key={l}
+                  type="button"
+                  onClick={() => changeTarget(l)}
+                  aria-pressed={targetLang === l}
+                  className={cn('px-3 min-h-8 font-medium', targetLang === l ? 'bg-rose-600 text-white' : 'text-rose-700 hover:bg-rose-100')}
+                >
+                  {l === 'ja' ? '日本語' : '한국어'}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       <article className="bg-white rounded-2xl border border-gray-100 p-4 space-y-3">
         <AuthorRow id={post.author_id} nickname={post.author_nickname} photo={post.author_photo_path} date={post.created_at} />
