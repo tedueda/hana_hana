@@ -16,7 +16,9 @@ const INTERVAL_MS = 6000;
 const HeroSlider: React.FC<{ children?: React.ReactNode }> = ({ children }) => {
   const { t } = useI18n();
   const [index, setIndex] = useState(0);
-  const [paused, setPaused] = useState(false);
+  const [hovered, setHovered] = useState(false);
+  const [focused, setFocused] = useState(false);
+  const paused = hovered || focused;
   const [failed, setFailed] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
@@ -30,10 +32,12 @@ const HeroSlider: React.FC<{ children?: React.ReactNode }> = ({ children }) => {
       className="relative overflow-hidden bg-gradient-to-br from-rose-100 via-orange-50 to-amber-100 aspect-[3/4] sm:aspect-[16/9] max-h-[80vh]"
       aria-roledescription="carousel"
       aria-label={t('landing.hero.aria')}
-      onMouseEnter={() => setPaused(true)}
-      onMouseLeave={() => setPaused(false)}
-      onFocusCapture={() => setPaused(true)}
-      onBlurCapture={() => setPaused(false)}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      onFocusCapture={() => setFocused(true)}
+      onBlurCapture={(e) => {
+        if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setFocused(false);
+      }}
     >
       {HERO_SLIDES.map((s, i) => {
         const active = i === index;
@@ -65,8 +69,8 @@ const HeroSlider: React.FC<{ children?: React.ReactNode }> = ({ children }) => {
             {/* 文字の可読性用: 左側 (余白側) と下部を白くぼかす */}
             <div className="absolute inset-0 bg-gradient-to-r from-white/85 via-white/40 to-transparent sm:from-white/80 sm:via-white/20" />
             <div className="absolute inset-x-0 bottom-0 h-[55%] bg-gradient-to-t from-white/90 via-white/60 to-transparent sm:hidden" />
-            <div className="absolute inset-0 flex flex-col justify-end sm:justify-center px-5 pb-9 sm:px-10 sm:pb-0 max-w-3xl">
-              <h1 className="text-[1.7rem] sm:text-4xl md:text-5xl font-bold leading-tight text-gray-900 break-keep drop-shadow-sm whitespace-pre-line">
+            <div className="absolute inset-0 flex flex-col justify-end sm:justify-center px-5 pb-9 sm:px-10 sm:pb-0 w-full sm:w-[55%] lg:w-1/2">
+              <h1 className="text-[1.7rem] sm:text-4xl lg:text-[2.6rem] font-bold leading-snug sm:leading-tight text-gray-900 break-keep drop-shadow-sm whitespace-pre-line">
                 {t(s.title)}
               </h1>
               <p className="mt-2 sm:mt-3 text-sm sm:text-lg text-gray-700 break-keep whitespace-pre-line max-w-md">{t(s.sub)}</p>
