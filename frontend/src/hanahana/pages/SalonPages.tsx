@@ -203,7 +203,7 @@ const Translatable: React.FC<{
 // ---------------------------------------------------------------------------
 // 一覧 /app/salon
 
-const PostCard: React.FC<{ item: SalonFeedItem; cat?: SalonCategory }> = ({ item, cat }) => {
+const PostCard: React.FC<{ item: SalonFeedItem; cat?: SalonCategory; tr?: { title?: string; body?: string } }> = ({ item, cat, tr }) => {
   const { t, lang, locale } = useI18n();
   const pinned = !!item.pinned_until && new Date(item.pinned_until) > new Date();
   return (
@@ -221,8 +221,14 @@ const PostCard: React.FC<{ item: SalonFeedItem; cat?: SalonCategory }> = ({ item
         )}
         <span className="ml-auto">{formatDate(item.created_at, locale, { month: 'numeric', day: 'numeric' })}</span>
       </div>
-      <h2 className="text-base font-semibold break-words leading-snug">{item.title}</h2>
-      <p className="text-sm text-gray-600 line-clamp-2 break-words">{item.body}</p>
+      <h2 className="text-base font-semibold break-words leading-snug">{tr?.title ?? item.title}</h2>
+      <p className="text-sm text-gray-600 line-clamp-2 break-words">{tr?.body ?? item.body}</p>
+      {tr && (
+        <p className="inline-flex items-center gap-1 text-[11px] text-rose-600">
+          <Sparkles className="w-3 h-3" aria-hidden />
+          {t('salon.feed.translatedBadge')}
+        </p>
+      )}
       {item.photo_path && <SalonPhoto path={item.photo_path} className="aspect-video" />}
       <div className="flex items-center gap-2 text-xs text-gray-500">
         <Avatar path={item.author_photo_path} name={item.author_nickname} className="w-6 h-6 rounded-full" />
@@ -251,11 +257,104 @@ export const SalonPage: React.FC = () => {
   const [items, setItems] = useState<SalonFeedItem[] | null>(null);
   const [error, setError] = useState('');
   const [enabled, setEnabled] = useState(true);
+  const { user } = useSupabaseAuth();
+  const trErr = useTranslateError();
+  const [translationEnabled, setTranslationEnabled] = useState(false);
+  const [targetLang, setTargetLang] = useState<string>(lang);
+  const [feedTrs, setFeedTrs] = useState<Record<string, { title?: string; body?: string }>>({});
+  const [showTr, setShowTr] = useState(false);
+  const [translating, setTranslating] = useState(false);
+  const [trNotice, setTrNotice] = useState('');
 
   useEffect(() => {
-    fetchPublicSettings().then((p) => setEnabled(p.salon_enabled)).catch(() => undefined);
+    fetchPublicSettings()
+      .then((p) => {
+        setEnabled(p.salon_enabled);
+        setTranslationEnabled(p.translation_enabled);
+      })
+      .catch(() => undefined);
+    if (user) fetchMySettings(user.id).then((s) => s.translate_target_lang && setTargetLang(s.translate_target_lang)).catch(() => undefined);
     void markSalonNotificationsRead().catch(() => undefined);
-  }, []);
+  }, [user]);
+
+  /** 翻訳対象 = 本文の言語が翻訳先と異なる投稿 */
+  const needsTr = useCallback(
+    (it: SalonFeedItem) => (it.body_lang !== 'und' ? it.body_lang : guessLang(`${it.title}\n${it.body}`)) !== targetLang,
+    [targetLang],
+  );
+
+  // 一覧が変わったらキャッシュ済み翻訳を先に取り込む（翻訳回数を消費しない）
+  useEffect(() => {
+    if (!items || !translationEnabled) return;
+    const targets = items.filter(needsTr).flatMap((it) => [
+      { type: 'post_title' as const, id: it.id },
+      { type: 'post_body' as const, id: it.id },
+    ]);
+    let alive = true;
+    fetchSalonTranslations(targets, targetLang)
+      .then((m) => {
+        if (!alive) return;
+        const cached: Record<string, { title?: string; body?: string }> = {};
+        for (const [k, v] of m) {
+          const [type, id] = k.split(':');
+          cached[id] = { ...cached[id], [type === 'post_title' ? 'title' : 'body']: v };
+        }
+        setFeedTrs((prev) => {
+          const next = { ...prev };
+          for (const [id, v] of Object.entries(cached)) next[id] = { ...next[id], ...v };
+          return next;
+        });
+        if (showTrRef.current) void runPending(items, cached, targetLang);
+      })
+      .catch(() => undefined);
+    return () => {
+      alive = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [items, targetLang, translationEnabled, needsTr]);
+
+  const showTrRef = useRef(false);
+  showTrRef.current = showTr;
+
+  /** キャッシュに無い投稿を順に翻訳（上限到達・エラー時はそこで停止して理由を表示） */
+  const runPending = async (list: SalonFeedItem[], known: Record<string, { title?: string; body?: string }>, target: string) => {
+    const pending = list.filter((it) => needsTr(it) && !(known[it.id]?.title && known[it.id]?.body));
+    if (pending.length === 0) return;
+    setTranslating(true);
+    setTrNotice('');
+    try {
+      for (const it of pending) {
+        for (const field of ['title', 'body'] as const) {
+          if (known[it.id]?.[field]) continue;
+          const r = await translateSalonPost(it.id, field, target);
+          setFeedTrs((prev) => ({ ...prev, [it.id]: { ...prev[it.id], [field]: r.translated } }));
+        }
+      }
+    } catch (e) {
+      setTrNotice(trErr(e));
+    } finally {
+      setTranslating(false);
+    }
+  };
+
+  /** 右上のボタン: 表示中の投稿をまとめて翻訳 ⇄ 原文 */
+  const translateFeed = () => {
+    if (!items || translating) return;
+    if (showTr) {
+      setShowTr(false);
+      return;
+    }
+    setShowTr(true);
+    void runPending(items, feedTrs, targetLang);
+  };
+
+  const changeTarget = (l: string) => {
+    if (l === targetLang) return;
+    setTargetLang(l);
+    setFeedTrs({});
+    setTrNotice('');
+    if (user) upsertMySettings(user.id, { translate_target_lang: l }).catch(() => undefined);
+  };
 
   const query = params.get('q') ?? '';
   useEffect(() => {
@@ -291,10 +390,49 @@ export const SalonPage: React.FC = () => {
           <h1 className="text-xl font-bold">{t('salon.title')}</h1>
           <p className="text-xs text-gray-500">{t('salon.lead')}</p>
         </div>
-        <Button asChild size="sm" className="h-10 bg-rose-600 hover:bg-rose-700 shrink-0">
-          <Link to="/app/salon/new"><Plus className="w-4 h-4" />{t('salon.newPost')}</Link>
-        </Button>
+        <div className="flex items-center gap-2 shrink-0">
+          {translationEnabled && (
+            <Button
+              type="button"
+              size="sm"
+              variant={showTr ? 'default' : 'outline'}
+              aria-pressed={showTr}
+              disabled={translating || !items?.length}
+              onClick={() => void translateFeed()}
+              className={cn('h-10 rounded-full px-3 gap-1', showTr ? 'bg-rose-600 hover:bg-rose-700 text-white' : 'border-rose-300 text-rose-700 hover:bg-rose-50')}
+            >
+              <Sparkles className="w-4 h-4" aria-hidden />
+              {translating ? t('salon.post.translating') : showTr ? t('salon.feed.showOriginal') : t('salon.post.translate')}
+            </Button>
+          )}
+          <Button asChild size="sm" className="h-10 bg-rose-600 hover:bg-rose-700">
+            <Link to="/app/salon/new"><Plus className="w-4 h-4" />{t('salon.newPost')}</Link>
+          </Button>
+        </div>
       </div>
+
+      {translationEnabled && (
+        <div className="flex items-center gap-2 px-3 py-1.5 bg-rose-50 rounded-xl text-xs text-rose-900">
+          <span className="truncate">{t('salon.feed.translateLead')}</span>
+          <div className="ml-auto flex items-center gap-1 shrink-0" role="group" aria-label={t('settings.translateTarget')}>
+            <Languages className="w-3.5 h-3.5 text-rose-600" aria-hidden />
+            <div className="flex rounded-full border border-rose-300 bg-white overflow-hidden">
+              {(['ja', 'ko'] as const).map((l) => (
+                <button
+                  key={l}
+                  type="button"
+                  onClick={() => changeTarget(l)}
+                  aria-pressed={targetLang === l}
+                  className={cn('px-3 min-h-8 font-medium', targetLang === l ? 'bg-rose-600 text-white' : 'text-rose-700 hover:bg-rose-100')}
+                >
+                  {l === 'ja' ? '日本語' : '한국어'}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+      {trNotice && <p className="text-xs text-red-600" role="alert">{trNotice}</p>}
 
       <form
         className="relative"
@@ -349,7 +487,14 @@ export const SalonPage: React.FC = () => {
         </div>
       )}
       <div className="space-y-3">
-        {items?.map((it) => <PostCard key={it.id} item={it} cat={cats.find((c) => c.id === it.category_id)} />)}
+        {items?.map((it) => (
+          <PostCard
+            key={it.id}
+            item={it}
+            cat={cats.find((c) => c.id === it.category_id)}
+            tr={showTr && needsTr(it) && feedTrs[it.id] ? feedTrs[it.id] : undefined}
+          />
+        ))}
       </div>
     </div>
   );
