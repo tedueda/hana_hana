@@ -38,6 +38,8 @@ export interface PublicSettings {
   salon_enabled: boolean;
   salon_photo_enabled: boolean;
   salon_post_per_day: number;
+  plan_limits: Json;
+  message_rate_per_minute: number;
 }
 
 export const DEFAULT_PUBLIC_SETTINGS: PublicSettings = {
@@ -60,6 +62,8 @@ export const DEFAULT_PUBLIC_SETTINGS: PublicSettings = {
   salon_enabled: true,
   salon_photo_enabled: true,
   salon_post_per_day: 5,
+  plan_limits: {},
+  message_rate_per_minute: 20,
 };
 
 function asRecord(j: Json): Record<string, Json> {
@@ -97,6 +101,8 @@ export function parsePublicSettings(j: Json): PublicSettings {
     salon_enabled: bool('salon_enabled', DEFAULT_PUBLIC_SETTINGS.salon_enabled),
     salon_photo_enabled: bool('salon_photo_enabled', DEFAULT_PUBLIC_SETTINGS.salon_photo_enabled),
     salon_post_per_day: num('salon_post_per_day', DEFAULT_PUBLIC_SETTINGS.salon_post_per_day),
+    plan_limits: (r.plan_limits as Json | undefined) ?? {},
+    message_rate_per_minute: num('message_rate_per_minute', DEFAULT_PUBLIC_SETTINGS.message_rate_per_minute),
   };
 }
 

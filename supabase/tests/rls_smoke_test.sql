@@ -335,8 +335,8 @@ begin
   perform pg_temp.check('T05 third party cannot read translations', (select count(*) from message_translations) = 0);
   perform pg_temp.check('T06 third party cannot read others translation_usage', (select count(*) from translation_usage) = 0);
   perform pg_temp.as_user(a);
-  perform pg_temp.check('T07 my_translation_usage counts own usage and exposes limits',
-    (select used_today from my_translation_usage()) = 1 and (select per_day from my_translation_usage()) = 200);
+  perform pg_temp.check('T07 my_translation_usage counts own usage and exposes plan-based per_day (free=2)',
+    (select used_today from my_translation_usage()) = 1 and (select per_day from my_translation_usage()) = plan_limit('free','translations_per_day'));
   insert into messages (conversation_id, sender_id, body, body_lang, ai_assisted) values (v_conv, a, '안녕하세요!', 'ko', true);
   perform pg_temp.as_user(b);
   perform pg_temp.check('T08 ai_assisted flag visible to receiver',
@@ -699,6 +699,106 @@ begin
   end;
   perform pg_temp.as_super();
   update app_settings set value = '5' where key = 'salon_post_per_day';
+
+  -- ---------- P1: 会員プラン基盤 ----------
+  perform pg_temp.as_super();
+  perform pg_temp.check('P01 plans seeded (free/standard/premium, 0/500/980)',
+    (select count(*) from plans where (tier, price_jpy) in (('free',0),('standard',500),('premium',980)) and is_active) = 3);
+  perform pg_temp.check('P02 no subscription -> free', current_plan_tier(b) = 'free');
+  perform pg_temp.check('P03 plan_limit reads app_settings (free likes 10, premium messages null)',
+    plan_limit('free','likes_per_day') = 10 and plan_limit('premium','messages_per_month') is null);
+
+  -- 有効な subscription → premium
+  insert into subscriptions (user_id, plan_id, status, current_period_end, plan_tier)
+  values (a, (select id from plans where code = 'premium'), 'active', now() + interval '20 days', 'premium');
+  perform pg_temp.check('P04 active subscription -> premium', current_plan_tier(a) = 'premium');
+  perform pg_temp.check('P04b member_tier synced to paid (display only)', (select member_tier from profiles where id = a) = 'paid');
+  -- 期限切れ + 猶予超過 → free
+  update subscriptions set status = 'past_due', current_period_end = now() - interval '30 days' where user_id = a;
+  perform pg_temp.check('P05 past_due beyond grace -> free', current_plan_tier(a) = 'free');
+  update subscriptions set status = 'past_due', current_period_end = now() - interval '1 day' where user_id = a;
+  perform pg_temp.check('P05b past_due within grace keeps tier', current_plan_tier(a) = 'premium');
+  update subscriptions set status = 'canceled' where user_id = a;
+  perform pg_temp.check('P05c canceled -> free', current_plan_tier(a) = 'free');
+  -- 招待特典
+  update app_settings set value = '"standard"' where key = 'invited_tier';
+  update profiles set member_tier = 'invited' where id = c;
+  perform pg_temp.check('P06 invited member gets invited_tier (standard)', current_plan_tier(c) = 'standard');
+  update profiles set member_tier = 'free' where id = c;
+
+  -- authenticated は subscriptions に書けない / 他人の subscription は見えない
+  perform pg_temp.as_user(b);
+  begin
+    insert into subscriptions (user_id, status) values (b, 'active');
+    perform pg_temp.check('P07 authenticated cannot insert subscriptions', false);
+  exception when insufficient_privilege then
+    perform pg_temp.check('P07 authenticated cannot insert subscriptions', true);
+  end;
+  perform pg_temp.check('P08 cannot see others subscriptions', (select count(*) from subscriptions where user_id = a) = 0);
+  perform pg_temp.check('P08b my_plan_usage returns tier', (my_plan_usage()->>'tier') = 'free');
+
+  -- いいね日次上限 (設定値 1)
+  perform pg_temp.as_super();
+  update app_settings set value = jsonb_set(value, '{free,likes_per_day}', '1') where key = 'plan_limits';
+  delete from likes where from_user_id = b;
+  perform pg_temp.as_user(b);
+  insert into likes (from_user_id, to_user_id) values (b, c);
+  begin
+    insert into likes (from_user_id, to_user_id) values (b, a);
+    perform pg_temp.check('P09 free like limit enforced (1/day)', false);
+  exception when others then
+    perform pg_temp.check('P09 free like limit enforced (1/day)', sqlerrm like '%like_limit_reached%', sqlerrm);
+  end;
+  perform pg_temp.check('P09b existing likes still readable after limit', (select count(*) from likes where from_user_id = b) = 1);
+  perform pg_temp.as_super();
+  update app_settings set value = jsonb_set(value, '{free,likes_per_day}', '10') where key = 'plan_limits';
+
+  -- メッセージ月次上限 (free=1) と premium 無制限
+  update app_settings set value = jsonb_set(value, '{free,messages_per_month}', '1') where key = 'plan_limits';
+  delete from blocks where (blocker_id, blocked_id) in ((a,c),(c,a));
+  delete from likes where (from_user_id, to_user_id) in ((a,c),(c,a));
+  insert into likes (from_user_id, to_user_id) values (a, c), (c, a);
+  select cv.id into v_conv from conversations cv join matches m on m.id = cv.match_id
+   where m.user_low_id = least(a,c) and m.user_high_id = greatest(a,c);
+  perform pg_temp.check('P10pre fresh match a<->c has conversation', v_conv is not null);
+  delete from messages where sender_id = a;
+  perform pg_temp.as_user(a);
+  insert into messages (conversation_id, sender_id, body) values (v_conv, a, 'm1');
+  begin
+    insert into messages (conversation_id, sender_id, body) values (v_conv, a, 'm2');
+    perform pg_temp.check('P10 free message monthly limit enforced', false);
+  exception when others then
+    perform pg_temp.check('P10 free message monthly limit enforced', sqlerrm like '%message_limit_reached%', sqlerrm);
+  end;
+  perform pg_temp.check('P10b history readable after limit', (select count(*) from messages where conversation_id = v_conv) >= 1);
+  perform pg_temp.as_super();
+  update subscriptions set status = 'active', current_period_end = now() + interval '20 days' where user_id = a;
+  perform pg_temp.as_user(a);
+  insert into messages (conversation_id, sender_id, body) values (v_conv, a, 'm3');
+  insert into messages (conversation_id, sender_id, body) values (v_conv, a, 'm4');
+  perform pg_temp.check('P11 premium messages unlimited', (select count(*) from messages where conversation_id = v_conv and sender_id = a) = 3);
+  perform pg_temp.as_super();
+  update app_settings set value = '2' where key = 'message_rate_per_minute';
+  perform pg_temp.as_user(a);
+  begin
+    insert into messages (conversation_id, sender_id, body) values (v_conv, a, 'm5');
+    perform pg_temp.check('P12 common rate limit applies to premium too', false);
+  exception when others then
+    perform pg_temp.check('P12 common rate limit applies to premium too', sqlerrm like '%message_rate_limited%', sqlerrm);
+  end;
+  perform pg_temp.as_super();
+  update app_settings set value = '20' where key = 'message_rate_per_minute';
+  update app_settings set value = jsonb_set(value, '{free,messages_per_month}', '10') where key = 'plan_limits';
+  perform pg_temp.check('P13 translation_quota premium 50/day', (translation_quota(a)->>'per_day')::int = 50);
+  perform pg_temp.as_user(b);
+  begin
+    perform admin_plan_stats();
+    perform pg_temp.check('P14 admin_plan_stats denied for member', false);
+  exception when insufficient_privilege then
+    perform pg_temp.check('P14 admin_plan_stats denied for member', true);
+  end;
+  perform pg_temp.as_user(adm);
+  perform pg_temp.check('P14b admin_plan_stats for admin', (admin_plan_stats()->'by_tier') is not null);
 
   perform pg_temp.as_super();
 end $$;

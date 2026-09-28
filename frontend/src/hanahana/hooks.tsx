@@ -1,5 +1,8 @@
 import { errorMessage, labelsFor, type Labels } from './labels';
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { ToastAction } from '@/components/ui/toast';
+import { usePlanLimitText } from './components/PlanLimitNotice';
 import { useI18n } from './i18n';
 import { useToast } from '@/hooks/use-toast';
 import { useSupabaseAuth } from './auth/useSupabaseAuth';
@@ -26,6 +29,8 @@ export function useLikeAction() {
   const { user } = useSupabaseAuth();
   const { toast } = useToast();
   const { t, lang } = useI18n();
+  const navigate = useNavigate();
+  const limitText = usePlanLimitText();
   const [liked, setLiked] = useState<Set<string>>(new Set());
   const [matched, setMatched] = useState<NewMatch | null>(null);
 
@@ -44,11 +49,23 @@ export function useLikeAction() {
         else toast({ title: t('likes.sentToast') });
         return res;
       } catch (e) {
-        toast({ title: t('likes.failed'), description: errorMessage(e, lang), variant: 'destructive' });
+        const lim = limitText(e);
+        if (lim) {
+          toast({
+            title: lim.text,
+            action: (
+              <ToastAction altText={t('plans.limit.upgrade')} onClick={() => navigate('/app/plans')}>
+                {t('plans.limit.upgrade')}
+              </ToastAction>
+            ),
+          });
+        } else {
+          toast({ title: t('likes.failed'), description: errorMessage(e, lang), variant: 'destructive' });
+        }
         return null;
       }
     },
-    [user, toast, t, lang],
+    [user, toast, t, lang, limitText, navigate],
   );
 
   const dismissMatch = useCallback(() => setMatched(null), []);

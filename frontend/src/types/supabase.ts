@@ -714,30 +714,45 @@ export type Database = {
       plans: {
         Row: {
           code: string
+          currency: string
+          features: Json
           id: string
           interval: string | null
           is_active: boolean
           name_ja: string
           name_ko: string
+          price_jpy: number
+          sort_order: number
           stripe_price_id: string | null
+          tier: Database["public"]["Enums"]["plan_tier_t"]
         }
         Insert: {
           code: string
+          currency?: string
+          features?: Json
           id?: string
           interval?: string | null
           is_active?: boolean
           name_ja: string
           name_ko: string
+          price_jpy?: number
+          sort_order?: number
           stripe_price_id?: string | null
+          tier?: Database["public"]["Enums"]["plan_tier_t"]
         }
         Update: {
           code?: string
+          currency?: string
+          features?: Json
           id?: string
           interval?: string | null
           is_active?: boolean
           name_ja?: string
           name_ko?: string
+          price_jpy?: number
+          sort_order?: number
           stripe_price_id?: string | null
+          tier?: Database["public"]["Enums"]["plan_tier_t"]
         }
         Relationships: []
       }
@@ -1380,11 +1395,14 @@ export type Database = {
       subscriptions: {
         Row: {
           cancel_at_period_end: boolean
+          canceled_at: string | null
           created_at: string
           current_period_end: string | null
           current_period_start: string | null
           id: string
+          latest_invoice_status: string | null
           plan_id: string | null
+          plan_tier: Database["public"]["Enums"]["plan_tier_t"] | null
           status: Database["public"]["Enums"]["subscription_status_t"]
           stripe_customer_id: string | null
           stripe_subscription_id: string | null
@@ -1393,11 +1411,14 @@ export type Database = {
         }
         Insert: {
           cancel_at_period_end?: boolean
+          canceled_at?: string | null
           created_at?: string
           current_period_end?: string | null
           current_period_start?: string | null
           id?: string
+          latest_invoice_status?: string | null
           plan_id?: string | null
+          plan_tier?: Database["public"]["Enums"]["plan_tier_t"] | null
           status: Database["public"]["Enums"]["subscription_status_t"]
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
@@ -1406,11 +1427,14 @@ export type Database = {
         }
         Update: {
           cancel_at_period_end?: boolean
+          canceled_at?: string | null
           created_at?: string
           current_period_end?: string | null
           current_period_start?: string | null
           id?: string
+          latest_invoice_status?: string | null
           plan_id?: string | null
+          plan_tier?: Database["public"]["Enums"]["plan_tier_t"] | null
           status?: Database["public"]["Enums"]["subscription_status_t"]
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
@@ -1929,6 +1953,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      admin_plan_stats: { Args: never; Returns: Json }
       admin_purge_verification_docs: { Args: never; Returns: number }
       admin_remove_admin: { Args: { p_user_id: string }; Returns: undefined }
       admin_resolve_report: {
@@ -2075,6 +2100,10 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      current_plan_tier: {
+        Args: { p_user: string }
+        Returns: Database["public"]["Enums"]["plan_tier_t"]
+      }
       has_publishable_photo: {
         Args: { p_created_at: string; p_user_id: string }
         Returns: boolean
@@ -2124,6 +2153,11 @@ export type Database = {
           unread_count: number
         }[]
       }
+      my_plan_tier: {
+        Args: never
+        Returns: Database["public"]["Enums"]["plan_tier_t"]
+      }
+      my_plan_usage: { Args: never; Returns: Json }
       my_profile: {
         Args: never
         Returns: {
@@ -2177,6 +2211,13 @@ export type Database = {
         }[]
       }
       pass_user: { Args: { p_target: string }; Returns: undefined }
+      plan_limit: {
+        Args: {
+          p_key: string
+          p_tier: Database["public"]["Enums"]["plan_tier_t"]
+        }
+        Returns: number
+      }
       profile_visible_to_me: { Args: { target: string }; Returns: boolean }
       public_settings: { Args: never; Returns: Json }
       recommend_users: {
@@ -2283,8 +2324,11 @@ export type Database = {
         }[]
       }
       touch_last_active: { Args: never; Returns: undefined }
+      translation_quota: { Args: { p_user: string }; Returns: Json }
       undo_pass: { Args: { p_target: string }; Returns: undefined }
       unmatch: { Args: { p_match_id: string }; Returns: undefined }
+      usage_day_start: { Args: never; Returns: string }
+      usage_month_start: { Args: never; Returns: string }
       validate_invite_code: {
         Args: { p_code: string }
         Returns: {
@@ -2314,6 +2358,7 @@ export type Database = {
         | "salon_comment"
         | "salon_reaction"
         | "salon_moderation"
+      plan_tier_t: "free" | "standard" | "premium"
       report_reason_t:
         | "inappropriate_content"
         | "impersonation"
@@ -2480,6 +2525,7 @@ export const Constants = {
         "salon_reaction",
         "salon_moderation",
       ],
+      plan_tier_t: ["free", "standard", "premium"],
       report_reason_t: [
         "inappropriate_content",
         "impersonation",
@@ -2503,4 +2549,3 @@ export const Constants = {
     },
   },
 } as const
-

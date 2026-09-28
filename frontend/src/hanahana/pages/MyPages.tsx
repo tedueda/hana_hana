@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import { BadgeCheck, Clock, ShieldAlert, ShieldQuestion } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -147,19 +146,6 @@ export const VerificationPage: React.FC = () => {
           />
         </div>
       )}
-    </div>
-  );
-};
-
-export const PlusPage: React.FC = () => {
-  const { t } = useI18n();
-  return (
-    <div className="space-y-4">
-      <PageHeader title={t('my.plus')} back="/app/profile" />
-      <div className="bg-white rounded-2xl border border-gray-100 p-4 space-y-2">
-        <Badge variant="secondary">{t('my.tier.free')}</Badge>
-        <p className="text-sm text-gray-700">{t('my.plusLead')}</p>
-      </div>
     </div>
   );
 };

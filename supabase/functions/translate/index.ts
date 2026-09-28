@@ -125,6 +125,13 @@ Deno.serve(async (req) => {
   const { data: member } = await admin.from('profiles').select('status').eq('id', uid).maybeSingle();
   if (!member || member.status !== 'active') return fail(403, 'inactive_member');
 
+  // プラン別の日次上限 (app_settings.plan_limits[tier].translations_per_day, null = 無制限)。未設定時は共通 translation_limits.per_day
+  const { data: quota } = await admin.rpc('translation_quota', { p_user: uid });
+  const q = (quota ?? {}) as { tier?: string; per_day?: number | null; day_start?: string; has_plan_limit?: boolean };
+  const tier = q.tier ?? 'free';
+  const perDay: number | null = q.has_plan_limit ? (q.per_day ?? null) : limits.per_day;
+  const dayStartIso = q.day_start ?? (() => { const d = new Date(); d.setUTCHours(0, 0, 0, 0); return d.toISOString(); })();
+
   let text: string;
   let sourceHint: string | undefined = body.source_lang;
   let kind: 'message' | 'draft' | 'salon_post' | 'salon_comment';
@@ -213,13 +220,12 @@ Deno.serve(async (req) => {
   if (source === target) return json(200, { translated: text, detected_lang: source, target_lang: target, provider: null, cached: false, same_lang: true });
 
   const since = (ms: number) => new Date(Date.now() - ms).toISOString();
-  const dayStart = new Date(); dayStart.setUTCHours(0, 0, 0, 0);
-  const [{ count: perMin }, { count: perDay }] = await Promise.all([
+  const [{ count: usedMin }, { count: usedDay }] = await Promise.all([
     admin.from('translation_usage').select('id', { count: 'exact', head: true }).eq('user_id', uid).eq('cached', false).gte('created_at', since(60_000)),
-    admin.from('translation_usage').select('id', { count: 'exact', head: true }).eq('user_id', uid).eq('cached', false).gte('created_at', dayStart.toISOString()),
+    admin.from('translation_usage').select('id', { count: 'exact', head: true }).eq('user_id', uid).eq('cached', false).gte('created_at', dayStartIso),
   ]);
-  if ((perMin ?? 0) >= limits.per_minute) return fail(429, 'rate_limited', { retry_after_seconds: 60 });
-  if ((perDay ?? 0) >= limits.per_day) return fail(429, 'daily_limit', { per_day: limits.per_day });
+  if ((usedMin ?? 0) >= limits.per_minute) return fail(429, 'rate_limited', { retry_after_seconds: 60 });
+  if (perDay !== null && (usedDay ?? 0) >= perDay) return fail(429, 'daily_limit', { per_day: perDay, tier });
 
   const provider = pickProvider();
   let translated: string;
