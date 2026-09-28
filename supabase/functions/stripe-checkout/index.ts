@@ -3,7 +3,7 @@
 //   有効な Stripe 契約が無い会員 → Checkout Session を作成し { url } を返す
 //   既に Stripe 契約がある会員     → プラン変更は Billing Portal (比例配分) へ誘導 { url, portal: true }
 // 価格は plans.stripe_price_id (DB) から取得。ブラウザから price_id は受け取らない。
-import { adminClient, allowedOrigin, cors, ensureCustomer, fail, json, requireUser, stripeClient } from '../_shared/stripe.ts';
+import { adminClient, allowedOrigin, cors, ensureCustomer, fail, json, portalConfiguration, requireUser, stripeClient } from '../_shared/stripe.ts';
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors });
@@ -40,6 +40,7 @@ Deno.serve(async (req) => {
     if (existing.stripe_price_id === plan.stripe_price_id) return fail(409, 'already_subscribed');
     const portal = await stripe.billingPortal.sessions.create({
       customer,
+      configuration: await portalConfiguration(stripe, admin),
       return_url: `${origin}/app/plans/manage`,
       flow_data: {
         type: 'subscription_update_confirm',

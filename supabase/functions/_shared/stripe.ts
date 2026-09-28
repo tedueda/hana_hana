@@ -60,4 +60,36 @@ export async function ensureCustomer(stripe: Stripe, admin: SupabaseClient, uid:
   return customer.id;
 }
 
+// Billing Portal 設定 (プラン変更 standard⇄premium・解約・支払い方法・請求履歴)。初回に作成し app_settings に保存
+export async function portalConfiguration(stripe: Stripe, admin: SupabaseClient): Promise<string> {
+  const { data } = await admin.from('app_settings').select('value').eq('key', 'stripe_portal_configuration_id').maybeSingle();
+  const saved = typeof data?.value === 'string' ? data.value : null;
+  if (saved) return saved;
+
+  const { data: plans } = await admin.from('plans').select('stripe_price_id').in('code', ['standard', 'premium']).not('stripe_price_id', 'is', null);
+  const products = new Map<string, string[]>();
+  for (const p of plans ?? []) {
+    const price = await stripe.prices.retrieve(p.stripe_price_id);
+    const product = typeof price.product === 'string' ? price.product : price.product.id;
+    products.set(product, [...(products.get(product) ?? []), price.id]);
+  }
+  const conf = await stripe.billingPortal.configurations.create({
+    business_profile: { headline: 'Hana-Hana 会員プラン / 회원 플랜' },
+    features: {
+      customer_update: { enabled: true, allowed_updates: ['email'] },
+      invoice_history: { enabled: true },
+      payment_method_update: { enabled: true },
+      subscription_cancel: { enabled: true, mode: 'at_period_end', cancellation_reason: { enabled: true, options: ['too_expensive', 'missing_features', 'unused', 'switched_service', 'other'] } },
+      subscription_update: {
+        enabled: true,
+        default_allowed_updates: ['price'],
+        proration_behavior: 'create_prorations',
+        products: [...products.entries()].map(([product, prices]) => ({ product, prices })),
+      },
+    },
+  });
+  await admin.from('app_settings').upsert({ key: 'stripe_portal_configuration_id', value: conf.id });
+  return conf.id;
+}
+
 export type { Stripe };

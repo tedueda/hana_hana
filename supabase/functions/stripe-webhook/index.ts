@@ -9,8 +9,15 @@ import StripeSdk from 'npm:stripe@17.7.0';
 
 const ts = (sec: number | null | undefined) => (sec ? new Date(sec * 1000).toISOString() : null);
 
+// イベント本文はアカウント既定の API バージョン形式で届くため、SDK 固定バージョンで再取得して形を揃える
+async function fetchSubscription(stripe: Stripe, id: string): Promise<Stripe.Subscription> {
+  return await stripe.subscriptions.retrieve(id, { expand: ['latest_invoice'] });
+}
+
 async function syncSubscription(admin: ReturnType<typeof adminClient>, sub: Stripe.Subscription) {
   const item = sub.items.data[0];
+  const periodStart = sub.current_period_start ?? (item as unknown as { current_period_start?: number }).current_period_start;
+  const periodEnd = sub.current_period_end ?? (item as unknown as { current_period_end?: number }).current_period_end;
   const customer = typeof sub.customer === 'string' ? sub.customer : sub.customer.id;
   const invoice = sub.latest_invoice;
   const invoiceStatus = invoice && typeof invoice !== 'string' ? invoice.status : null;
@@ -20,8 +27,8 @@ async function syncSubscription(admin: ReturnType<typeof adminClient>, sub: Stri
     p_subscription: sub.id,
     p_price: item?.price.id ?? null,
     p_status: sub.status,
-    p_period_start: ts(sub.current_period_start),
-    p_period_end: ts(sub.current_period_end),
+    p_period_start: ts(periodStart),
+    p_period_end: ts(periodEnd),
     p_cancel_at_period_end: sub.cancel_at_period_end,
     p_canceled_at: ts(sub.canceled_at),
     p_latest_invoice_status: invoiceStatus,
@@ -64,25 +71,24 @@ async function handle(stripe: Stripe, admin: ReturnType<typeof adminClient>, eve
       const session = event.data.object;
       if (session.mode === 'subscription' && session.subscription) {
         const id = typeof session.subscription === 'string' ? session.subscription : session.subscription.id;
-        const sub = await stripe.subscriptions.retrieve(id, { expand: ['latest_invoice'] });
-        await syncSubscription(admin, sub);
+        await syncSubscription(admin, await fetchSubscription(stripe, id));
       }
       return;
     }
     case 'customer.subscription.created':
     case 'customer.subscription.updated':
     case 'customer.subscription.deleted':
-      await syncSubscription(admin, event.data.object);
+      await syncSubscription(admin, await fetchSubscription(stripe, event.data.object.id));
       return;
     case 'invoice.paid': {
-      const inv = event.data.object;
+      const inv = await stripe.invoices.retrieve(event.data.object.id);
       await recordInvoice(admin, inv, 'paid', null);
       const subId = invoiceSubscriptionId(inv);
-      if (subId) await syncSubscription(admin, await stripe.subscriptions.retrieve(subId));
+      if (subId) await syncSubscription(admin, await fetchSubscription(stripe, subId));
       return;
     }
     case 'invoice.payment_failed': {
-      const inv = event.data.object;
+      const inv = await stripe.invoices.retrieve(event.data.object.id);
       const pi = (inv as unknown as { payment_intent?: string | null }).payment_intent;
       let msg: string | null = null;
       if (typeof pi === 'string') {
@@ -91,7 +97,7 @@ async function handle(stripe: Stripe, admin: ReturnType<typeof adminClient>, eve
       }
       await recordInvoice(admin, inv, 'failed', msg);
       const subId = invoiceSubscriptionId(inv);
-      if (subId) await syncSubscription(admin, await stripe.subscriptions.retrieve(subId));
+      if (subId) await syncSubscription(admin, await fetchSubscription(stripe, subId));
       return;
     }
     case 'charge.refunded': {
