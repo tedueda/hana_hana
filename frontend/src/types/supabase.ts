@@ -2574,6 +2574,10 @@ export type Database = {
         Returns: number
       }
       profile_visible_to_me: { Args: { target: string }; Returns: boolean }
+      public_plans: {
+        Args: never
+        Returns: Database["public"]["Tables"]["plans"]["Row"][]
+      }
       public_settings: { Args: never; Returns: Json }
       recommend_users: {
         Args: { p_limit?: number }

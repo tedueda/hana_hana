@@ -66,6 +66,13 @@ export async function fetchPlans(): Promise<Plan[]> {
   return data ?? [];
 }
 
+/** ログイン前でも取得できる有効プラン (public_plans RPC) */
+export async function fetchPublicPlans(): Promise<Plan[]> {
+  const { data, error } = await getSupabase().rpc('public_plans');
+  if (error) throw error;
+  return data ?? [];
+}
+
 export async function fetchMyPlanUsage(): Promise<PlanUsage> {
   const { data, error } = await getSupabase().rpc('my_plan_usage');
   if (error) throw error;
