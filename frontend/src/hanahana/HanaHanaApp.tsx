@@ -11,7 +11,9 @@ import ChatPage from './pages/ChatPage';
 import ChatsPage from './pages/ChatsPage';
 import { RecommendPage, SearchPage } from './pages/DiscoveryPages';
 import LandingPage from './pages/LandingPage';
-import { HelpPage, PrivacyPage, SalonRulesPage, TermsPage } from './pages/LegalPages';
+import { HelpPage, LegalNoticePage, PrivacyPage, SalonRulesPage, TermsPage } from './pages/LegalPages';
+import AboutPage from './pages/AboutPage';
+import PricingPage from './pages/PricingPage';
 import { SalonNewPage, SalonPage, SalonPostPage } from './pages/SalonPages';
 import { LikesPage, MatchesPage } from './pages/LikesMatchesPages';
 import MyProfilePage from './pages/MyProfilePage';
@@ -109,6 +111,9 @@ const HanaHanaApp: React.FC = () => {
       <SupabaseAuthProvider>
         <Routes>
           <Route path="welcome" element={<LandingPage />} />
+          <Route path="about" element={<AboutPage />} />
+          <Route path="pricing" element={<PricingPage />} />
+          <Route path="legal-notice" element={<LegalNoticePage />} />
           <Route path="terms" element={<TermsPage />} />
           <Route path="privacy" element={<PrivacyPage />} />
           <Route path="help" element={<HelpPage />} />

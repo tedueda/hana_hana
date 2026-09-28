@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Bell, ChevronLeft, FileText, HelpCircle, KeyRound, Languages, ShieldOff, UserX } from 'lucide-react';
+import { Bell, ChevronLeft, FileText, HelpCircle, Info, KeyRound, Languages, ShieldOff, UserX } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -186,6 +186,8 @@ const SettingsPage: React.FC = () => {
       <Section title={t('settings.legal')}>
         <MenuRow to="/app/terms" icon={FileText} label={t('settings.terms')} value={t('settings.version', { version: pub.terms_version })} />
         <MenuRow to="/app/privacy" icon={FileText} label={t('settings.privacy')} value={t('settings.version', { version: pub.privacy_version })} />
+        <MenuRow to="/app/legal-notice" icon={FileText} label={t('legal.legalNotice')} />
+        <MenuRow to="/app/about" icon={Info} label={t('public.nav.about')} />
         <MenuRow to="/app/help" icon={HelpCircle} label={t('settings.help')} />
       </Section>
 
