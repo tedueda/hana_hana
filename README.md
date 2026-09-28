@@ -133,6 +133,9 @@ VITE_SUPABASE_ANON_KEY=<anon key>
 VITE_APP_NAME=Hana-Hana
 VITE_HANAHANA_STANDALONE=true
 NODE_VERSION=20
+# テスト段階のみ: 未ログイン時にデモ会員として自動ログイン（本番公開時は2つとも削除する）
+VITE_PREVIEW_LOGIN_EMAIL=demo-saki@hanahana.test
+VITE_PREVIEW_LOGIN_PASSWORD=<デモ会員のパスワード>
 ```
 
 ### Supabase Auth

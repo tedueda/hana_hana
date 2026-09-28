@@ -4,6 +4,7 @@ import { getSupabase } from '@/lib/supabase';
 import { fetchMyProfile, touchLastActive } from '../api/profile';
 import type { Profile } from '../types';
 import { SupabaseAuthContext, type SupabaseAuthContextType } from './context';
+import { PREVIEW_LOGIN, PREVIEW_SKIP_KEY } from './preview';
 
 export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [session, setSession] = useState<Session | null>(null);
@@ -28,8 +29,15 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
     sb.auth.getSession().then(async ({ data }) => {
       if (!active) return;
-      setSession(data.session);
-      if (data.session) {
+      let s = data.session;
+      if (!s && PREVIEW_LOGIN && !sessionStorage.getItem(PREVIEW_SKIP_KEY)) {
+        const res = await sb.auth.signInWithPassword(PREVIEW_LOGIN);
+        if (res.error) console.error('preview auto-login failed', res.error);
+        s = res.data.session;
+        if (!active) return;
+      }
+      setSession(s);
+      if (s) {
         await refreshProfile();
         void touchLastActive();
       }
@@ -72,10 +80,12 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
         return { needsEmailConfirm: !data.session };
       },
       signIn: async (email, password) => {
+        sessionStorage.removeItem(PREVIEW_SKIP_KEY);
         const { error } = await getSupabase().auth.signInWithPassword({ email, password });
         if (error) throw error;
       },
       signOut: async () => {
+        if (PREVIEW_LOGIN) sessionStorage.setItem(PREVIEW_SKIP_KEY, '1');
         const { error } = await getSupabase().auth.signOut();
         if (error) throw error;
       },

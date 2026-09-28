@@ -100,6 +100,7 @@ export const ko: Record<MessageKey, string> = {
   'auth.err.exists': '이미 가입된 이메일입니다',
   'auth.err.password': '비밀번호는 8자 이상이어야 합니다',
   'auth.err.rateLimit': '전송 횟수 한도에 도달했습니다. 잠시 후 다시 시도해 주세요',
+  'auth.previewMode': '미리보기 모드: 데모 회원 “{name}”으로 열람 중 (테스트 단계라 가입·로그인 불필요)',
   'auth.suspended': '이 계정은 현재 이용이 정지되었습니다{until}. 좋아요·메시지 등을 사용할 수 없습니다.',
   'auth.suspendedUntil': ' ({date} 까지)',
 

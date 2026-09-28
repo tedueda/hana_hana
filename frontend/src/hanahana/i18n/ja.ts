@@ -102,6 +102,7 @@ export const ja = {
   'auth.err.exists': 'このメールアドレスは既に登録されています',
   'auth.err.password': 'パスワードは8文字以上にしてください',
   'auth.err.rateLimit': '送信回数の上限に達しました。しばらくしてからお試しください',
+  'auth.previewMode': 'プレビューモード: デモ会員「{name}」として閲覧中（テスト段階のため登録・ログイン不要）',
   'auth.suspended': 'このアカウントは現在利用停止中です{until}。いいね・メッセージなどの操作はできません。',
   'auth.suspendedUntil': '（{date} まで）',
 
