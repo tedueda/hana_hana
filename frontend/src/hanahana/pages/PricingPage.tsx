@@ -45,7 +45,7 @@ const PricingPage: React.FC = () => {
       <main className="max-w-3xl mx-auto px-4 pb-10 space-y-4">
         <section className="text-center pt-6 pb-2 space-y-2">
           <h1 className="text-2xl font-bold text-gray-900">{t('plans.title')}</h1>
-          <p className="text-sm text-gray-700 break-keep">{t('plans.lead')}</p>
+          <p className="text-sm text-gray-700">{t('plans.lead')}</p>
           <p className="text-xs text-gray-500">{t('pricing.taxNote')}</p>
         </section>
         <FemaleFreeNotice settings={pub} />
@@ -73,7 +73,7 @@ const PricingPage: React.FC = () => {
 
         <section className="bg-white rounded-2xl border border-gray-100 p-4 space-y-2">
           <h2 className="text-sm font-semibold text-gray-800">{t('pricing.howToPay.title')}</h2>
-          <p className="text-xs text-gray-600 break-keep">{t('pricing.howToPay.body')}</p>
+          <p className="text-xs text-gray-600">{t('pricing.howToPay.body')}</p>
         </section>
 
         <nav className="flex flex-wrap gap-x-4 gap-y-2 text-xs text-gray-500 px-1" aria-label={t('legal.related')}>

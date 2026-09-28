@@ -32,8 +32,8 @@ const AboutBody: React.FC<{ loggedIn: boolean }> = ({ loggedIn }) => {
     <main className="max-w-3xl mx-auto px-4 pb-10 space-y-10">
       <section className="text-center pt-6 space-y-4" data-testid="about-hero">
         <p className="text-xs font-semibold tracking-widest text-rose-500">HANA-HANA</p>
-        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 whitespace-pre-line break-keep">{t('about.hero.title')}</h1>
-        <p className="text-gray-600 break-keep">{t('about.hero.sub')}</p>
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 whitespace-pre-line">{t('about.hero.title')}</h1>
+        <p className="text-gray-600">{t('about.hero.sub')}</p>
         {!loggedIn && (
           <div className="flex flex-row justify-center gap-3 pt-2">
             <Button asChild size="lg" className="bg-rose-600 hover:bg-rose-700 h-12"><Link to="/app/register">{t('landing.start')}</Link></Button>
@@ -44,9 +44,9 @@ const AboutBody: React.FC<{ loggedIn: boolean }> = ({ loggedIn }) => {
 
       <section className="bg-white rounded-2xl border border-rose-100 p-5 space-y-3" data-testid="about-concept">
         <h2 className="text-lg font-bold text-gray-900">{t('about.concept.title')}</h2>
-        <p className="text-sm text-gray-700 leading-relaxed break-keep">{t('about.concept.p1')}</p>
-        <p className="text-sm text-gray-700 leading-relaxed break-keep">{t('about.concept.p2')}</p>
-        <p className="text-sm text-gray-700 leading-relaxed break-keep">{t('about.concept.p3')}</p>
+        <p className="text-sm text-gray-700 leading-relaxed">{t('about.concept.p1')}</p>
+        <p className="text-sm text-gray-700 leading-relaxed">{t('about.concept.p2')}</p>
+        <p className="text-sm text-gray-700 leading-relaxed">{t('about.concept.p3')}</p>
       </section>
 
       <section className="space-y-3" data-testid="about-features">
@@ -57,29 +57,29 @@ const AboutBody: React.FC<{ loggedIn: boolean }> = ({ loggedIn }) => {
               <Icon className="w-6 h-6 text-rose-500 shrink-0" aria-hidden />
               <div>
                 <h3 className="font-semibold text-gray-900">{t(title)}</h3>
-                <p className="text-sm text-gray-600 mt-1 break-keep">{t(body)}</p>
+                <p className="text-sm text-gray-600 mt-1">{t(body)}</p>
               </div>
             </div>
           ))}
         </div>
-        <p className="text-xs text-gray-500 break-keep">{t('about.features.note')}</p>
+        <p className="text-xs text-gray-500">{t('about.features.note')}</p>
       </section>
 
       <section className="space-y-3" data-testid="about-safety">
         <h2 className="text-lg font-bold text-gray-900">{t('about.safety.title')}</h2>
-        <p className="text-sm text-gray-600 break-keep">{t('about.safety.lead')}</p>
+        <p className="text-sm text-gray-600">{t('about.safety.lead')}</p>
         <ul className="grid sm:grid-cols-2 gap-3">
           {SAFETY.map(({ icon: Icon, title, body }) => (
             <li key={title} className="bg-white rounded-2xl border border-gray-100 p-4 flex gap-3">
               <Icon className="w-6 h-6 text-emerald-600 shrink-0" aria-hidden />
               <div>
                 <h3 className="font-semibold text-gray-900">{t(title)}</h3>
-                <p className="text-sm text-gray-600 mt-1 break-keep">{t(body)}</p>
+                <p className="text-sm text-gray-600 mt-1">{t(body)}</p>
               </div>
             </li>
           ))}
         </ul>
-        <p className="text-xs text-gray-500 break-keep">{t('about.safety.note')}</p>
+        <p className="text-xs text-gray-500">{t('about.safety.note')}</p>
       </section>
 
       <section className="space-y-3" data-testid="about-steps">
@@ -88,15 +88,15 @@ const AboutBody: React.FC<{ loggedIn: boolean }> = ({ loggedIn }) => {
           {STEPS.map((k, i) => (
             <li key={k} className="bg-white rounded-2xl border border-gray-100 p-4 flex gap-3 items-start">
               <span className="w-7 h-7 rounded-full bg-rose-500 text-white text-sm font-bold flex items-center justify-center shrink-0">{i + 1}</span>
-              <p className="text-sm text-gray-700 break-keep">{t(k)}</p>
+              <p className="text-sm text-gray-700">{t(k)}</p>
             </li>
           ))}
         </ol>
       </section>
 
       <section className="text-center space-y-3 bg-rose-600 text-white rounded-3xl p-6" data-testid="about-cta">
-        <h2 className="text-xl font-bold whitespace-pre-line break-keep">{t('about.cta.title')}</h2>
-        <p className="text-sm text-rose-50 break-keep">{t('about.cta.sub')}</p>
+        <h2 className="text-xl font-bold whitespace-pre-line">{t('about.cta.title')}</h2>
+        <p className="text-sm text-rose-50">{t('about.cta.sub')}</p>
         {loggedIn ? (
           <Button asChild size="lg" variant="secondary" className="h-12"><Link to="/app">{t('about.cta.toApp')}</Link></Button>
         ) : (
