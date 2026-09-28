@@ -35,6 +35,9 @@ export interface PublicSettings {
   account_purge_days: number;
   pass_cooldown_days: number;
   new_member_days: number;
+  salon_enabled: boolean;
+  salon_photo_enabled: boolean;
+  salon_post_per_day: number;
 }
 
 export const DEFAULT_PUBLIC_SETTINGS: PublicSettings = {
@@ -54,6 +57,9 @@ export const DEFAULT_PUBLIC_SETTINGS: PublicSettings = {
   account_purge_days: 30,
   pass_cooldown_days: 7,
   new_member_days: 14,
+  salon_enabled: true,
+  salon_photo_enabled: true,
+  salon_post_per_day: 5,
 };
 
 function asRecord(j: Json): Record<string, Json> {
@@ -88,6 +94,9 @@ export function parsePublicSettings(j: Json): PublicSettings {
     account_purge_days: num('account_purge_days', DEFAULT_PUBLIC_SETTINGS.account_purge_days),
     pass_cooldown_days: num('pass_cooldown_days', DEFAULT_PUBLIC_SETTINGS.pass_cooldown_days),
     new_member_days: num('new_member_days', DEFAULT_PUBLIC_SETTINGS.new_member_days),
+    salon_enabled: bool('salon_enabled', DEFAULT_PUBLIC_SETTINGS.salon_enabled),
+    salon_photo_enabled: bool('salon_photo_enabled', DEFAULT_PUBLIC_SETTINGS.salon_photo_enabled),
+    salon_post_per_day: num('salon_post_per_day', DEFAULT_PUBLIC_SETTINGS.salon_post_per_day),
   };
 }
 

@@ -31,6 +31,10 @@ declare
   adm uuid := gen_random_uuid();
   v_match uuid;
   v_conv uuid;
+  v_post uuid;
+  v_post2 uuid;
+  v_comment uuid;
+  v_report uuid;
   n int;
   ok boolean;
 begin
@@ -538,6 +542,163 @@ begin
   exception when others then
     perform pg_temp.check('A14 cannot remove self', true);
   end;
+
+
+  -- ---------- L01-L22: 交流サロン (S1) ----------
+  -- 前提: b が a をブロック中。a/b/c は active, adm は admin。
+  perform pg_temp.as_user(c);
+  perform pg_temp.check('L01 categories: 3 active themes visible',
+    (select count(*) from salon_categories where is_active) = 3);
+  insert into salon_posts (author_id, category_id, title, body, body_lang) values (c, 'travel_food', '釜山のおすすめ', '海雲台の屋台が最高でした', 'ja') returning id into v_post;
+  perform pg_temp.check('L02 free member can post', (select count(*) from salon_posts where id = v_post) = 1);
+  begin
+    insert into salon_posts (author_id, category_id, title, body) values (a, 'free_talk', 'x', 'y');
+    perform pg_temp.check('L03 cannot post as another user', false);
+  exception when insufficient_privilege then
+    perform pg_temp.check('L03 cannot post as another user', true);
+  end;
+  insert into salon_posts (author_id, category_id, title, body) values (c, 'free_talk', '連絡先', 'LINE ID: hello123 追加して') returning id into v_post2;
+  perform pg_temp.check('L04 solicitation detected -> flagged (not deleted)',
+    (select flagged and deleted_at is null from salon_posts where id = v_post2));
+
+  -- a: 閲覧・コメント・リアクション
+  perform pg_temp.as_user(a);
+  perform pg_temp.check('L05 other member sees post via feed with author info',
+    (select count(*) from salon_feed('new') where id = v_post and author_nickname = 'C') = 1);
+  insert into salon_comments (post_id, author_id, body, body_lang) values (v_post, a, '私も行きました！', 'ja') returning id into v_comment;
+  insert into salon_reactions (post_id, user_id) values (v_post, a);
+  perform pg_temp.check('L06 comment/reaction counters + reacted flag',
+    (select comment_count = 1 and reaction_count = 1 from salon_posts where id = v_post)
+    and (select reacted from salon_feed('new') where id = v_post));
+  perform pg_temp.check('L06b salon_post_detail returns post with author + reacted',
+    (select count(*) from salon_post_detail(v_post) where author_nickname = 'C' and reacted) = 1);
+  begin
+    update salon_posts set title = 'hacked' where id = v_post;
+    perform pg_temp.check('L07 cannot edit others post (0 rows)', (select title from salon_posts where id = v_post) = '釜山のおすすめ');
+  exception when insufficient_privilege then
+    perform pg_temp.check('L07 cannot edit others post (0 rows)', true);
+  end;
+  begin
+    update salon_posts set is_hidden = true where id = v_post;
+    perform pg_temp.check('L08 member cannot update is_hidden column', false);
+  exception when insufficient_privilege then
+    perform pg_temp.check('L08 member cannot update is_hidden column', true);
+  end;
+  begin
+    insert into salon_translations (target_type, target_id, target_lang, translated_body) values ('post_body', v_post, 'ko', 'x');
+    perform pg_temp.check('L09 member cannot write translation cache', false);
+  exception when insufficient_privilege then
+    perform pg_temp.check('L09 member cannot write translation cache', true);
+  end;
+
+  -- 投稿者 c: 通知・自分の編集・削除
+  perform pg_temp.as_user(c);
+  perform pg_temp.check('L10 author notified of comment + reaction',
+    (select count(*) from notifications where user_id = c and type = 'salon_comment') = 1
+    and (select count(*) from notifications where user_id = c and type = 'salon_reaction') = 1
+    and my_salon_unread() = 2);
+  update salon_posts set body = '海雲台の屋台が最高でした。写真は後で' where id = v_post;
+  perform pg_temp.check('L11 author can edit own post', (select body like '%写真%' from salon_posts where id = v_post));
+
+  -- ブロック: b は a をブロックしている → b には a のコメントが見えない / a の投稿が見えない
+  perform pg_temp.as_user(a);
+  insert into salon_posts (author_id, category_id, title, body) values (a, 'language_culture', 'a-post', 'hello') ;
+  perform pg_temp.as_user(b);
+  perform pg_temp.check('L12 blocker does not see blocked user post in feed',
+    (select count(*) from salon_feed('new') where author_id = a) = 0);
+  perform pg_temp.check('L12d blocker cannot open blocked user post detail',
+    (select count(*) from salon_post_detail((select id from salon_posts where author_id = a and title = 'a-post'))) = 0);
+  perform pg_temp.check('L12b blocker does not see blocked user comment',
+    (select count(*) from salon_post_comments(v_post) where author_id = a) = 0
+    and (select count(*) from salon_comments where post_id = v_post) = 0);
+  perform pg_temp.as_user(a);
+  perform pg_temp.check('L12c blocked side still sees unrelated posts', (select count(*) from salon_feed('new') where id = v_post) = 1);
+
+  -- 通報 (投稿対象) と reported_user_id 整合性
+  perform pg_temp.as_user(a);
+  insert into reports (reporter_id, reported_user_id, reason, salon_post_id) values (a, c, 'spam', v_post2) returning id into v_report;
+  perform pg_temp.check('L13 report salon post', (select count(*) from reports where id = v_report) = 1);
+  begin
+    insert into reports (reporter_id, reported_user_id, reason, salon_post_id) values (a, b, 'spam', v_post2);
+    perform pg_temp.check('L14 report with mismatched author rejected', false);
+  exception when insufficient_privilege then
+    perform pg_temp.check('L14 report with mismatched author rejected', true);
+  end;
+  begin
+    perform admin_salon_moderate('post', v_post2, 'hide', 'spam');
+    perform pg_temp.check('L15 non-admin cannot moderate', false);
+  exception when insufficient_privilege then
+    perform pg_temp.check('L15 non-admin cannot moderate', true);
+  end;
+
+  -- 運営: 非表示 → 一般に見えない / 本人には見える / 復帰 / 削除 / 監査
+  perform pg_temp.as_user(adm);
+  perform pg_temp.check('L16 admin_salon_posts reported filter', (select count(*) from admin_salon_posts('reported') where id = v_post2) = 1);
+  begin
+    perform admin_salon_moderate('post', v_post2, 'hide', null);
+    perform pg_temp.check('L17 hide requires reason', false);
+  exception when others then
+    perform pg_temp.check('L17 hide requires reason', true);
+  end;
+  perform admin_salon_moderate('post', v_post2, 'hide', '外部連絡先の誘導');
+  perform pg_temp.as_user(a);
+  perform pg_temp.check('L18 hidden post invisible to members', (select count(*) from salon_posts where id = v_post2) = 0
+    and (select count(*) from salon_feed('new') where id = v_post2) = 0);
+  begin
+    insert into salon_comments (post_id, author_id, body) values (v_post2, a, 'x');
+    perform pg_temp.check('L18b cannot comment on hidden post', false);
+  exception when others then
+    perform pg_temp.check('L18b cannot comment on hidden post', true);
+  end;
+  perform pg_temp.as_user(c);
+  perform pg_temp.check('L19 author still sees own hidden post + moderation notice',
+    (select is_hidden from salon_posts where id = v_post2)
+    and (select count(*) from notifications where user_id = c and type = 'salon_moderation') = 1);
+  perform pg_temp.as_user(adm);
+  perform admin_salon_moderate('post', v_post2, 'unhide');
+  perform pg_temp.as_user(a);
+  perform pg_temp.check('L20 unhide restores visibility', (select count(*) from salon_posts where id = v_post2 and not is_hidden) = 1);
+  perform pg_temp.as_user(adm);
+  perform admin_salon_moderate('comment', v_comment, 'delete', '規約違反');
+  perform pg_temp.check('L21 moderation actions + audit log recorded',
+    (select count(*) from salon_moderation_actions where target_id in (v_post2, v_comment)) = 3
+    and (select count(*) from admin_audit_logs where action like 'salon_%') = 3
+    and (select comment_count from salon_posts where id = v_post) = 0);
+  perform pg_temp.check('L22 admin_salon_stats works', (admin_salon_stats()->>'posts_total')::int >= 2);
+
+  -- 本人ソフト削除 → 他人に見えない
+  perform pg_temp.as_user(c);
+  update salon_posts set deleted_at = now() where id = v_post;
+  perform pg_temp.as_user(a);
+  perform pg_temp.check('L23 soft-deleted post invisible to others', (select count(*) from salon_posts where id = v_post) = 0);
+
+  -- 停止中会員は投稿不可
+  perform pg_temp.as_super();
+  update profiles set status = 'suspended', suspended_until = now() + interval '1 day' where id = c;
+  perform pg_temp.as_user(c);
+  begin
+    insert into salon_posts (author_id, category_id, title, body) values (c, 'free_talk', 'x', 'y');
+    perform pg_temp.check('L24 suspended member cannot post', false);
+  exception when insufficient_privilege then
+    perform pg_temp.check('L24 suspended member cannot post', true);
+  end;
+  perform pg_temp.as_user(a);
+  perform pg_temp.check('L24b suspended author posts hidden from feed', (select count(*) from salon_feed('new') where author_id = c) = 0);
+  perform pg_temp.as_super();
+  update profiles set status = 'active', suspended_until = null where id = c;
+
+  -- 投稿上限 (設定値)
+  update app_settings set value = '1' where key = 'salon_post_per_day';
+  perform pg_temp.as_user(b);
+  insert into salon_posts (author_id, category_id, title, body) values (b, 'free_talk', 'b1', 'b1');
+  begin
+    insert into salon_posts (author_id, category_id, title, body) values (b, 'free_talk', 'b2', 'b2');
+    perform pg_temp.check('L25 post per-day limit enforced from app_settings', false);
+  exception when others then
+    perform pg_temp.check('L25 post per-day limit enforced from app_settings', true);
+  end;
+  perform pg_temp.as_super();
+  update app_settings set value = '5' where key = 'salon_post_per_day';
 
   perform pg_temp.as_super();
 end $$;

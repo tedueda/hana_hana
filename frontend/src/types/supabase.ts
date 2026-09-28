@@ -451,39 +451,6 @@ export type Database = {
           },
         ]
       }
-      translation_usage: {
-        Row: {
-          cached: boolean
-          chars: number
-          created_at: string
-          id: number
-          kind: string
-          provider: string | null
-          target_lang: string
-          user_id: string
-        }
-        Insert: {
-          cached?: boolean
-          chars: number
-          created_at?: string
-          id?: never
-          kind: string
-          provider?: string | null
-          target_lang: string
-          user_id: string
-        }
-        Update: {
-          cached?: boolean
-          chars?: number
-          created_at?: string
-          id?: never
-          kind?: string
-          provider?: string | null
-          target_lang?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
       message_translations: {
         Row: {
           created_at: string
@@ -636,6 +603,53 @@ export type Database = {
           },
         ]
       }
+      passes: {
+        Row: {
+          created_at: string
+          target_user_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          target_user_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          target_user_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "passes_target_user_id_fkey"
+            columns: ["target_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "passes_target_user_id_fkey"
+            columns: ["target_user_id"]
+            isOneToOne: false
+            referencedRelation: "public_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "passes_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "passes_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "public_profile"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       payments: {
         Row: {
           amount: number
@@ -724,24 +738,6 @@ export type Database = {
           name_ja?: string
           name_ko?: string
           stripe_price_id?: string | null
-        }
-        Relationships: []
-      }
-      passes: {
-        Row: {
-          created_at: string
-          target_user_id: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          target_user_id: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          target_user_id?: string
-          user_id?: string
         }
         Relationships: []
       }
@@ -980,6 +976,8 @@ export type Database = {
           reported_user_id: string
           reporter_id: string
           resolved_at: string | null
+          salon_comment_id: string | null
+          salon_post_id: string | null
           status: Database["public"]["Enums"]["report_status_t"]
         }
         Insert: {
@@ -993,6 +991,8 @@ export type Database = {
           reported_user_id: string
           reporter_id: string
           resolved_at?: string | null
+          salon_comment_id?: string | null
+          salon_post_id?: string | null
           status?: Database["public"]["Enums"]["report_status_t"]
         }
         Update: {
@@ -1006,6 +1006,8 @@ export type Database = {
           reported_user_id?: string
           reporter_id?: string
           resolved_at?: string | null
+          salon_comment_id?: string | null
+          salon_post_id?: string | null
           status?: Database["public"]["Enums"]["report_status_t"]
         }
         Relationships: [
@@ -1051,7 +1053,314 @@ export type Database = {
             referencedRelation: "public_profile"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "reports_salon_comment_id_fkey"
+            columns: ["salon_comment_id"]
+            isOneToOne: false
+            referencedRelation: "salon_comments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reports_salon_post_id_fkey"
+            columns: ["salon_post_id"]
+            isOneToOne: false
+            referencedRelation: "salon_posts"
+            referencedColumns: ["id"]
+          },
         ]
+      }
+      salon_categories: {
+        Row: {
+          created_at: string
+          description_ja: string | null
+          description_ko: string | null
+          icon: string | null
+          id: string
+          is_active: boolean
+          name_ja: string
+          name_ko: string
+          sort_order: number
+        }
+        Insert: {
+          created_at?: string
+          description_ja?: string | null
+          description_ko?: string | null
+          icon?: string | null
+          id: string
+          is_active?: boolean
+          name_ja: string
+          name_ko: string
+          sort_order?: number
+        }
+        Update: {
+          created_at?: string
+          description_ja?: string | null
+          description_ko?: string | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean
+          name_ja?: string
+          name_ko?: string
+          sort_order?: number
+        }
+        Relationships: []
+      }
+      salon_comments: {
+        Row: {
+          author_id: string
+          body: string
+          body_lang: string
+          created_at: string
+          deleted_at: string | null
+          flag_reason: string | null
+          flagged: boolean
+          hidden_reason: string | null
+          id: string
+          is_hidden: boolean
+          post_id: string
+          updated_at: string
+        }
+        Insert: {
+          author_id: string
+          body: string
+          body_lang?: string
+          created_at?: string
+          deleted_at?: string | null
+          flag_reason?: string | null
+          flagged?: boolean
+          hidden_reason?: string | null
+          id?: string
+          is_hidden?: boolean
+          post_id: string
+          updated_at?: string
+        }
+        Update: {
+          author_id?: string
+          body?: string
+          body_lang?: string
+          created_at?: string
+          deleted_at?: string | null
+          flag_reason?: string | null
+          flagged?: boolean
+          hidden_reason?: string | null
+          id?: string
+          is_hidden?: boolean
+          post_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "salon_comments_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "salon_comments_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "public_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "salon_comments_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "salon_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      salon_moderation_actions: {
+        Row: {
+          action: string
+          admin_user_id: string
+          created_at: string
+          id: number
+          reason: string | null
+          target_id: string
+          target_type: string
+        }
+        Insert: {
+          action: string
+          admin_user_id: string
+          created_at?: string
+          id?: never
+          reason?: string | null
+          target_id: string
+          target_type: string
+        }
+        Update: {
+          action?: string
+          admin_user_id?: string
+          created_at?: string
+          id?: never
+          reason?: string | null
+          target_id?: string
+          target_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "salon_moderation_actions_admin_user_id_fkey"
+            columns: ["admin_user_id"]
+            isOneToOne: false
+            referencedRelation: "admin_users"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
+      salon_posts: {
+        Row: {
+          author_id: string
+          body: string
+          body_lang: string
+          category_id: string
+          comment_count: number
+          created_at: string
+          deleted_at: string | null
+          flag_reason: string | null
+          flagged: boolean
+          hidden_reason: string | null
+          id: string
+          is_hidden: boolean
+          last_comment_at: string | null
+          photo_path: string | null
+          pinned_until: string | null
+          reaction_count: number
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          author_id: string
+          body: string
+          body_lang?: string
+          category_id: string
+          comment_count?: number
+          created_at?: string
+          deleted_at?: string | null
+          flag_reason?: string | null
+          flagged?: boolean
+          hidden_reason?: string | null
+          id?: string
+          is_hidden?: boolean
+          last_comment_at?: string | null
+          photo_path?: string | null
+          pinned_until?: string | null
+          reaction_count?: number
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          author_id?: string
+          body?: string
+          body_lang?: string
+          category_id?: string
+          comment_count?: number
+          created_at?: string
+          deleted_at?: string | null
+          flag_reason?: string | null
+          flagged?: boolean
+          hidden_reason?: string | null
+          id?: string
+          is_hidden?: boolean
+          last_comment_at?: string | null
+          photo_path?: string | null
+          pinned_until?: string | null
+          reaction_count?: number
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "salon_posts_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "salon_posts_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "public_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "salon_posts_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "salon_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      salon_reactions: {
+        Row: {
+          created_at: string
+          post_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          post_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          post_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "salon_reactions_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "salon_posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "salon_reactions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "salon_reactions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "public_profile"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      salon_translations: {
+        Row: {
+          created_at: string
+          provider: string | null
+          target_id: string
+          target_lang: string
+          target_type: string
+          translated_body: string
+        }
+        Insert: {
+          created_at?: string
+          provider?: string | null
+          target_id: string
+          target_lang: string
+          target_type: string
+          translated_body: string
+        }
+        Update: {
+          created_at?: string
+          provider?: string | null
+          target_id?: string
+          target_lang?: string
+          target_type?: string
+          translated_body?: string
+        }
+        Relationships: []
       }
       schema_migrations: {
         Row: {
@@ -1125,6 +1434,54 @@ export type Database = {
           },
           {
             foreignKeyName: "subscriptions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "public_profile"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      translation_usage: {
+        Row: {
+          cached: boolean
+          chars: number
+          created_at: string
+          id: number
+          kind: string
+          provider: string | null
+          target_lang: string
+          user_id: string
+        }
+        Insert: {
+          cached?: boolean
+          chars: number
+          created_at?: string
+          id?: never
+          kind: string
+          provider?: string | null
+          target_lang: string
+          user_id: string
+        }
+        Update: {
+          cached?: boolean
+          chars?: number
+          created_at?: string
+          id?: never
+          kind?: string
+          provider?: string | null
+          target_lang?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "translation_usage_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "translation_usage_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "public_profile"
@@ -1586,6 +1943,68 @@ export type Database = {
         Args: never
         Returns: Database["public"]["Enums"]["admin_role_t"]
       }
+      admin_salon_comments: {
+        Args: {
+          p_filter?: string
+          p_offset?: number
+          p_post?: string
+          p_size?: number
+        }
+        Returns: {
+          author_id: string
+          author_nickname: string
+          body: string
+          created_at: string
+          deleted_at: string
+          flag_reason: string
+          flagged: boolean
+          hidden_reason: string
+          id: string
+          is_hidden: boolean
+          open_report_count: number
+          post_id: string
+          post_title: string
+          report_count: number
+        }[]
+      }
+      admin_salon_moderate: {
+        Args: {
+          p_action: string
+          p_reason?: string
+          p_target_id: string
+          p_target_type: string
+        }
+        Returns: undefined
+      }
+      admin_salon_posts: {
+        Args: {
+          p_category?: string
+          p_filter?: string
+          p_offset?: number
+          p_size?: number
+        }
+        Returns: {
+          author_id: string
+          author_nickname: string
+          body: string
+          category_id: string
+          comment_count: number
+          created_at: string
+          deleted_at: string
+          flag_reason: string
+          flagged: boolean
+          hidden_reason: string
+          id: string
+          is_hidden: boolean
+          open_report_count: number
+          photo_path: string
+          pinned_until: string
+          reaction_count: number
+          report_count: number
+          title: string
+        }[]
+      }
+      admin_salon_stats: { Args: never; Returns: Json }
       admin_set_status: {
         Args: {
           p_reason?: string
@@ -1664,6 +2083,10 @@ export type Database = {
       is_admin: { Args: never; Returns: boolean }
       is_blocked_between: { Args: { a: string; b: string }; Returns: boolean }
       is_conversation_participant: { Args: { cid: string }; Returns: boolean }
+      is_passed_recently: {
+        Args: { p_target: string; p_user: string }
+        Returns: boolean
+      }
       mark_conversation_read: {
         Args: { p_conversation_id: string }
         Returns: number
@@ -1742,6 +2165,18 @@ export type Database = {
         }
       }
       my_publish_status: { Args: never; Returns: Json }
+      my_salon_unread: { Args: never; Returns: number }
+      my_translation_usage: {
+        Args: never
+        Returns: {
+          max_chars: number
+          per_day: number
+          per_minute: number
+          used_last_minute: number
+          used_today: number
+        }[]
+      }
+      pass_user: { Args: { p_target: string }; Returns: undefined }
       profile_visible_to_me: { Args: { target: string }; Returns: boolean }
       public_settings: { Args: never; Returns: Json }
       recommend_users: {
@@ -1761,18 +2196,85 @@ export type Database = {
         Args: { p_birthdate: string; p_doc_path: string; p_name: string }
         Returns: undefined
       }
-      pass_user: { Args: { p_target: string }; Returns: undefined }
-      my_translation_usage: {
-        Args: Record<PropertyKey, never>
+      salon_author_visible: { Args: { p_author: string }; Returns: boolean }
+      salon_detect_solicitation: { Args: { p_text: string }; Returns: string }
+      salon_enabled: { Args: never; Returns: boolean }
+      salon_feed: {
+        Args: {
+          p_category?: string
+          p_kind?: string
+          p_limit?: number
+          p_offset?: number
+          p_query?: string
+        }
         Returns: {
-          used_today: number
-          used_last_minute: number
-          per_day: number
-          per_minute: number
-          max_chars: number
+          author_id: string
+          author_nationality: string
+          author_nickname: string
+          author_photo_path: string
+          body: string
+          body_lang: string
+          category_id: string
+          comment_count: number
+          created_at: string
+          deleted_at: string
+          flagged: boolean
+          id: string
+          is_hidden: boolean
+          last_comment_at: string
+          photo_path: string
+          pinned_until: string
+          reacted: boolean
+          reaction_count: number
+          title: string
         }[]
       }
-      undo_pass: { Args: { p_target: string }; Returns: undefined }
+      salon_post_comments: {
+        Args: { p_post: string }
+        Returns: {
+          author_id: string
+          author_nationality: string
+          author_nickname: string
+          author_photo_path: string
+          body: string
+          body_lang: string
+          created_at: string
+          deleted_at: string
+          flagged: boolean
+          id: string
+          is_hidden: boolean
+          post_id: string
+        }[]
+      }
+      salon_post_detail: {
+        Args: { p_post: string }
+        Returns: {
+          author_id: string
+          author_nationality: string
+          author_nickname: string
+          author_photo_path: string
+          body: string
+          body_lang: string
+          category_id: string
+          comment_count: number
+          created_at: string
+          deleted_at: string
+          flagged: boolean
+          id: string
+          is_hidden: boolean
+          last_comment_at: string
+          photo_path: string
+          pinned_until: string
+          reacted: boolean
+          reaction_count: number
+          title: string
+        }[]
+      }
+      salon_post_visible_to_me: { Args: { p_post: string }; Returns: boolean }
+      salon_setting_int: {
+        Args: { p_default: number; p_key: string }
+        Returns: number
+      }
       search_profiles: {
         Args: { filters?: Json; page?: number; size?: number }
         Returns: {
@@ -1781,6 +2283,7 @@ export type Database = {
         }[]
       }
       touch_last_active: { Args: never; Returns: undefined }
+      undo_pass: { Args: { p_target: string }; Returns: undefined }
       unmatch: { Args: { p_match_id: string }; Returns: undefined }
       validate_invite_code: {
         Args: { p_code: string }
@@ -1808,6 +2311,9 @@ export type Database = {
         | "verification"
         | "system"
         | "announcement"
+        | "salon_comment"
+        | "salon_reaction"
+        | "salon_moderation"
       report_reason_t:
         | "inappropriate_content"
         | "impersonation"
@@ -1815,6 +2321,9 @@ export type Database = {
         | "fraud_suspected"
         | "inappropriate_photo"
         | "other"
+        | "spam"
+        | "solicitation"
+        | "personal_info"
       report_status_t: "open" | "in_review" | "resolved" | "dismissed"
       subscription_status_t:
         | "trialing"
@@ -1967,6 +2476,9 @@ export const Constants = {
         "verification",
         "system",
         "announcement",
+        "salon_comment",
+        "salon_reaction",
+        "salon_moderation",
       ],
       report_reason_t: [
         "inappropriate_content",
@@ -1975,6 +2487,9 @@ export const Constants = {
         "fraud_suspected",
         "inappropriate_photo",
         "other",
+        "spam",
+        "solicitation",
+        "personal_info",
       ],
       report_status_t: ["open", "in_review", "resolved", "dismissed"],
       subscription_status_t: [
@@ -1988,3 +2503,4 @@ export const Constants = {
     },
   },
 } as const
+

@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { BadgeCheck, Heart, Info, MapPin, RotateCcw, SlidersHorizontal, X } from 'lucide-react';
+import { BadgeCheck, ChevronRight, Heart, Info, MapPin, MessagesSquare, RotateCcw, SlidersHorizontal, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -440,6 +440,18 @@ export const SearchPage: React.FC = () => {
           {nFilters ? t('search.activeFilters', { n: nFilters }) : t('search.filter')}
         </Button>
       </div>
+
+      <Link
+        to="/app/salon"
+        className="flex items-center gap-3 rounded-2xl border border-rose-100 bg-gradient-to-r from-rose-50 to-orange-50 p-3 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-400"
+      >
+        <MessagesSquare className="w-6 h-6 text-rose-500 shrink-0" aria-hidden />
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-semibold">{t('salon.title')}</p>
+          <p className="text-xs text-gray-600 truncate">{t('salon.entryLead')}</p>
+        </div>
+        <ChevronRight className="w-4 h-4 text-gray-400" aria-hidden />
+      </Link>
 
       <div className="flex gap-2 overflow-x-auto -mx-4 px-4 pb-1 [scrollbar-width:none]">
         {CATEGORIES.map((c) => (

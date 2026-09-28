@@ -18,8 +18,9 @@ const LegalPage: React.FC<{ kind: LegalKind }> = ({ kind }) => {
 
   const doc = LEGAL_DOCS[kind][lang as Lang];
   const version = kind === 'terms' ? pub.terms_version : kind === 'privacy' ? pub.privacy_version : null;
-  const back = session ? '/app/settings' : '/app/welcome';
-  const title = kind === 'terms' ? t('legal.terms') : kind === 'privacy' ? t('legal.privacy') : t('legal.help');
+  const back = kind === 'salon_rules' ? '/app/salon' : session ? '/app/settings' : '/app/welcome';
+  const title =
+    kind === 'terms' ? t('legal.terms') : kind === 'privacy' ? t('legal.privacy') : kind === 'salon_rules' ? t('legal.salonRules') : t('legal.help');
 
   return (
     <div className="min-h-screen bg-gray-50 pt-[env(safe-area-inset-top)]">
@@ -51,3 +52,4 @@ const LegalPage: React.FC<{ kind: LegalKind }> = ({ kind }) => {
 export const TermsPage: React.FC = () => <LegalPage kind="terms" />;
 export const PrivacyPage: React.FC = () => <LegalPage kind="privacy" />;
 export const HelpPage: React.FC = () => <LegalPage kind="help" />;
+export const SalonRulesPage: React.FC = () => <LegalPage kind="salon_rules" />;
