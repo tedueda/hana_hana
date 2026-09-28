@@ -12,6 +12,7 @@ import { formatDate, useI18n } from '../i18n';
 import { useLabels, useRegionNames } from '../hooks';
 import type { Profile, ProfilePhoto } from '../types';
 import type { MessageKey } from '../i18n/ja';
+import { fetchMyPlanUsage, TIER_KEY, type PlanTier } from '../api/plans';
 
 function ageOf(birthdate: string | null): number | null {
   if (!birthdate) return null;
@@ -57,6 +58,7 @@ const MyProfilePage: React.FC = () => {
   const [counts, setCounts] = useState({ langs: 0, purposes: 0 });
   const [verifyStatus, setVerifyStatus] = useState<VerificationStatus>('unverified');
   const [publish, setPublish] = useState<PublishStatus | null>(null);
+  const [planTier, setPlanTier] = useState<PlanTier | null>(null);
 
   useEffect(() => {
     fetchAdminRole().then((r) => setIsAdmin(r !== null)).catch(() => setIsAdmin(false));
@@ -73,6 +75,9 @@ const MyProfilePage: React.FC = () => {
     fetchMyVerification()
       .then((v) => setVerifyStatus(v?.status ?? 'unverified'))
       .catch(() => undefined);
+    fetchMyPlanUsage()
+      .then((u) => setPlanTier(u.tier))
+      .catch(() => undefined);
     fetchMyPublishStatus().then(setPublish).catch(() => undefined);
   }, [user]);
 
@@ -87,7 +92,9 @@ const MyProfilePage: React.FC = () => {
   const pct = completeness(profile, photos.length, counts.langs, counts.purposes);
   const age = ageOf(profile.birthdate);
   const verifyKey = VERIFY_KEY[verifyStatus] ?? 'my.verify.unverified';
-  const tierKey: MessageKey = profile.member_tier === 'paid' ? 'my.tier.paid' : profile.member_tier === 'invited' ? 'my.tier.invited' : 'my.tier.free';
+  const tierKey: MessageKey = planTier
+    ? TIER_KEY[planTier]
+    : profile.member_tier === 'paid' ? 'my.tier.paid' : profile.member_tier === 'invited' ? 'my.tier.invited' : 'my.tier.free';
 
   return (
     <div className="space-y-4">
@@ -150,7 +157,7 @@ const MyProfilePage: React.FC = () => {
         <MenuRow to="/app/profile/likes" icon={Heart} label={t('my.likes')} />
         <MenuRow to="/app/salon?kind=mine" icon={MessagesSquare} label={t('salon.kind.mine')} />
         <MenuRow to="/app/settings" icon={Settings} label={t('my.settings')} />
-        <MenuRow to="/app/plus" icon={Sparkles} label={t('my.plus')} />
+        <MenuRow to="/app/plans" icon={Sparkles} label={t('my.plus')} />
         {isAdmin && <MenuRow to="/app/admin" icon={ShieldCheck} label={t('my.admin')} />}
       </nav>
 

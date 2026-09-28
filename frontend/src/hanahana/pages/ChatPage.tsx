@@ -21,6 +21,7 @@ import type { Conversation, Message, PublicProfile } from '../types';
 import { formatTime, useI18n } from '../i18n';
 import type { MessageKey } from '../i18n/ja';
 import { errorMessage } from '../labels';
+import { PlanLimitNotice, usePlanLimitText } from '../components/PlanLimitNotice';
 
 type TranslationState =
   | { status: 'loading' }
@@ -45,6 +46,8 @@ const ChatPage: React.FC = () => {
   const [text, setText] = useState('');
   const [sending, setSending] = useState(false);
   const [error, setError] = useState('');
+  const [limitNotice, setLimitNotice] = useState<{ upgrade: boolean; text: string } | null>(null);
+  const limitText = usePlanLimitText();
   const [pub, setPub] = useState<PublicSettings | null>(null);
   const [settings, setSettings] = useState<UserSettings | null>(null);
   const [translations, setTranslations] = useState<Record<string, TranslationState>>({});
@@ -71,6 +74,7 @@ const ChatPage: React.FC = () => {
         const key = map[e.code];
         if (key) {
           const n = typeof e.detail.max_chars === 'number' ? e.detail.max_chars : typeof e.detail.per_day === 'number' ? e.detail.per_day : '';
+          if (e.code === 'daily_limit') setLimitNotice({ upgrade: true, text: t(key, { n }) });
           return t(key, { n });
         }
         return t('chat.translateFailed');
@@ -195,7 +199,9 @@ const ChatPage: React.FC = () => {
       setText('');
       setDraft({ status: 'idle' });
     } catch (e) {
-      setError(errorMessage(e, lang));
+      const lim = limitText(e);
+      if (lim) setLimitNotice({ upgrade: lim.kind !== 'message_rate', text: lim.text });
+      else setError(errorMessage(e, lang));
     } finally {
       setSending(false);
     }
@@ -351,6 +357,7 @@ const ChatPage: React.FC = () => {
       )}
 
       <div className="bg-white border-t border-gray-200">
+        {limitNotice && <PlanLimitNotice text={limitNotice.text} showUpgrade={limitNotice.upgrade} className="m-2" />}
         {translationEnabled && canChat && text.trim() && draft.status === 'idle' && (
           <div className="flex items-center gap-2 px-2 pt-2 text-xs text-gray-500">
             <Languages className="w-3.5 h-3.5 shrink-0" />

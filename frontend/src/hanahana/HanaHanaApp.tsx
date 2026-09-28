@@ -15,7 +15,8 @@ import { HelpPage, PrivacyPage, SalonRulesPage, TermsPage } from './pages/LegalP
 import { SalonNewPage, SalonPage, SalonPostPage } from './pages/SalonPages';
 import { LikesPage, MatchesPage } from './pages/LikesMatchesPages';
 import MyProfilePage from './pages/MyProfilePage';
-import { PlusPage, VerificationPage } from './pages/MyPages';
+import { VerificationPage } from './pages/MyPages';
+import { PlansPage } from './pages/PlansPage';
 import OnboardingPage from './pages/OnboardingPage';
 import ProfileEditPage from './pages/ProfileEditPage';
 import SettingsPage, { BlocksPage, ChangePasswordPage, DeleteAccountPage } from './pages/SettingsPage';
@@ -132,7 +133,8 @@ const HanaHanaApp: React.FC = () => {
               <Route path="profile/likes" element={<LikesPage />} />
               <Route path="likes" element={<Navigate to="/app/profile/likes" replace />} />
               <Route path="profile/verification" element={<VerificationPage />} />
-              <Route path="plus" element={<PlusPage />} />
+              <Route path="plans" element={<PlansPage />} />
+              <Route path="plus" element={<Navigate to="/app/plans" replace />} />
               <Route path="settings" element={<SettingsPage />} />
               <Route path="settings/blocks" element={<BlocksPage />} />
               <Route path="settings/password" element={<ChangePasswordPage />} />
