@@ -86,6 +86,41 @@ async function translateWith(provider: Provider, text: string, source: string, t
   }
 }
 
+// プロフィール添削: 同一言語のまま自然で好印象な自己紹介に整える (内容の捏造はしない)
+async function polishWith(provider: Provider, text: string, lang: string): Promise<string> {
+  if (provider !== 'openai') return text;
+  const ctl = new AbortController();
+  const timer = setTimeout(() => ctl.abort(), 20000);
+  try {
+    const res = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      signal: ctl.signal,
+      headers: { Authorization: `Bearer ${Deno.env.get('OPENAI_API_KEY')}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: Deno.env.get('OPENAI_MODEL') ?? 'gpt-4o-mini',
+        temperature: 0.4,
+        messages: [
+          {
+            role: 'system',
+            content:
+              `You proofread self-introductions for a Japan-Korea friendship/matching app. Rewrite the user's profile text in ${LANG_NAME[lang] ?? lang}: ` +
+              'fix grammar and awkward phrasing, make it warm, polite and easy to read, keep the same facts and length (do not invent hobbies, jobs or details), ' +
+              'never add contact information, and output only the revised text.',
+          },
+          { role: 'user', content: text },
+        ],
+      }),
+    });
+    if (!res.ok) throw new Error(`openai ${res.status}`);
+    const j = await res.json();
+    const out = j?.choices?.[0]?.message?.content;
+    if (typeof out !== 'string' || !out.trim()) throw new Error('openai empty');
+    return out.trim();
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors });
   if (req.method !== 'POST') return fail(405, 'method_not_allowed');
@@ -108,6 +143,7 @@ Deno.serve(async (req) => {
     text?: string;
     target_lang?: string;
     source_lang?: string;
+    kind?: 'profile_polish' | 'profile_translate';
   };
   try {
     body = await req.json();
@@ -134,7 +170,7 @@ Deno.serve(async (req) => {
 
   let text: string;
   let sourceHint: string | undefined = body.source_lang;
-  let kind: 'message' | 'draft' | 'salon_post' | 'salon_comment';
+  let kind: 'message' | 'draft' | 'salon_post' | 'salon_comment' | 'profile_polish' | 'profile_translate';
   let messageId: string | null = null;
   let salonTarget: { type: 'post_title' | 'post_body' | 'comment'; id: string } | null = null;
 
@@ -207,6 +243,13 @@ Deno.serve(async (req) => {
     sourceHint = sourceHint ?? c.body_lang ?? undefined;
     const hit = await salonCached(salonTarget, text);
     if (hit) return hit;
+  } else if (body.kind === 'profile_polish' || body.kind === 'profile_translate') {
+    // プレミアム機能 (plans.features.profile_polish)。判定はサーバー側のみ
+    const { data: allowed } = await admin.rpc('plan_has_feature', { p_user: uid, p_key: 'profile_polish' });
+    if (allowed !== true) return fail(403, 'premium_required', { feature: 'profile_polish' });
+    kind = body.kind;
+    text = (body.text ?? '').trim();
+    if (!text) return fail(400, 'empty_text');
   } else {
     kind = 'draft';
     text = (body.text ?? '').trim();
@@ -217,7 +260,7 @@ Deno.serve(async (req) => {
 
   const detected = detectLang(text);
   const source = detected !== 'und' ? detected : (sourceHint ?? 'und');
-  if (source === target) return json(200, { translated: text, detected_lang: source, target_lang: target, provider: null, cached: false, same_lang: true });
+  if (kind !== 'profile_polish' && source === target) return json(200, { translated: text, detected_lang: source, target_lang: target, provider: null, cached: false, same_lang: true });
 
   const since = (ms: number) => new Date(Date.now() - ms).toISOString();
   const [{ count: usedMin }, { count: usedDay }] = await Promise.all([
@@ -230,7 +273,9 @@ Deno.serve(async (req) => {
   const provider = pickProvider();
   let translated: string;
   try {
-    translated = await translateWith(provider, text, source, target);
+    translated = kind === 'profile_polish'
+      ? await polishWith(provider, text, target)
+      : await translateWith(provider, text, source, target);
   } catch (e) {
     console.error('translate failed', provider, e instanceof Error ? e.message : e);
     return fail(502, 'provider_failed');

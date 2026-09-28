@@ -74,8 +74,3 @@ export async function searchProfiles(
   });
 }
 
-export async function recordView(targetUserId: string, userId: string): Promise<void> {
-  await getSupabase()
-    .from('user_events')
-    .insert({ user_id: userId, target_user_id: targetUserId, event_type: 'view' });
-}

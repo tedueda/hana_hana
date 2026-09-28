@@ -35,6 +35,7 @@ declare
   v_post2 uuid;
   v_comment uuid;
   v_report uuid;
+  v_event uuid;
   n int;
   ok boolean;
 begin
@@ -799,6 +800,182 @@ begin
   end;
   perform pg_temp.as_user(adm);
   perform pg_temp.check('P14b admin_plan_stats for admin', (admin_plan_stats()->'by_tier') is not null);
+
+  -- ---------- P2: プレミアム機能 ----------
+  perform pg_temp.as_super();
+  delete from subscriptions where user_id in (a, b, c);
+  delete from blocks where blocker_id in (a, b, c) and blocked_id in (a, b, c);
+  update profiles set status = 'active', is_public = true where id in (a, b, c);
+  perform pg_temp.check('Q01 free has no premium features', not plan_has_feature(b, 'footprints') and not plan_has_feature(b, 'priority') and plan_feature_int(b, 'event_discount_pct') = 0);
+  ok := (select status = 'verified' from verifications where user_id = a);
+  insert into subscriptions (user_id, plan_id, status, current_period_end, plan_tier)
+  values (a, (select id from plans where code = 'premium'), 'active', now() + interval '20 days', 'premium');
+  perform pg_temp.check('Q02 premium has footprints/priority/compat/polish + 20% discount',
+    plan_has_feature(a, 'footprints') and plan_has_feature(a, 'priority') and plan_has_feature(a, 'compatibility')
+    and plan_has_feature(a, 'profile_polish') and plan_feature_int(a, 'event_discount_pct') = 20);
+  perform pg_temp.check('Q02b verification badge unchanged by subscription',
+    (select status = 'verified' from verifications where user_id = a) = ok);
+
+  -- 足あと: b が a を閲覧 → a(premium) は見える / b(free) はロック
+  perform pg_temp.as_user(b);
+  perform record_profile_view(a);
+  perform record_profile_view(a);
+  perform pg_temp.check('Q03 my_plan_features (free) tier', (my_plan_features()->>'tier') = 'free');
+  perform pg_temp.check('Q04 free footprints summary locked but counted', (my_footprints_summary()->>'unlocked')::boolean = false);
+  begin
+    perform * from my_footprints();
+    perform pg_temp.check('Q05 free my_footprints denied', false);
+  exception when others then
+    perform pg_temp.check('Q05 free my_footprints denied', sqlerrm like '%premium_required%', sqlerrm);
+  end;
+  begin
+    insert into profile_views (viewer_id, viewed_id) values (b, c);
+    perform pg_temp.check('Q06 direct insert into profile_views denied', false);
+  exception when insufficient_privilege then
+    perform pg_temp.check('Q06 direct insert into profile_views denied', true);
+  end;
+  perform pg_temp.as_user(a);
+  perform pg_temp.check('Q07 premium sees footprint from b (deduped per day, count 2)',
+    (select count(*) from my_footprints()) = 1 and (select view_count from my_footprints() where viewer_id = b) = 2);
+  perform pg_temp.check('Q07b footprints summary unlocked with 1 viewer',
+    (my_footprints_summary()->>'unlocked')::boolean and (my_footprints_summary()->>'viewer_count')::int = 1);
+  -- ブロックした相手の足あとは見えない
+  insert into blocks (blocker_id, blocked_id) values (a, b);
+  perform pg_temp.check('Q08 blocked viewer hidden from footprints', (select count(*) from my_footprints() where viewer_id = b) = 0);
+  delete from blocks where blocker_id = a and blocked_id = b;
+  -- 非公開/停止中のプロフィールは閲覧記録されない
+  perform pg_temp.as_super();
+  update profiles set is_public = false where id = c;
+  perform pg_temp.as_user(b);
+  perform record_profile_view(c);
+  perform pg_temp.as_super();
+  perform pg_temp.check('Q09 private profile view not recorded', (select count(*) from profile_views where viewer_id = b and viewed_id = c) = 0);
+  update profiles set is_public = true where id = c;
+
+  -- 相性診断
+  perform pg_temp.as_user(b);
+  perform pg_temp.check('Q10 free compatibility locked', (compatibility(a)->>'unlocked')::boolean = false);
+  perform pg_temp.as_user(a);
+  perform pg_temp.check('Q11 premium compatibility returns score 0..100 + breakdown',
+    (compatibility(b)->>'unlocked')::boolean and (compatibility(b)->>'score')::int between 0 and 100 and (compatibility(b)->'breakdown'->>'purpose') is not null);
+  perform pg_temp.as_super();
+  insert into blocks (blocker_id, blocked_id) values (b, a);
+  perform pg_temp.as_user(a);
+  begin
+    perform compatibility(b);
+    perform pg_temp.check('Q12 compatibility hidden for user who blocked me', false);
+  exception when others then
+    perform pg_temp.check('Q12 compatibility hidden for user who blocked me', sqlerrm like '%profile_not_available%', sqlerrm);
+  end;
+  perform pg_temp.as_super();
+  delete from blocks where blocker_id = b and blocked_id = a;
+
+  -- 優先表示: premium の a は b のおすすめで reasons に priority
+  perform pg_temp.as_super();
+  delete from likes where (from_user_id, to_user_id) in ((b,a),(a,b));
+  delete from passes where user_id = b;
+  perform pg_temp.as_user(b);
+  perform pg_temp.check('Q13 premium candidate flagged priority in recommend_users',
+    exists (select 1 from recommend_users(50) r where r.id = a and 'priority' = any(r.reasons)));
+  perform pg_temp.check('Q13b free candidate not flagged priority',
+    not exists (select 1 from recommend_users(50) r where r.id = c and 'priority' = any(r.reasons)));
+  perform pg_temp.as_super();
+  insert into blocks (blocker_id, blocked_id) values (b, a);
+  perform pg_temp.as_user(b);
+  perform pg_temp.check('Q14 priority never overrides block', not exists (select 1 from recommend_users(50) r where r.id = a));
+  perform pg_temp.as_super();
+  delete from blocks where blocker_id = b and blocked_id = a;
+
+  -- イベント
+  perform pg_temp.as_user(b);
+  begin
+    perform admin_upsert_event('{"title_ja":"x","title_ko":"x","starts_at":"2030-01-01T10:00:00Z"}'::jsonb);
+    perform pg_temp.check('Q15 member cannot admin_upsert_event', false);
+  exception when insufficient_privilege then
+    perform pg_temp.check('Q15 member cannot admin_upsert_event', true);
+  end;
+  perform pg_temp.as_user(adm);
+  v_event := admin_upsert_event(jsonb_build_object(
+    'title_ja','交流会','title_ko','교류회','description_ja','d','description_ko','d','location_ja','東京','location_ko','도쿄',
+    'starts_at', (now() + interval '10 days')::text, 'capacity', 1, 'price_jpy', 3000, 'early_access_hours', 48, 'published', true));
+  perform pg_temp.check('Q16 admin creates published event', v_event is not null);
+  perform pg_temp.as_super();
+  update app_settings set value = '48' where key = 'event_early_access_hours';
+  -- free: 先行期間中は申込不可、価格は定価
+  perform pg_temp.as_user(b);
+  perform pg_temp.check('Q17 free sees event at base price, open_at in future',
+    (select my_price_jpy = 3000 and my_discount_pct = 0 and open_at > now() from list_events('upcoming') where id = v_event));
+  begin
+    perform register_event(v_event);
+    perform pg_temp.check('Q18 free blocked during early access window', false);
+  exception when others then
+    perform pg_temp.check('Q18 free blocked during early access window', sqlerrm like '%event_early_access%', sqlerrm);
+  end;
+  begin
+    insert into event_registrations (event_id, user_id, quoted_price_jpy, discount_pct, plan_tier) values (v_event, b, 0, 0, 'free');
+    perform pg_temp.check('Q19 direct insert into event_registrations denied', false);
+  exception when insufficient_privilege then
+    perform pg_temp.check('Q19 direct insert into event_registrations denied', true);
+  end;
+  -- premium: 20% 割引で先行申込
+  perform pg_temp.as_user(a);
+  perform pg_temp.check('Q20 premium sees 20% discounted price 2400',
+    (select my_price_jpy = 2400 and my_discount_pct = 20 and early_access from list_events('upcoming') where id = v_event));
+  perform register_event(v_event);
+  perform pg_temp.check('Q21 premium registered with quoted price stored',
+    (select quoted_price_jpy = 2400 and discount_pct = 20 and plan_tier = 'premium' and status = 'registered' from event_registrations where event_id = v_event and user_id = a));
+  perform pg_temp.check('Q21b list_events(mine) shows my registration', exists (select 1 from list_events('mine') where id = v_event and my_status = 'registered'));
+  -- 定員 1 → 一般公開後も満席
+  perform pg_temp.as_super();
+  update events set published_at = now() - interval '3 days' where id = v_event;
+  perform pg_temp.as_user(b);
+  begin
+    perform register_event(v_event);
+    perform pg_temp.check('Q22 capacity enforced (event_full)', false);
+  exception when others then
+    perform pg_temp.check('Q22 capacity enforced (event_full)', sqlerrm like '%event_full%', sqlerrm);
+  end;
+  perform pg_temp.check('Q22b member cannot see others registrations', (select count(*) from event_registrations where event_id = v_event) = 0);
+  -- キャンセル → 席が空く → free が定価で申込
+  perform pg_temp.as_user(a);
+  perform cancel_event_registration(v_event);
+  perform pg_temp.check('Q23 cancel marks registration canceled', (select status = 'canceled' and canceled_at is not null from event_registrations where event_id = v_event and user_id = a));
+  perform pg_temp.as_user(b);
+  perform register_event(v_event);
+  perform pg_temp.check('Q24 free registers at base price after seat freed',
+    (select quoted_price_jpy = 3000 and discount_pct = 0 and plan_tier = 'free' from event_registrations where event_id = v_event and user_id = b));
+  -- 中止イベントは申込不可 / 非公開イベントは見えない
+  perform pg_temp.as_user(adm);
+  perform admin_upsert_event(jsonb_build_object('id', v_event, 'canceled', true));
+  perform pg_temp.check('Q25 admin sees registrations', (select count(*) from admin_event_registrations(v_event)) = 2);
+  perform pg_temp.as_user(c);
+  begin
+    perform register_event(v_event);
+    perform pg_temp.check('Q26 canceled event rejects registration', false);
+  exception when others then
+    perform pg_temp.check('Q26 canceled event rejects registration', sqlerrm like '%event_canceled%', sqlerrm);
+  end;
+  perform pg_temp.as_user(adm);
+  perform admin_upsert_event(jsonb_build_object('id', v_event, 'canceled', false, 'published', false));
+  perform pg_temp.as_user(c);
+  perform pg_temp.check('Q27 unpublished event hidden from members', not exists (select 1 from events where id = v_event) and not exists (select 1 from list_events('upcoming') where id = v_event));
+  perform pg_temp.as_user(b);
+  perform pg_temp.check('Q28 member cannot list registrations', (select count(*) from admin_event_registrations(v_event)) = 0);
+
+  -- 停止中の会員はイベント申込・足あと記録不可
+  perform pg_temp.as_super();
+  update events set published_at = now() - interval '3 days' where id = v_event;
+  update profiles set status = 'suspended' where id = c;
+  perform pg_temp.as_user(c);
+  begin
+    perform register_event(v_event);
+    perform pg_temp.check('Q29 suspended member cannot register', false);
+  exception when others then
+    perform pg_temp.check('Q29 suspended member cannot register', sqlerrm like '%inactive_member%', sqlerrm);
+  end;
+  perform pg_temp.as_super();
+  update profiles set status = 'active' where id = c;
+  delete from subscriptions where user_id = a;
 
   perform pg_temp.as_super();
 end $$;

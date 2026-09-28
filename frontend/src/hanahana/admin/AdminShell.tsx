@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Navigate, NavLink, Outlet } from 'react-router-dom';
-import { BarChart3, Bell, Flag, ListChecks, ScrollText, ShieldCheck, Users, UserCog, MessagesSquare } from 'lucide-react';
+import { BarChart3, Bell, Flag, ListChecks, ScrollText, ShieldCheck, Users, UserCog, MessagesSquare, CalendarDays } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { fetchAdminRole, type AdminRole } from '../api/admin';
 import { APP_NAME } from '../labels';
@@ -11,6 +11,7 @@ const NAV = [
   { to: '/app/admin/users', label: '会員管理', icon: Users },
   { to: '/app/admin/reports', label: '通報管理', icon: Flag },
   { to: '/app/admin/salon', label: '交流サロン', icon: MessagesSquare },
+  { to: '/app/admin/events', label: 'イベント', icon: CalendarDays },
   { to: '/app/admin/verifications', label: '本人確認', icon: ShieldCheck },
   { to: '/app/admin/masters', label: 'カテゴリー', icon: ListChecks },
   { to: '/app/admin/announcements', label: 'お知らせ', icon: Bell },

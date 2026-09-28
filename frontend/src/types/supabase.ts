@@ -212,6 +212,124 @@ export type Database = {
           },
         ]
       }
+      event_registrations: {
+        Row: {
+          canceled_at: string | null
+          created_at: string
+          discount_pct: number
+          event_id: string
+          plan_tier: Database["public"]["Enums"]["plan_tier_t"]
+          quoted_price_jpy: number
+          status: Database["public"]["Enums"]["event_registration_status_t"]
+          user_id: string
+        }
+        Insert: {
+          canceled_at?: string | null
+          created_at?: string
+          discount_pct?: number
+          event_id: string
+          plan_tier?: Database["public"]["Enums"]["plan_tier_t"]
+          quoted_price_jpy?: number
+          status?: Database["public"]["Enums"]["event_registration_status_t"]
+          user_id: string
+        }
+        Update: {
+          canceled_at?: string | null
+          created_at?: string
+          discount_pct?: number
+          event_id?: string
+          plan_tier?: Database["public"]["Enums"]["plan_tier_t"]
+          quoted_price_jpy?: number
+          status?: Database["public"]["Enums"]["event_registration_status_t"]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_registrations_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_registrations_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_registrations_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "public_profile"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      events: {
+        Row: {
+          canceled_at: string | null
+          capacity: number | null
+          created_at: string
+          created_by: string | null
+          description_ja: string
+          description_ko: string
+          early_access_hours: number | null
+          ends_at: string | null
+          id: string
+          is_online: boolean
+          location_ja: string | null
+          location_ko: string | null
+          price_jpy: number
+          published_at: string | null
+          starts_at: string
+          title_ja: string
+          title_ko: string
+          updated_at: string
+        }
+        Insert: {
+          canceled_at?: string | null
+          capacity?: number | null
+          created_at?: string
+          created_by?: string | null
+          description_ja?: string
+          description_ko?: string
+          early_access_hours?: number | null
+          ends_at?: string | null
+          id?: string
+          is_online?: boolean
+          location_ja?: string | null
+          location_ko?: string | null
+          price_jpy?: number
+          published_at?: string | null
+          starts_at: string
+          title_ja: string
+          title_ko: string
+          updated_at?: string
+        }
+        Update: {
+          canceled_at?: string | null
+          capacity?: number | null
+          created_at?: string
+          created_by?: string | null
+          description_ja?: string
+          description_ko?: string
+          early_access_hours?: number | null
+          ends_at?: string | null
+          id?: string
+          is_online?: boolean
+          location_ja?: string | null
+          location_ko?: string | null
+          price_jpy?: number
+          published_at?: string | null
+          starts_at?: string
+          title_ja?: string
+          title_ko?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       interests: {
         Row: {
           category: string | null
@@ -792,6 +910,59 @@ export type Database = {
           {
             foreignKeyName: "profile_photos_user_id_fkey"
             columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "public_profile"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profile_views: {
+        Row: {
+          last_viewed_at: string
+          view_count: number
+          viewed_id: string
+          viewed_on: string
+          viewer_id: string
+        }
+        Insert: {
+          last_viewed_at?: string
+          view_count?: number
+          viewed_id: string
+          viewed_on?: string
+          viewer_id: string
+        }
+        Update: {
+          last_viewed_at?: string
+          view_count?: number
+          viewed_id?: string
+          viewed_on?: string
+          viewer_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profile_views_viewed_id_fkey"
+            columns: ["viewed_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profile_views_viewed_id_fkey"
+            columns: ["viewed_id"]
+            isOneToOne: false
+            referencedRelation: "public_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profile_views_viewer_id_fkey"
+            columns: ["viewer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profile_views_viewer_id_fkey"
+            columns: ["viewer_id"]
             isOneToOne: false
             referencedRelation: "public_profile"
             referencedColumns: ["id"]
@@ -1878,6 +2049,19 @@ export type Database = {
       }
     }
     Functions: {
+      admin_event_registrations: {
+        Args: { p_event: string }
+        Returns: {
+          canceled_at: string
+          created_at: string
+          discount_pct: number
+          nickname: string
+          plan_tier: Database["public"]["Enums"]["plan_tier_t"]
+          quoted_price_jpy: number
+          status: Database["public"]["Enums"]["event_registration_status_t"]
+          user_id: string
+        }[]
+      }
       admin_get_user: { Args: { p_user_id: string }; Returns: Json }
       admin_list_admins: {
         Args: never
@@ -2055,11 +2239,16 @@ export type Database = {
         }
         Returns: string
       }
+      admin_upsert_event: { Args: { p_event: Json }; Returns: string }
       apply_invite_code: {
         Args: { p_code: string }
         Returns: Database["public"]["Enums"]["member_tier_t"]
       }
       are_matched: { Args: { a: string; b: string }; Returns: boolean }
+      cancel_event_registration: {
+        Args: { p_event: string }
+        Returns: undefined
+      }
       candidate_profiles: {
         Args: never
         Returns: {
@@ -2100,9 +2289,18 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      compatibility: { Args: { p_target: string }; Returns: Json }
       current_plan_tier: {
         Args: { p_user: string }
         Returns: Database["public"]["Enums"]["plan_tier_t"]
+      }
+      event_open_at: {
+        Args: { p_event: string; p_user: string }
+        Returns: string
+      }
+      event_price_for: {
+        Args: { p_event: string; p_user: string }
+        Returns: Json
       }
       has_publishable_photo: {
         Args: { p_created_at: string; p_user_id: string }
@@ -2115,6 +2313,30 @@ export type Database = {
       is_passed_recently: {
         Args: { p_target: string; p_user: string }
         Returns: boolean
+      }
+      list_events: {
+        Args: { p_scope?: string }
+        Returns: {
+          canceled_at: string
+          capacity: number
+          description_ja: string
+          description_ko: string
+          early_access: boolean
+          ends_at: string
+          id: string
+          is_online: boolean
+          location_ja: string
+          location_ko: string
+          my_discount_pct: number
+          my_price_jpy: number
+          my_status: Database["public"]["Enums"]["event_registration_status_t"]
+          open_at: string
+          price_jpy: number
+          registered_count: number
+          starts_at: string
+          title_ja: string
+          title_ko: string
+        }[]
       }
       mark_conversation_read: {
         Args: { p_conversation_id: string }
@@ -2153,6 +2375,16 @@ export type Database = {
           unread_count: number
         }[]
       }
+      my_footprints: {
+        Args: { p_limit?: number }
+        Returns: {
+          last_viewed_at: string
+          view_count: number
+          viewer_id: string
+        }[]
+      }
+      my_footprints_summary: { Args: never; Returns: Json }
+      my_plan_features: { Args: never; Returns: Json }
       my_plan_tier: {
         Args: never
         Returns: Database["public"]["Enums"]["plan_tier_t"]
@@ -2211,6 +2443,14 @@ export type Database = {
         }[]
       }
       pass_user: { Args: { p_target: string }; Returns: undefined }
+      plan_feature_int: {
+        Args: { p_key: string; p_user: string }
+        Returns: number
+      }
+      plan_has_feature: {
+        Args: { p_key: string; p_user: string }
+        Returns: boolean
+      }
       plan_limit: {
         Args: {
           p_key: string
@@ -2232,6 +2472,8 @@ export type Database = {
         Args: { p_kinds: string[]; p_ui_lang?: string }
         Returns: undefined
       }
+      record_profile_view: { Args: { p_target: string }; Returns: undefined }
+      register_event: { Args: { p_event: string }; Returns: undefined }
       request_account_deletion: { Args: never; Returns: undefined }
       request_verification: {
         Args: { p_birthdate: string; p_doc_path: string; p_name: string }
@@ -2329,6 +2571,7 @@ export type Database = {
       unmatch: { Args: { p_match_id: string }; Returns: undefined }
       usage_day_start: { Args: never; Returns: string }
       usage_month_start: { Args: never; Returns: string }
+      usage_today: { Args: never; Returns: string }
       validate_invite_code: {
         Args: { p_code: string }
         Returns: {
@@ -2341,6 +2584,7 @@ export type Database = {
       account_status_t: "active" | "suspended" | "banned" | "deleted"
       admin_role_t: "super_admin" | "moderator" | "support"
       country_t: "JP" | "KR" | "other"
+      event_registration_status_t: "registered" | "canceled"
       gender_t: "male" | "female" | "other" | "undisclosed"
       language_level_t: "beginner" | "intermediate" | "advanced" | "native"
       language_role_t: "native" | "learning"
@@ -2507,6 +2751,7 @@ export const Constants = {
       account_status_t: ["active", "suspended", "banned", "deleted"],
       admin_role_t: ["super_admin", "moderator", "support"],
       country_t: ["JP", "KR", "other"],
+      event_registration_status_t: ["registered", "canceled"],
       gender_t: ["male", "female", "other", "undisclosed"],
       language_level_t: ["beginner", "intermediate", "advanced", "native"],
       language_role_t: ["native", "learning"],

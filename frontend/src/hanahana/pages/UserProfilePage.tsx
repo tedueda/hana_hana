@@ -7,7 +7,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { useSupabaseAuth } from '../auth/useSupabaseAuth';
-import { recordView } from '../api/discovery';
+import { recordProfileView } from '../api/premium';
+import CompatibilityCard from '../components/CompatibilityCard';
 import { loadMasterData, localizedName, type MasterData } from '../api/master';
 import { blockUser, reportUser } from '../api/matching';
 import { fetchProfileDetails, fetchPublicProfile, type ProfileDetails } from '../api/profile';
@@ -39,7 +40,7 @@ const UserProfilePage: React.FC = () => {
     loadMasterData().then(setMaster).catch(() => undefined);
     fetchPublicProfile(userId).then(setProfile).catch(() => setProfile(null));
     fetchProfileDetails(userId).then(setDetails).catch(() => undefined);
-    if (user && user.id !== userId) void recordView(userId, user.id);
+    if (user && user.id !== userId) void recordProfileView(userId);
   }, [userId, user]);
 
   if (profile === undefined) return <p className="text-center text-gray-500 py-10">{t('common.loading')}</p>;
@@ -112,6 +113,8 @@ const UserProfilePage: React.FC = () => {
               {profile.meeting_pref && <p><span className="text-gray-500">{t('profile.meeting')}:</span> {L.meetingPref[profile.meeting_pref]}</p>}
             </div>
           )}
+
+          {user?.id !== userId && <CompatibilityCard targetUserId={userId} />}
 
           {user?.id !== userId && (
             <>

@@ -25,6 +25,7 @@ export type TranslateErrorCode =
   | 'provider_failed'
   | 'unsupported_target_lang'
   | 'empty_text'
+  | 'premium_required'
   | 'network';
 
 export class TranslateError extends Error {
@@ -38,7 +39,7 @@ export class TranslateError extends Error {
 
 const KNOWN: ReadonlySet<string> = new Set<TranslateErrorCode>([
   'unauthorized', 'translation_disabled', 'inactive_member', 'message_not_found', 'not_participant',
-  'too_long', 'rate_limited', 'daily_limit', 'provider_failed', 'unsupported_target_lang', 'empty_text',
+  'too_long', 'rate_limited', 'daily_limit', 'provider_failed', 'unsupported_target_lang', 'empty_text', 'premium_required',
 ]);
 
 async function invoke(body: Record<string, string>): Promise<TranslateResult> {
@@ -66,6 +67,16 @@ export function translateMessage(messageId: string, targetLang: string): Promise
 /** 送信前の下書き翻訳。候補は利用者が確認・編集してから送信する */
 export function translateDraft(text: string, targetLang: string, sourceLang?: string): Promise<TranslateResult> {
   return invoke({ text, target_lang: targetLang, ...(sourceLang ? { source_lang: sourceLang } : {}) });
+}
+
+/** プレミアム: 自己紹介の添削 (同一言語)。結果は本人が確認して反映する */
+export function polishProfile(text: string, lang: string): Promise<TranslateResult> {
+  return invoke({ kind: 'profile_polish', text, target_lang: lang });
+}
+
+/** プレミアム: 自己紹介の翻訳補助 */
+export function translateProfile(text: string, targetLang: string): Promise<TranslateResult> {
+  return invoke({ kind: 'profile_translate', text, target_lang: targetLang });
 }
 
 /** 既存キャッシュを一括取得 (RLS で会話参加者のみ) */
