@@ -47,6 +47,8 @@ export const ko: Record<MessageKey, string> = {
   'landing.lead': '연애·친구·언어 교환·취미. 목적에 맞게 이웃 나라의 누군가와 연결되세요.',
   'landing.start': '무료로 시작하기',
   'landing.login': '로그인',
+  'landing.toApp': '회원 화면으로',
+  'landing.toRecommend': '추천 보기',
   'landing.f1.title': '한국인과 일본인이 만날 수 있어요',
   'landing.f1.body': '국적·거주지·나이 등 조건으로 나에게 맞는 상대를 찾을 수 있습니다.',
   'landing.f2.title': '연애만이 아니에요',
