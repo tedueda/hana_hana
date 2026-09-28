@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link, Navigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { Globe2, HeartHandshake, Languages, ShieldCheck, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useSupabaseAuth } from '../auth/useSupabaseAuth';
@@ -17,9 +17,8 @@ const FEATURES: { icon: React.ElementType; title: MessageKey; body: MessageKey }
 ];
 
 const LandingPage: React.FC = () => {
-  const { session, isLoading } = useSupabaseAuth();
+  const { session } = useSupabaseAuth();
   const { t } = useI18n();
-  if (!isLoading && session) return <Navigate to="/app" replace />;
 
   return (
     <PublicLayout>
@@ -27,8 +26,17 @@ const LandingPage: React.FC = () => {
         <div className="sm:rounded-3xl overflow-hidden shadow-sm">
           <HeroSlider>
             <div className="flex flex-row gap-3">
-              <Button asChild size="lg" className="bg-rose-600 hover:bg-rose-700 h-12 flex-1 sm:flex-none"><Link to="/app/register">{t('landing.start')}</Link></Button>
-              <Button asChild size="lg" variant="outline" className="h-12 bg-white/80 flex-1 sm:flex-none"><Link to="/app/login">{t('landing.login')}</Link></Button>
+              {session ? (
+                <>
+                  <Button asChild size="lg" className="bg-rose-600 hover:bg-rose-700 h-12 flex-1 sm:flex-none"><Link to="/app">{t('landing.toRecommend')}</Link></Button>
+                  <Button asChild size="lg" variant="outline" className="h-12 bg-white/80 flex-1 sm:flex-none"><Link to="/app/salon">{t('nav.salon')}</Link></Button>
+                </>
+              ) : (
+                <>
+                  <Button asChild size="lg" className="bg-rose-600 hover:bg-rose-700 h-12 flex-1 sm:flex-none"><Link to="/app/register">{t('landing.start')}</Link></Button>
+                  <Button asChild size="lg" variant="outline" className="h-12 bg-white/80 flex-1 sm:flex-none"><Link to="/app/login">{t('landing.login')}</Link></Button>
+                </>
+              )}
             </div>
           </HeroSlider>
         </div>

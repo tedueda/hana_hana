@@ -3,6 +3,7 @@ import { Link, NavLink } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { APP_NAME } from '../labels';
 import { useI18n } from '../i18n';
+import { useSupabaseAuth } from '../auth/useSupabaseAuth';
 import LangSwitch from '../components/LangSwitch';
 import type { MessageKey } from '../i18n/ja';
 
@@ -15,6 +16,7 @@ const NAV: { to: string; label: MessageKey }[] = [
 
 export const PublicHeader: React.FC = () => {
   const { t } = useI18n();
+  const { session } = useSupabaseAuth();
   return (
     <header className="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between gap-2">
       <Link to="/app/welcome" className="font-bold text-rose-600 text-lg shrink-0">{APP_NAME}</Link>
@@ -31,7 +33,11 @@ export const PublicHeader: React.FC = () => {
       </nav>
       <div className="flex items-center gap-2">
         <LangSwitch />
-        <Button asChild variant="ghost" size="sm" className="h-10"><Link to="/app/login">{t('landing.login')}</Link></Button>
+        {session ? (
+          <Button asChild variant="ghost" size="sm" className="h-10"><Link to="/app">{t('landing.toApp')}</Link></Button>
+        ) : (
+          <Button asChild variant="ghost" size="sm" className="h-10"><Link to="/app/login">{t('landing.login')}</Link></Button>
+        )}
       </div>
     </header>
   );

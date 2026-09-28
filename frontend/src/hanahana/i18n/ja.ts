@@ -48,6 +48,8 @@ export const ja = {
   'landing.lead': '恋愛・友達・言語交換・趣味。目的に合わせて、隣の国の誰かとつながろう。',
   'landing.start': '無料で始める',
   'landing.login': 'ログイン',
+  'landing.toApp': '会員画面へ',
+  'landing.toRecommend': 'おすすめを見る',
   'landing.f1.title': '日本人と韓国人が出会える',
   'landing.f1.body': '国籍・居住地・年齢などの条件から、あなたに合う相手を探せます。',
   'landing.f2.title': '恋愛だけじゃない',

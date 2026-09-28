@@ -192,6 +192,7 @@ function AppContent() {
       <>
         <ScrollToTop />
         <Routes>
+          <Route path="/" element={<Navigate to="/app/welcome" replace />} />
           <Route path="/app/*" element={<HanaHanaApp />} />
           <Route path="*" element={<Navigate to="/app" replace />} />
         </Routes>
