@@ -390,49 +390,10 @@ export const SalonPage: React.FC = () => {
           <h1 className="text-xl font-bold">{t('salon.title')}</h1>
           <p className="text-xs text-gray-500">{t('salon.lead')}</p>
         </div>
-        <div className="flex items-center gap-2 shrink-0">
-          {translationEnabled && (
-            <Button
-              type="button"
-              size="sm"
-              variant={showTr ? 'default' : 'outline'}
-              aria-pressed={showTr}
-              disabled={translating || !items?.length}
-              onClick={() => void translateFeed()}
-              className={cn('h-10 rounded-full px-3 gap-1', showTr ? 'bg-rose-600 hover:bg-rose-700 text-white' : 'border-rose-300 text-rose-700 hover:bg-rose-50')}
-            >
-              <Sparkles className="w-4 h-4" aria-hidden />
-              {translating ? t('salon.post.translating') : showTr ? t('salon.feed.showOriginal') : t('salon.post.translate')}
-            </Button>
-          )}
-          <Button asChild size="sm" className="h-10 bg-rose-600 hover:bg-rose-700">
-            <Link to="/app/salon/new"><Plus className="w-4 h-4" />{t('salon.newPost')}</Link>
-          </Button>
-        </div>
+        <Button asChild size="sm" className="h-10 bg-rose-600 hover:bg-rose-700 shrink-0">
+          <Link to="/app/salon/new"><Plus className="w-4 h-4" />{t('salon.newPost')}</Link>
+        </Button>
       </div>
-
-      {translationEnabled && (
-        <div className="flex items-center gap-2 px-3 py-1.5 bg-rose-50 rounded-xl text-xs text-rose-900">
-          <span className="truncate">{t('salon.feed.translateLead')}</span>
-          <div className="ml-auto flex items-center gap-1 shrink-0" role="group" aria-label={t('settings.translateTarget')}>
-            <Languages className="w-3.5 h-3.5 text-rose-600" aria-hidden />
-            <div className="flex rounded-full border border-rose-300 bg-white overflow-hidden">
-              {(['ja', 'ko'] as const).map((l) => (
-                <button
-                  key={l}
-                  type="button"
-                  onClick={() => changeTarget(l)}
-                  aria-pressed={targetLang === l}
-                  className={cn('px-3 min-h-8 font-medium', targetLang === l ? 'bg-rose-600 text-white' : 'text-rose-700 hover:bg-rose-100')}
-                >
-                  {l === 'ja' ? '日本語' : '한국어'}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
-      {trNotice && <p className="text-xs text-red-600" role="alert">{trNotice}</p>}
 
       <form
         className="relative"
@@ -477,6 +438,42 @@ export const SalonPage: React.FC = () => {
           {t('salon.rulesShort')} <span className="underline">{t('salon.rules')}</span>
         </span>
       </Link>
+
+      {translationEnabled && (
+        <div className="sticky top-[calc(48px+env(safe-area-inset-top))] z-10 -mx-4 px-4 py-2 bg-gray-50/95 backdrop-blur">
+          <div className="flex items-center gap-2 px-2 py-1.5 bg-rose-50 border border-rose-100 rounded-xl">
+            <Button
+              type="button"
+              size="sm"
+              variant={showTr ? 'default' : 'outline'}
+              aria-pressed={showTr}
+              disabled={translating || !items?.length}
+              onClick={() => void translateFeed()}
+              className={cn('h-9 rounded-full px-3 gap-1', showTr ? 'bg-rose-600 hover:bg-rose-700 text-white' : 'border-rose-300 bg-white text-rose-700 hover:bg-rose-100')}
+            >
+              <Sparkles className="w-4 h-4" aria-hidden />
+              {translating ? t('salon.post.translating') : showTr ? t('salon.feed.showOriginal') : t('salon.post.translate')}
+            </Button>
+            <div className="ml-auto flex items-center gap-1 shrink-0 text-xs" role="group" aria-label={t('settings.translateTarget')}>
+              <Languages className="w-3.5 h-3.5 text-rose-600" aria-hidden />
+              <div className="flex rounded-full border border-rose-300 bg-white overflow-hidden">
+                {(['ja', 'ko'] as const).map((l) => (
+                  <button
+                    key={l}
+                    type="button"
+                    onClick={() => changeTarget(l)}
+                    aria-pressed={targetLang === l}
+                    className={cn('px-3 min-h-8 font-medium', targetLang === l ? 'bg-rose-600 text-white' : 'text-rose-700 hover:bg-rose-100')}
+                  >
+                    {l === 'ja' ? '日本語' : '한국어'}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+          {trNotice && <p className="text-xs text-red-600 mt-1" role="alert">{trNotice}</p>}
+        </div>
+      )}
 
       {error && <p className="text-sm text-red-600">{error}</p>}
       {items === null && !error && <p className="text-center text-gray-500 py-10">{t('common.loading')}</p>}

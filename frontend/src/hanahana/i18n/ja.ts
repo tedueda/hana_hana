@@ -616,7 +616,6 @@ export const ja = {
   'salon.post.viewProfile': 'プロフィールを見る',
   'salon.post.translate': 'AI翻訳',
   'salon.post.translated': 'AI翻訳',
-  'salon.feed.translateLead': '投稿一覧をまとめてAI翻訳できます',
   'salon.feed.showOriginal': '原文',
   'salon.feed.translatedBadge': 'AI翻訳',
   'salon.post.showOriginal': '原文を表示',
