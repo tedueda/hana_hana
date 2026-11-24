@@ -778,9 +778,18 @@ export const SalonPostPage: React.FC = () => {
         });
         // サーバー側の上限判定を超えないよう1件ずつ翻訳する
         void (async () => {
-          for (const it of pending) {
+          for (const [i, it] of pending.entries()) {
             if (gen !== runGen.current) return;
-            await run(it.k, it.fn);
+            if (!(await run(it.k, it.fn))) {
+              // 上限到達などで失敗したら残りは送らず、手動の「AI翻訳」に戻す
+              const rest = pending.slice(i + 1).map((r) => r.k);
+              setTrs((prev) => {
+                const next = { ...prev };
+                for (const k of rest) if (next[k]?.status === 'loading') delete next[k];
+                return next;
+              });
+              return;
+            }
           }
         })();
       });
@@ -796,14 +805,16 @@ export const SalonPostPage: React.FC = () => {
   const key = (type: 'post_title' | 'post_body' | 'comment', id: string) => `${type}:${id}`;
   const toggle = (k: string) =>
     setTrs((prev) => (prev[k]?.status === 'done' ? { ...prev, [k]: { ...prev[k], show: !(prev[k] as { show: boolean }).show } } : prev));
-  const run = async (k: string, fn: () => Promise<{ translated: string }>) => {
+  const run = async (k: string, fn: () => Promise<{ translated: string }>): Promise<boolean> => {
     const gen = runGen.current;
     setTrs((prev) => ({ ...prev, [k]: { status: 'loading' } }));
     try {
       const r = await fn();
       if (gen === runGen.current) setTrs((prev) => ({ ...prev, [k]: { status: 'done', text: r.translated, show: true } }));
+      return true;
     } catch (e) {
       if (gen === runGen.current) setTrs((prev) => ({ ...prev, [k]: { status: 'error', message: trErr(e) } }));
+      return false;
     }
   };
   const translatePost = () => {
