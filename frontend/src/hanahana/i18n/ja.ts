@@ -570,6 +570,7 @@ export const ja = {
   'report.personal_info': '個人情報の記載',
   'legal.salonRules': 'サロン利用ルール',
   'nav.salon': 'サロン',
+  'nav.home': 'ホームに戻る',
   'salon.title': '交流サロン',
   'salon.lead': '日韓のことば・文化・旅について、みんなで話そう',
   'salon.entryLead': 'テーマ別に投稿・コメントできる掲示板（無料）',
