@@ -326,6 +326,13 @@ export const SalonPage: React.FC = () => {
 
   const showTrRef = useRef(false);
   showTrRef.current = showTr;
+  // 画面を離れたら実行中の翻訳を止める（翻訳回数を消費し続けないように）
+  useEffect(
+    () => () => {
+      runGen.current++;
+    },
+    [],
+  );
 
   /** キャッシュに無い投稿を順に翻訳（上限到達・エラー時はそこで停止して理由を表示） */
   const runPending = async (list: SalonFeedItem[], known: Record<string, { title?: string; body?: string }>, target: string) => {
@@ -762,15 +769,29 @@ export const SalonPostPage: React.FC = () => {
       .catch(() => new Map<string, string>())
       .then((m) => {
         if (gen !== runGen.current) return;
+        const pending = items.filter((it) => !m.has(it.k));
         setTrs((prev) => {
           const next = { ...prev };
           for (const [k, v] of m) if (!next[k]) next[k] = { status: 'done', text: v, show: true };
+          for (const it of pending) if (!next[it.k]) next[it.k] = { status: 'loading' };
           return next;
         });
-        for (const it of items) if (!m.has(it.k)) void run(it.k, it.fn);
+        // サーバー側の上限判定を超えないよう1件ずつ翻訳する
+        void (async () => {
+          for (const it of pending) {
+            if (gen !== runGen.current) return;
+            await run(it.k, it.fn);
+          }
+        })();
       });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [post, comments, targetLang, translationEnabled, targetReady]);
+  useEffect(
+    () => () => {
+      runGen.current++;
+    },
+    [],
+  );
 
   const key = (type: 'post_title' | 'post_body' | 'comment', id: string) => `${type}:${id}`;
   const toggle = (k: string) =>
