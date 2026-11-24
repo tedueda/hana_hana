@@ -559,6 +559,7 @@ export const ko: Record<MessageKey, string> = {
   'report.personal_info': '개인정보 기재',
   'legal.salonRules': '살롱 이용 규칙',
   'nav.salon': '살롱',
+  'nav.home': '홈으로',
   'salon.title': '교류 살롱',
   'salon.lead': '한일의 언어·문화·여행에 대해 함께 이야기해요',
   'salon.entryLead': '주제별로 글과 댓글을 남길 수 있는 게시판 (무료)',

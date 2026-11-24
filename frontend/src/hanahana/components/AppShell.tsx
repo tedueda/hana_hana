@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { NavLink, Outlet } from 'react-router-dom';
+import { Link, NavLink, Outlet } from 'react-router-dom';
 import { HeartHandshake, MessageCircle, MessagesSquare, Search, Sparkles, UserRound } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { APP_NAME } from '../labels';
@@ -73,7 +73,9 @@ const AppShell: React.FC = () => {
     <div className="min-h-screen bg-gray-50 flex flex-col">
       <header className="sticky top-0 z-20 bg-white/90 backdrop-blur border-b border-gray-200 pt-[env(safe-area-inset-top)]">
         <div className="max-w-3xl mx-auto px-4 h-12 flex items-center justify-between">
-          <span className="font-bold text-rose-600 tracking-wide">{APP_NAME}</span>
+          <Link to="/app/welcome" aria-label={t('nav.home')} className="font-bold text-rose-600 tracking-wide py-2 hover:opacity-80">
+            {APP_NAME}
+          </Link>
           <NavLink
             to="/app/salon"
             aria-label={t('nav.salon')}
