@@ -162,18 +162,21 @@ const Chip: React.FC<{ active: boolean; onClick: () => void; children: React.Rea
 
 type TrState = { status: 'loading' } | { status: 'done'; text: string; show: boolean } | { status: 'error'; message: string };
 
+const srcLang = (lang: string, text: string) => (lang !== 'und' ? lang : guessLang(text));
+
 /** 原文 + AI翻訳の切替表示 */
 const Translatable: React.FC<{
   original: string;
   lang: string;
+  target: string;
   tr: TrState | undefined;
   enabled: boolean;
   onTranslate: () => void;
   onToggle: () => void;
   className?: string;
-}> = ({ original, lang, tr, enabled, onTranslate, onToggle, className }) => {
-  const { t, lang: uiLang } = useI18n();
-  const same = lang !== 'und' ? lang === uiLang : guessLang(original) === uiLang;
+}> = ({ original, lang, target, tr, enabled, onTranslate, onToggle, className }) => {
+  const { t } = useI18n();
+  const same = srcLang(lang, original) === target;
   const showTr = tr?.status === 'done' && tr.show;
   return (
     <div className={className}>
@@ -261,8 +264,11 @@ export const SalonPage: React.FC = () => {
   const trErr = useTranslateError();
   const [translationEnabled, setTranslationEnabled] = useState(false);
   const [targetLang, setTargetLang] = useState<string>(lang);
+  const [targetReady, setTargetReady] = useState(false);
   const [feedTrs, setFeedTrs] = useState<Record<string, { title?: string; body?: string }>>({});
-  const [showTr, setShowTr] = useState(false);
+  // 選択中の言語で自動表示する（原文ボタンで切替）
+  const [showTr, setShowTr] = useState(true);
+  const runGen = useRef(0);
   const [translating, setTranslating] = useState(false);
   const [trNotice, setTrNotice] = useState('');
 
@@ -273,19 +279,24 @@ export const SalonPage: React.FC = () => {
         setTranslationEnabled(p.translation_enabled);
       })
       .catch(() => undefined);
-    if (user) fetchMySettings(user.id).then((s) => s.translate_target_lang && setTargetLang(s.translate_target_lang)).catch(() => undefined);
+    if (user)
+      fetchMySettings(user.id)
+        .then((s) => s.translate_target_lang && setTargetLang(s.translate_target_lang))
+        .catch(() => undefined)
+        .finally(() => setTargetReady(true));
+    else setTargetReady(true);
     void markSalonNotificationsRead().catch(() => undefined);
   }, [user]);
 
   /** 翻訳対象 = 本文の言語が翻訳先と異なる投稿 */
   const needsTr = useCallback(
-    (it: SalonFeedItem) => (it.body_lang !== 'und' ? it.body_lang : guessLang(`${it.title}\n${it.body}`)) !== targetLang,
+    (it: SalonFeedItem) => srcLang(it.body_lang, `${it.title}\n${it.body}`) !== targetLang,
     [targetLang],
   );
 
   // 一覧が変わったらキャッシュ済み翻訳を先に取り込む（翻訳回数を消費しない）
   useEffect(() => {
-    if (!items || !translationEnabled) return;
+    if (!items || !translationEnabled || !targetReady) return;
     const targets = items.filter(needsTr).flatMap((it) => [
       { type: 'post_title' as const, id: it.id },
       { type: 'post_body' as const, id: it.id },
@@ -311,15 +322,26 @@ export const SalonPage: React.FC = () => {
       alive = false;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [items, targetLang, translationEnabled, needsTr]);
+  }, [items, targetLang, translationEnabled, targetReady, needsTr]);
 
   const showTrRef = useRef(false);
   showTrRef.current = showTr;
+  // 画面を離れたら実行中の翻訳を止める（翻訳回数を消費し続けないように）
+  useEffect(
+    () => () => {
+      runGen.current++;
+    },
+    [],
+  );
 
   /** キャッシュに無い投稿を順に翻訳（上限到達・エラー時はそこで停止して理由を表示） */
   const runPending = async (list: SalonFeedItem[], known: Record<string, { title?: string; body?: string }>, target: string) => {
     const pending = list.filter((it) => needsTr(it) && !(known[it.id]?.title && known[it.id]?.body));
-    if (pending.length === 0) return;
+    const gen = ++runGen.current;
+    if (pending.length === 0) {
+      setTranslating(false);
+      return;
+    }
     setTranslating(true);
     setTrNotice('');
     try {
@@ -327,13 +349,14 @@ export const SalonPage: React.FC = () => {
         for (const field of ['title', 'body'] as const) {
           if (known[it.id]?.[field]) continue;
           const r = await translateSalonPost(it.id, field, target);
+          if (gen !== runGen.current) return;
           setFeedTrs((prev) => ({ ...prev, [it.id]: { ...prev[it.id], [field]: r.translated } }));
         }
       }
     } catch (e) {
-      setTrNotice(trErr(e));
+      if (gen === runGen.current) setTrNotice(trErr(e));
     } finally {
-      setTranslating(false);
+      if (gen === runGen.current) setTranslating(false);
     }
   };
 
@@ -341,6 +364,8 @@ export const SalonPage: React.FC = () => {
   const translateFeed = () => {
     if (!items || translating) return;
     if (showTr) {
+      runGen.current++;
+      setTranslating(false);
       setShowTr(false);
       return;
     }
@@ -349,10 +374,15 @@ export const SalonPage: React.FC = () => {
   };
 
   const changeTarget = (l: string) => {
-    if (l === targetLang) return;
+    if (l === targetLang) {
+      if (!showTr) translateFeed();
+      return;
+    }
+    runGen.current++;
     setTargetLang(l);
     setFeedTrs({});
     setTrNotice('');
+    setShowTr(true);
     if (user) upsertMySettings(user.id, { translate_target_lang: l }).catch(() => undefined);
   };
 
@@ -688,7 +718,11 @@ export const SalonPostPage: React.FC = () => {
   const [error, setError] = useState('');
   const [translationEnabled, setTranslationEnabled] = useState(false);
   const [targetLang, setTargetLang] = useState<string>(lang);
+  const [targetReady, setTargetReady] = useState(false);
   const [trs, setTrs] = useState<Record<string, TrState>>({});
+  const trsRef = useRef(trs);
+  trsRef.current = trs;
+  const runGen = useRef(0);
   const [report, setReport] = useState<{ authorId: string; commentId?: string } | null>(null);
   const [reason, setReason] = useState<ReportReason>('inappropriate_content');
   const [detail, setDetail] = useState('');
@@ -706,38 +740,81 @@ export const SalonPostPage: React.FC = () => {
       setError(err(e));
     });
     fetchPublicSettings().then((p) => setTranslationEnabled(p.translation_enabled)).catch(() => undefined);
-    if (user) fetchMySettings(user.id).then((s) => s.translate_target_lang && setTargetLang(s.translate_target_lang)).catch(() => undefined);
+    if (user)
+      fetchMySettings(user.id)
+        .then((s) => s.translate_target_lang && setTargetLang(s.translate_target_lang))
+        .catch(() => undefined)
+        .finally(() => setTargetReady(true));
+    else setTargetReady(true);
   }, [load, err, user]);
 
-  // 既存キャッシュを先に反映
+  // 選択中の言語と異なる投稿・コメントを自動で翻訳表示（キャッシュ優先）
   useEffect(() => {
-    if (!post || !translationEnabled) return;
-    const targets = [
-      { type: 'post_title' as const, id: post.id },
-      { type: 'post_body' as const, id: post.id },
-      ...comments.map((c) => ({ type: 'comment' as const, id: c.id })),
-    ];
-    fetchSalonTranslations(targets, targetLang)
+    if (!post || !translationEnabled || !targetReady) return;
+    const target = targetLang;
+    const items = [
+      ...(srcLang(post.body_lang, `${post.title}\n${post.body}`) !== target
+        ? [
+            { k: key('post_title', post.id), type: 'post_title' as const, id: post.id, fn: () => translateSalonPost(post.id, 'title', target) },
+            { k: key('post_body', post.id), type: 'post_body' as const, id: post.id, fn: () => translateSalonPost(post.id, 'body', target) },
+          ]
+        : []),
+      ...comments
+        .filter((c) => srcLang(c.body_lang, c.body) !== target)
+        .map((c) => ({ k: key('comment', c.id), type: 'comment' as const, id: c.id, fn: () => translateSalonComment(c.id, target) })),
+    ].filter((it) => !trsRef.current[it.k]);
+    if (items.length === 0) return;
+    const gen = runGen.current;
+    fetchSalonTranslations(items.map(({ type, id }) => ({ type, id })), target)
+      .catch(() => new Map<string, string>())
       .then((m) => {
+        if (gen !== runGen.current) return;
+        const pending = items.filter((it) => !m.has(it.k));
         setTrs((prev) => {
           const next = { ...prev };
           for (const [k, v] of m) if (!next[k]) next[k] = { status: 'done', text: v, show: true };
+          for (const it of pending) if (!next[it.k]) next[it.k] = { status: 'loading' };
           return next;
         });
-      })
-      .catch(() => undefined);
-  }, [post, comments, targetLang, translationEnabled]);
+        // サーバー側の上限判定を超えないよう1件ずつ翻訳する
+        void (async () => {
+          for (const [i, it] of pending.entries()) {
+            if (gen !== runGen.current) return;
+            if (!(await run(it.k, it.fn))) {
+              // 上限到達などで失敗したら残りは送らず、手動の「AI翻訳」に戻す
+              const rest = pending.slice(i + 1).map((r) => r.k);
+              setTrs((prev) => {
+                const next = { ...prev };
+                for (const k of rest) if (next[k]?.status === 'loading') delete next[k];
+                return next;
+              });
+              return;
+            }
+          }
+        })();
+      });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [post, comments, targetLang, translationEnabled, targetReady]);
+  useEffect(
+    () => () => {
+      runGen.current++;
+    },
+    [],
+  );
 
   const key = (type: 'post_title' | 'post_body' | 'comment', id: string) => `${type}:${id}`;
   const toggle = (k: string) =>
     setTrs((prev) => (prev[k]?.status === 'done' ? { ...prev, [k]: { ...prev[k], show: !(prev[k] as { show: boolean }).show } } : prev));
-  const run = async (k: string, fn: () => Promise<{ translated: string }>) => {
+  const run = async (k: string, fn: () => Promise<{ translated: string }>): Promise<boolean> => {
+    const gen = runGen.current;
     setTrs((prev) => ({ ...prev, [k]: { status: 'loading' } }));
     try {
       const r = await fn();
-      setTrs((prev) => ({ ...prev, [k]: { status: 'done', text: r.translated, show: true } }));
+      if (gen === runGen.current) setTrs((prev) => ({ ...prev, [k]: { status: 'done', text: r.translated, show: true } }));
+      return true;
     } catch (e) {
-      setTrs((prev) => ({ ...prev, [k]: { status: 'error', message: trErr(e) } }));
+      if (gen === runGen.current) setTrs((prev) => ({ ...prev, [k]: { status: 'error', message: trErr(e) } }));
+      return false;
     }
   };
   const translatePost = () => {
@@ -748,6 +825,7 @@ export const SalonPostPage: React.FC = () => {
 
   const changeTarget = (l: string) => {
     if (l === targetLang) return;
+    runGen.current++;
     setTargetLang(l);
     setTrs({});
     if (user) upsertMySettings(user.id, { translate_target_lang: l }).catch(() => undefined);
@@ -906,6 +984,7 @@ export const SalonPostPage: React.FC = () => {
         <Translatable
           original={post.title}
           lang={post.body_lang}
+          target={targetLang}
           tr={trs[key('post_title', post.id)]}
           enabled={false}
           onTranslate={translatePost}
@@ -915,6 +994,7 @@ export const SalonPostPage: React.FC = () => {
         <Translatable
           original={post.body}
           lang={post.body_lang}
+          target={targetLang}
           tr={trs[key('post_body', post.id)]}
           enabled={translationEnabled}
           onTranslate={translatePost}
@@ -976,6 +1056,7 @@ export const SalonPostPage: React.FC = () => {
               <Translatable
                 original={c.body}
                 lang={c.body_lang}
+                target={targetLang}
                 tr={trs[k]}
                 enabled={translationEnabled}
                 onTranslate={() => void run(k, () => translateSalonComment(c.id, targetLang))}
