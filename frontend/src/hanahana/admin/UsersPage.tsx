@@ -102,7 +102,7 @@ const UsersPage: React.FC = () => {
               <TableRow key={u.id}>
                 <TableCell>
                   <Link to={`/app/admin/users/${u.id}`} className="text-blue-600 hover:underline font-medium">{u.nickname}</Link>
-                  {!u.onboarding_completed && <span className="ml-1 text-[10px] text-gray-400">(未完了)</span>}
+                  {!u.onboarding_completed && <span className="ml-1 text-[11px] text-gray-400">(未完了)</span>}
                 </TableCell>
                 <TableCell className="text-xs">{u.email}</TableCell>
                 <TableCell>{NATIONALITY_LABELS[u.nationality]}</TableCell>

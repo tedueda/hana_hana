@@ -86,7 +86,7 @@ const ConversationRow: React.FC<{ c: ConversationSummary; locale: string }> = ({
             <span className={unread ? 'font-semibold truncate' : 'font-medium truncate'}>
               {c.peer_nickname ?? t('matches.hiddenUser')}
             </span>
-            <time className="text-[11px] text-gray-400 shrink-0">{formatTime(c.last_message_at, locale)}</time>
+            <time className="text-xs text-gray-400 shrink-0">{formatTime(c.last_message_at, locale)}</time>
           </div>
           <p className={`text-sm truncate ${unread ? 'text-gray-900' : 'text-gray-500'}`}>
             {c.last_message_preview ?? t('chats.noMessage')}

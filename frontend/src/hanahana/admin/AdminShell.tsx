@@ -35,7 +35,7 @@ const AdminShell: React.FC = () => {
         <aside className="bg-slate-900 text-slate-100 md:w-56 md:min-h-screen shrink-0">
           <div className="px-4 h-12 flex items-center justify-between border-b border-slate-700">
             <span className="font-bold tracking-wide">{APP_NAME} 管理</span>
-            <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-700">{role}</span>
+            <span className="text-[11px] px-1.5 py-0.5 rounded bg-slate-700">{role}</span>
           </div>
           <nav className="flex md:flex-col overflow-x-auto md:overflow-visible">
             {NAV.map(({ to, label, icon: Icon, end }) => (

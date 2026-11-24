@@ -316,7 +316,7 @@ const ChatPage: React.FC = () => {
           >
             <Sparkles className="w-3.5 h-3.5" />
             {t('chat.translate')}
-            {pendingTargets.length > 0 && <span className="text-[10px] opacity-90">({pendingTargets.length})</span>}
+            {pendingTargets.length > 0 && <span className="text-[11px] opacity-90">({pendingTargets.length})</span>}
           </Button>
           {translatedCount > 0 && !anyOriginalShown && (
             <button type="button" onClick={showAllOriginal} className="text-xs text-rose-700 underline-offset-2 hover:underline min-h-8">
@@ -342,7 +342,7 @@ const ChatPage: React.FC = () => {
         </div>
       )}
       {autoTranslate && (
-        <p className="px-3 py-1 text-[11px] text-gray-500 bg-white border-b border-gray-100 flex items-center gap-1">
+        <p className="px-3 py-1 text-xs text-gray-500 bg-white border-b border-gray-100 flex items-center gap-1">
           <Languages className="w-3 h-3" />{t('chat.autoTranslateOn')}
         </p>
       )}
@@ -362,7 +362,7 @@ const ChatPage: React.FC = () => {
               <div className={cn('max-w-[80%] rounded-2xl px-3 py-2 text-sm break-words', mine ? 'bg-rose-600 text-white rounded-br-sm' : 'bg-white border border-gray-200 rounded-bl-sm')}>
                 {showTranslated ? (
                   <>
-                    <div className="flex items-center gap-1 text-[10px] text-rose-600 mb-0.5">
+                    <div className="flex items-center gap-1 text-[11px] text-rose-600 mb-0.5">
                       <Sparkles className="w-3 h-3" />{t('chat.translated')}
                     </div>
                     <p className="whitespace-pre-wrap">{tr.text}</p>
@@ -387,7 +387,7 @@ const ChatPage: React.FC = () => {
                     <button type="button" onClick={() => void requestTranslation(m)} className="text-rose-600 hover:underline min-h-6">{t('chat.retry')}</button>
                   </div>
                 )}
-                <div className={cn('text-[10px] mt-0.5 text-right flex items-center justify-end gap-1', mine ? 'text-rose-100' : 'text-gray-400')}>
+                <div className={cn('text-[11px] mt-0.5 text-right flex items-center justify-end gap-1', mine ? 'text-rose-100' : 'text-gray-400')}>
                   {m.ai_assisted && (
                     <span className="inline-flex items-center gap-0.5"><Sparkles className="w-2.5 h-2.5" />{t('chat.aiAssisted')}</span>
                   )}

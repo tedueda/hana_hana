@@ -48,7 +48,7 @@ const FootprintsPage: React.FC = () => {
               regionName={regionName(peer.residence_region_id)}
               footer={
                 <div className="space-y-1.5">
-                  <p className="text-[11px] text-gray-500">{formatDate(fp.last_viewed_at, locale)} · {t('footprints.views', { n: Number(fp.view_count) })}</p>
+                  <p className="text-xs text-gray-500">{formatDate(fp.last_viewed_at, locale)} · {t('footprints.views', { n: Number(fp.view_count) })}</p>
                   <LikeButton profile={peer} liked={liked.has(peer.id ?? '')} onLike={like} />
                 </div>
               }

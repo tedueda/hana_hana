@@ -52,7 +52,7 @@ const STAT_LABELS: Record<string, string> = {
 };
 
 const FlagBadges: React.FC<{ flagged: boolean; flag_reason: string | null; is_hidden: boolean; deleted_at: string | null; open_report_count: number }> = (p) => (
-  <div className="flex flex-wrap gap-1 text-[11px]">
+  <div className="flex flex-wrap gap-1 text-xs">
     {p.deleted_at && <span className="px-1.5 py-0.5 rounded bg-gray-200 text-gray-700">削除済</span>}
     {p.is_hidden && <span className="px-1.5 py-0.5 rounded bg-yellow-100 text-yellow-800">非表示</span>}
     {p.flagged && <span className="px-1.5 py-0.5 rounded bg-orange-100 text-orange-800">検知: {p.flag_reason ?? '-'}</span>}
@@ -199,7 +199,7 @@ const SalonAdminPage: React.FC = () => {
         {Object.entries(STAT_LABELS).map(([k, label]) => (
           <Card key={k}>
             <CardContent className="p-3">
-              <p className="text-[11px] text-gray-500">{label}</p>
+              <p className="text-xs text-gray-500">{label}</p>
               <p className="text-lg font-semibold">{stats[k] ?? '-'}</p>
             </CardContent>
           </Card>

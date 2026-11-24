@@ -191,7 +191,7 @@ const SettingsPage: React.FC = () => {
         <MenuRow to="/app/help" icon={HelpCircle} label={t('settings.help')} />
       </Section>
 
-      <p className="text-center text-[11px] text-gray-400 flex items-center justify-center gap-1">
+      <p className="text-center text-xs text-gray-400 flex items-center justify-center gap-1">
         <Bell className="w-3 h-3" aria-hidden /> {user?.email}
       </p>
     </div>

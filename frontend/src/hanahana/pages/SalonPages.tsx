@@ -224,7 +224,7 @@ const PostCard: React.FC<{ item: SalonFeedItem; cat?: SalonCategory; tr?: { titl
       <h2 className="text-base font-semibold break-words leading-snug">{tr?.title ?? item.title}</h2>
       <p className="text-sm text-gray-600 line-clamp-2 break-words">{tr?.body ?? item.body}</p>
       {tr && (
-        <p className="inline-flex items-center gap-1 text-[11px] text-rose-600">
+        <p className="inline-flex items-center gap-1 text-xs text-rose-600">
           <Sparkles className="w-3 h-3" aria-hidden />
           {t('salon.feed.translatedBadge')}
         </p>
@@ -830,7 +830,7 @@ export const SalonPostPage: React.FC = () => {
       <Avatar path={photo} name={nickname} className={cn(small ? 'w-7 h-7' : 'w-9 h-9', 'rounded-full shrink-0')} />
       <div className="min-w-0">
         <p className={cn('truncate', small ? 'text-xs font-medium' : 'text-sm font-medium')}>{nickname}</p>
-        <p className="text-[11px] text-gray-400">{formatDate(date, locale, { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
+        <p className="text-xs text-gray-400">{formatDate(date, locale, { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
       </div>
     </Link>
   );
@@ -972,7 +972,7 @@ export const SalonPostPage: React.FC = () => {
                   </DropdownMenu>
                 </div>
               </div>
-              {c.is_hidden && <p className="text-[11px] text-amber-800">{t('salon.post.hidden')}</p>}
+              {c.is_hidden && <p className="text-xs text-amber-800">{t('salon.post.hidden')}</p>}
               <Translatable
                 original={c.body}
                 lang={c.body_lang}
@@ -987,7 +987,7 @@ export const SalonPostPage: React.FC = () => {
         })}
       </section>
 
-      <p className="text-[11px] text-gray-400">{t('salon.dmNote')}</p>
+      <p className="text-xs text-gray-400">{t('salon.dmNote')}</p>
 
       {!closed && (
         <form onSubmit={send} className="sticky bottom-[calc(64px+env(safe-area-inset-bottom))] bg-gray-50 pt-2 pb-1 space-y-1">

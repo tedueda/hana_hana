@@ -44,7 +44,7 @@ const Field: React.FC<{ label: string; required?: boolean; children: React.React
     <div className="space-y-1.5">
       <Label className="flex items-center gap-1.5">
         {label}
-        {required && <span className="text-[10px] text-rose-600 border border-rose-200 rounded px-1">{t('common.required')}</span>}
+        {required && <span className="text-[11px] text-rose-600 border border-rose-200 rounded px-1">{t('common.required')}</span>}
       </Label>
       {children}
       {hint && <p className="text-xs text-gray-500">{hint}</p>}
@@ -271,7 +271,7 @@ export const PhotoStep: React.FC<StepProps & { userId: string }> = ({ form, patc
           <div key={p.id} className={cn('relative rounded-xl overflow-hidden border-2', p.is_primary ? 'border-rose-500' : 'border-transparent')}>
             <Avatar path={p.storage_path} name={form.nickname} className="aspect-[4/5]" />
             {p.is_primary ? (
-              <span className="absolute bottom-1 left-1 bg-rose-600 text-white text-[10px] px-1.5 py-0.5 rounded">{t('form.mainPhoto')}</span>
+              <span className="absolute bottom-1 left-1 bg-rose-600 text-white text-[11px] px-1.5 py-0.5 rounded">{t('form.mainPhoto')}</span>
             ) : (
               <button type="button" onClick={() => makePrimary(p)} aria-label={t('form.setMain')} className="absolute bottom-1 left-1 bg-black/60 text-white rounded-full p-1.5">
                 <Star className="w-3.5 h-3.5" />

@@ -47,7 +47,7 @@ const CompatibilityCard: React.FC<{ targetUserId: string }> = ({ targetUserId })
           {data.reasons.length > 0 && (
             <div className="flex flex-wrap gap-1">
               {data.reasons.map((r) => (
-                <span key={r} className="text-[11px] px-2 py-0.5 rounded-full bg-white border border-rose-200 text-rose-700">
+                <span key={r} className="text-xs px-2 py-0.5 rounded-full bg-white border border-rose-200 text-rose-700">
                   {t(`reason.${r}` as MessageKey)}
                 </span>
               ))}

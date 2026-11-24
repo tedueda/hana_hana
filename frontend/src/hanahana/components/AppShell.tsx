@@ -63,7 +63,7 @@ const AppShell: React.FC = () => {
     badge === 'unread' && unread > 0 ? (
       <span
         aria-label={t('chats.unreadAria', { n: unread })}
-        className="absolute -top-1 -right-2 min-w-[18px] h-[18px] px-1 rounded-full bg-rose-600 text-white text-[10px] font-bold flex items-center justify-center"
+        className="absolute -top-1 -right-2 min-w-[18px] h-[18px] px-1 rounded-full bg-rose-600 text-white text-[11px] font-bold flex items-center justify-center"
       >
         {unread > 99 ? '99+' : unread}
       </span>
@@ -86,7 +86,7 @@ const AppShell: React.FC = () => {
             <MessagesSquare className="w-5 h-5" aria-hidden />
             {t('nav.salon')}
             {salonUnread > 0 && (
-              <span className="absolute -top-0.5 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-rose-600 text-white text-[10px] font-bold flex items-center justify-center">
+              <span className="absolute -top-0.5 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-rose-600 text-white text-[11px] font-bold flex items-center justify-center">
                 {salonUnread > 99 ? '99+' : salonUnread}
               </span>
             )}
@@ -113,7 +113,7 @@ const AppShell: React.FC = () => {
             >
               {t('nav.salon')}
               {salonUnread > 0 && (
-                <span className="absolute -top-1 -right-2 min-w-[18px] h-[18px] px-1 rounded-full bg-rose-600 text-white text-[10px] font-bold flex items-center justify-center">
+                <span className="absolute -top-1 -right-2 min-w-[18px] h-[18px] px-1 rounded-full bg-rose-600 text-white text-[11px] font-bold flex items-center justify-center">
                   {salonUnread > 99 ? '99+' : salonUnread}
                 </span>
               )}
@@ -138,7 +138,7 @@ const AppShell: React.FC = () => {
               end={end}
               className={({ isActive }) =>
                 cn(
-                  'flex flex-col items-center justify-center min-h-[56px] py-2 text-[11px] focus:outline-none focus-visible:bg-rose-50',
+                  'flex flex-col items-center justify-center min-h-[56px] py-2 text-xs focus:outline-none focus-visible:bg-rose-50',
                   isActive ? 'text-rose-600 font-medium' : 'text-gray-500',
                 )
               }
