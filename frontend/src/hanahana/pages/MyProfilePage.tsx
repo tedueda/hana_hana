@@ -122,7 +122,7 @@ const MyProfilePage: React.FC = () => {
               <Badge variant="secondary">{t(tierKey)}</Badge>
             </div>
             <div className="mt-2">
-              <div className="flex justify-between text-[11px] text-gray-500 mb-1">
+              <div className="flex justify-between text-xs text-gray-500 mb-1">
                 <span>{t('my.completeness')}</span>
                 <span>{pct}%</span>
               </div>

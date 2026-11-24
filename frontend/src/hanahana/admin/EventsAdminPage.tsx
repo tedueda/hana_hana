@@ -131,7 +131,7 @@ const EventsAdminPage: React.FC = () => {
                 <p className="font-semibold">{e.title_ja} <span className="text-gray-400 font-normal">/ {e.title_ko}</span></p>
                 <p className="text-xs text-gray-500">{fmtDate(e.starts_at)} · {e.is_online ? 'オンライン' : e.location_ja} · 定員 {e.capacity ?? '無制限'} · ¥{e.price_jpy.toLocaleString()}</p>
               </div>
-              <div className="flex flex-col items-end gap-1 text-[11px]">
+              <div className="flex flex-col items-end gap-1 text-xs">
                 <span className={`px-2 py-0.5 rounded-full ${e.published_at ? 'bg-emerald-100 text-emerald-800' : 'bg-gray-200 text-gray-700'}`}>{e.published_at ? '公開中' : '非公開'}</span>
                 {e.canceled_at && <span className="px-2 py-0.5 rounded-full bg-red-100 text-red-800">中止</span>}
               </div>

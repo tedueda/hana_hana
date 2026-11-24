@@ -62,7 +62,7 @@ const ProfileAiAssist: React.FC<{ bio: string; onApply: (next: string) => void }
             <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 space-y-2">
               <p className="text-xs font-semibold text-amber-900">{t('polish.resultTitle')}</p>
               <p className="text-sm whitespace-pre-wrap break-words">{suggestion}</p>
-              <p className="text-[11px] text-amber-800">{t('polish.resultLead')}</p>
+              <p className="text-xs text-amber-800">{t('polish.resultLead')}</p>
               <div className="flex flex-wrap gap-2">
                 <Button type="button" size="sm" className="bg-rose-500 hover:bg-rose-600" onClick={() => { onApply(suggestion); setSuggestion(null); }}>{t('polish.apply')}</Button>
                 <Button type="button" size="sm" variant="outline" onClick={() => { onApply(`${bio.trimEnd()}\n\n${suggestion}`.slice(0, 1000)); setSuggestion(null); }}>{t('polish.applyAppend')}</Button>

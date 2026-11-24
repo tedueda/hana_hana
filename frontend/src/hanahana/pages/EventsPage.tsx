@@ -45,7 +45,7 @@ const EventCard: React.FC<{ ev: EventRow; onChanged: () => void }> = ({ ev, onCh
     <article className="bg-white rounded-2xl border border-gray-100 p-4 space-y-2" data-testid="event-card">
       <div className="flex items-start justify-between gap-2">
         <h2 className="text-base font-bold leading-snug break-words">{title}</h2>
-        {canceled && <span className="text-[11px] px-2 py-0.5 rounded-full bg-gray-200 text-gray-700 shrink-0">{t('events.canceled')}</span>}
+        {canceled && <span className="text-xs px-2 py-0.5 rounded-full bg-gray-200 text-gray-700 shrink-0">{t('events.canceled')}</span>}
       </div>
       <p className="text-sm text-gray-700 whitespace-pre-wrap break-words">{desc}</p>
       <ul className="text-xs text-gray-600 space-y-1">
@@ -57,12 +57,12 @@ const EventCard: React.FC<{ ev: EventRow; onChanged: () => void }> = ({ ev, onCh
       </ul>
       <div className="flex items-end justify-between gap-2 pt-1">
         <div>
-          <p className="text-[11px] text-gray-500">{t('events.myPrice')}</p>
+          <p className="text-xs text-gray-500">{t('events.myPrice')}</p>
           <p className="text-lg font-black text-rose-600 leading-none">
             {ev.my_price_jpy === 0 ? t('events.free') : t('events.price', { n: ev.my_price_jpy.toLocaleString() })}
           </p>
           {ev.my_discount_pct > 0 && ev.price_jpy > 0 && (
-            <p className="text-[11px] text-amber-700 flex items-center gap-1"><Crown className="w-3 h-3" />{t('events.discount', { pct: ev.my_discount_pct })} · {t('events.basePrice', { n: ev.price_jpy.toLocaleString() })}</p>
+            <p className="text-xs text-amber-700 flex items-center gap-1"><Crown className="w-3 h-3" />{t('events.discount', { pct: ev.my_discount_pct })} · {t('events.basePrice', { n: ev.price_jpy.toLocaleString() })}</p>
           )}
         </div>
         {registered ? (
@@ -76,9 +76,9 @@ const EventCard: React.FC<{ ev: EventRow; onChanged: () => void }> = ({ ev, onCh
         )}
       </div>
       {notOpen && !canceled && !started && (
-        <p className="text-[11px] text-amber-800 bg-amber-50 rounded-lg px-2 py-1.5">{t('events.earlyAccessLocked', { date: `${formatDate(ev.open_at, locale)} ${hm(ev.open_at)}` })}</p>
+        <p className="text-xs text-amber-800 bg-amber-50 rounded-lg px-2 py-1.5">{t('events.earlyAccessLocked', { date: `${formatDate(ev.open_at, locale)} ${hm(ev.open_at)}` })}</p>
       )}
-      {registered && <p className="text-[11px] text-gray-500">{t('events.paymentNote')}</p>}
+      {registered && <p className="text-xs text-gray-500">{t('events.paymentNote')}</p>}
     </article>
   );
 };

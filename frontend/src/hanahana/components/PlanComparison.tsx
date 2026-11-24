@@ -139,7 +139,7 @@ export const PlanTermsSection: React.FC<{ settings: PublicSettings | null; limit
               <tr><td className="py-1 pr-2">{t('plans.row.photos')}</td>{plans.map((p) => <td key={p.id} className="py-1 px-1 text-right">{fmtPhotos(planFeatures(p).photo_view_max)}</td>)}</tr>
             </tbody>
           </table>
-          {settings && <p className="text-[11px] text-gray-500 mt-1">{t('plans.terms.rateLimit', { n: settings.message_rate_per_minute })}</p>}
+          {settings && <p className="text-xs text-gray-500 mt-1">{t('plans.terms.rateLimit', { n: settings.message_rate_per_minute })}</p>}
         </div>
       )}
       <ul className="text-xs text-gray-600 list-disc pl-5 space-y-1">

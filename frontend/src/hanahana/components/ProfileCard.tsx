@@ -92,7 +92,7 @@ const ProfileCard: React.FC<Props> = ({
               <Badge
                 key={r}
                 variant="secondary"
-                className="text-[10px] font-normal"
+                className="text-[11px] font-normal"
               >
                 {r}
               </Badge>

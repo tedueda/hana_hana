@@ -317,7 +317,7 @@ const GridCard: React.FC<{
             {p.age != null && <span className="text-sm shrink-0">{p.age}</span>}
             {p.is_verified && <BadgeCheck className="w-4 h-4 text-sky-300 shrink-0" aria-label={t('profile.verifiedBadge')} />}
           </div>
-          <p className="text-[11px] text-white/90 truncate">
+          <p className="text-xs text-white/90 truncate">
             {p.nationality ? `${FLAG[p.nationality] ?? ''} ${L.nationality[p.nationality]}` : ''}
             {regionName ? ` · ${regionName}` : ''}
           </p>
